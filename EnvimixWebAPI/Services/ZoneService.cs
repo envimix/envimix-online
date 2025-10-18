@@ -20,21 +20,45 @@ public sealed class ZoneService(
 {
     public async Task<IEnumerable<string>> CreateZonesAsync(CancellationToken cancellationToken)
     {
-        var zoneNames = await mpAPI.GetZonesAsync(cancellationToken);
+        var fetchedZoneNames = (await mpAPI.GetZonesAsync(cancellationToken)).ToList();
 
-        // Clear zones
-        db.Zones.RemoveRange(db.Zones);
+        var existingZoneNames = await db.Zones
+            .Select(z => z.Name)
+            .ToListAsync(cancellationToken);
 
-        await db.Zones.AddRangeAsync(zoneNames.Select(zoneName => new ZoneEntity
+        if (existingZoneNames.Count == fetchedZoneNames.Count &&
+            existingZoneNames.All(fetchedZoneNames.Contains))
         {
-            Name = zoneName
-        }), cancellationToken);
+            return existingZoneNames;
+        }
 
-        await db.SaveChangesAsync(cancellationToken);
+        var existingSet = existingZoneNames.ToHashSet();
+        var fetchedSet = fetchedZoneNames.ToHashSet();
 
-        await hybridCache.RemoveAsync(CacheHelper.GetZonesKey(), CancellationToken.None);
+        var toAdd = fetchedSet.Except(existingSet).ToList();
+        var toRemove = existingSet.Except(fetchedSet).ToList();
 
-        return zoneNames;
+        if (toRemove.Count > 0)
+        {
+            await db.Zones
+                .Where(z => toRemove.Contains(z.Name))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        if (toAdd.Count > 0)
+        {
+            await db.Zones.AddRangeAsync(
+                toAdd.Select(name => new ZoneEntity { Name = name }),
+                cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        if (toAdd.Count > 0 || toRemove.Count > 0)
+        {
+            await hybridCache.RemoveAsync(CacheHelper.GetZonesKey(), CancellationToken.None);
+        }
+
+        return fetchedZoneNames;
     }
 
     public async Task<ImmutableHashSet<string>> GetZonesAsync(CancellationToken cancellationToken)

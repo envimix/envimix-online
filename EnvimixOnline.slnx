@@ -1,4 +1,14 @@
 <Solution>
+  <Folder Name="/Položky řešení/">
+    <File Path=".dockerignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="compose.yaml" />
+    <File Path="nuget.config" />
+    <File Path="README.Docker.md" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="EnvimixDiscordBot/EnvimixDiscordBot.csproj" />
   <Project Path="EnvimixWebAPI/EnvimixWebAPI.csproj" />
   <Project Path="EnvimixWebsite/EnvimixWebsite.Client/EnvimixWebsite.Client.csproj" Id="d6f27fc3-ee58-4cc5-ae95-cc2cf4a2576b" />

@@ -1,5 +1,5 @@
 services:
-  server:
+  envimix-webapi:
     build:
       context: .
       dockerfile: EnvimixWebAPI/Dockerfile
@@ -12,6 +12,26 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+
+  envimix-website:
+    build:
+      context: .
+      dockerfile: EnvimixWebsite/EnvimixWebsite/Dockerfile
+      target: final
+    ports:
+      - 8081:8080
+
+#  envimix-discord-bot:
+#    build:
+#      context: .
+#      dockerfile: EnvimixDiscordBot/Dockerfile
+#      target: final
+#    environment:
+#      ASPNETCORE_ENVIRONMENT: Development
+#      CONNECTIONSTRINGS__DEFAULTCONNECTION: Server=mariadb;Port=3306;Database=envimix_discord_bot;User=root;
+#    depends_on:
+#      mariadb:
+#        condition: service_healthy
   
   mariadb:
     image: mariadb
