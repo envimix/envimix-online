@@ -1,6 +1,7 @@
 ﻿using EnvimixWebAPI.Health;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 using ManiaAPI.Xml.Extensions.Hosting;
+using Microsoft.AspNetCore.ResponseCompression;
 
 namespace EnvimixWebAPI.Configuration;
 
@@ -16,6 +17,13 @@ public static class WebConfiguration
 
         services.AddAuthentication();
         services.AddAuthorization();
+
+        services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true;
+            options.Providers.Add<BrotliCompressionProvider>();
+            options.Providers.Add<GzipCompressionProvider>();
+        });
 
         services.AddOpenApi();
 
