@@ -1,0 +1,41 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: EnvimixWebAPI/Dockerfile
+      target: final
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      CONNECTIONSTRINGS__DEFAULTCONNECTION: Server=mariadb;Port=3306;Database=envimix;User=root;
+    ports:
+      - 8080:8080
+    depends_on:
+      mariadb:
+        condition: service_healthy
+  
+  mariadb:
+    image: mariadb
+    restart: unless-stopped
+    command: --max_allowed_packet=32505856
+    environment:
+      TZ: CET
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 1
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  phpmyadmin:
+    image: beeyev/phpmyadmin-lightweight
+    restart: unless-stopped
+    ports:
+      - 9014:80
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+    depends_on:
+      mariadb:
+        condition: service_healthy
+

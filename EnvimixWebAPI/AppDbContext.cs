@@ -1,0 +1,30 @@
+﻿using EnvimixWebAPI.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace EnvimixWebAPI;
+
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<UserEntity> Users { get; set; }
+    public DbSet<DiscordUserEntity> DiscordUsers { get; set; }
+    public DbSet<ServerEntity> Servers { get; set; }
+    public DbSet<EnvimaniaSessionTokenEntity> EnvimaniaSessionTokens { get; set; }
+    public DbSet<EnvimaniaSessionEntity> EnvimaniaSessions { get; set; }
+    public DbSet<MapEntity> Maps { get; set; }
+    public DbSet<RecordEntity> Records { get; set; }
+    public DbSet<CheckpointEntity> Checkpoints { get; set; }
+    public DbSet<ZoneEntity> Zones { get; set; }
+    public DbSet<CarEntity> Cars { get; set; }
+    public DbSet<RatingEntity> Ratings { get; set; }
+    public DbSet<StarEntity> Stars { get; set; }
+    public DbSet<TitleEntity> Titles { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<EnvimaniaSessionTokenEntity>()
+            .HasOne(x => x.Session)
+            .WithOne(x => x.EnvimaniaSessionToken)
+            .HasForeignKey<EnvimaniaSessionEntity>()
+            .IsRequired();
+    }
+}

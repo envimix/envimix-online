@@ -1,0 +1,41 @@
+﻿using EnvimixWebAPI.Entities;
+using EnvimixWebAPI.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace EnvimixWebAPI.Services;
+
+public interface IMapService
+{
+    Task<MapEntity?> GetAsync(string mapUid, CancellationToken cancellationToken = default);
+    Task<MapEntity> GetAddOrUpdateAsync(MapInfo mapInfo, ServerEntity? server, CancellationToken cancellationToken = default);
+}
+
+public sealed class MapService(AppDbContext db) : IMapService
+{
+    public async Task<MapEntity?> GetAsync(string mapUid, CancellationToken cancellationToken = default)
+    {
+        return await db.Maps.FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
+    }
+
+    public async Task<MapEntity> GetAddOrUpdateAsync(MapInfo mapInfo, ServerEntity? server, CancellationToken cancellationToken = default)
+    {
+        var map = await GetAsync(mapInfo.Uid, cancellationToken);
+
+        if (map is null)
+        {
+            map = new MapEntity
+            {
+                Id = mapInfo.Uid,
+                FirstAppearedOnServer = server
+            };
+
+            await db.Maps.AddAsync(map, cancellationToken);
+        }
+
+        map.Name = mapInfo.Name;
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return map;
+    }
+}

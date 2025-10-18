@@ -1,0 +1,11 @@
+﻿namespace EnvimixWebAPI.Configuration;
+
+public static class CacheConfiguration
+{
+    public static void AddCacheServices(this IServiceCollection services)
+    {
+        services.AddOutputCache();
+        services.AddHybridCache();
+        services.AddMemoryCache();
+    }
+}
