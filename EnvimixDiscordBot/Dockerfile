@@ -40,7 +40,8 @@ ENV \
 
 RUN apk add --no-cache \
     icu-data-full \
-    icu-libs
+    icu-libs \
+    tzdata
 
 WORKDIR /app
 
