@@ -90,11 +90,11 @@ public sealed class CampaignMaker
 
         await _db.Campaigns.AddAsync(campaignModel, cancellationToken);
 
-        _logger.LogInformation("Requesting {MapCount} map infos...", campaign.Playlist.Length);
+        _logger.LogInformation("Requesting {MapCount} map infos...", campaign.Playlist.Count);
 
         var mapInfos = await _nls.GetMapInfosAsync(campaign.Playlist.Select(x => x.MapUid), cancellationToken: cancellationToken);
 
-        for (int i = 0; i < mapInfos.Length; i++)
+        for (int i = 0; i < mapInfos.Count; i++)
         {
             await AddConvertedMapsAsync(campaignModel, mapInfos, i, orderOffset: 0, cancellationToken);
         }
@@ -106,16 +106,16 @@ public sealed class CampaignMaker
         return campaignModel;
 	}
 
-    private async Task AddConvertedMapsAsync(CampaignModel campaignModel, ImmutableArray<MapInfoLive> mapInfos, int i, int orderOffset, CancellationToken cancellationToken)
+    private async Task AddConvertedMapsAsync(CampaignModel campaignModel, ImmutableList<MapInfoLive> mapInfos, int i, int orderOffset, CancellationToken cancellationToken)
     {
         var mapInfo = mapInfos[i];
 
         var deformattedOriginalMapName = TextFormatter.Deformat(mapInfo.Name);
 
-        _logger.LogInformation("Processing map {MapIndex}/{MapCount} ({MapName})...", i + 1, mapInfos.Length, deformattedOriginalMapName);
+        _logger.LogInformation("Processing map {MapIndex}/{MapCount} ({MapName})...", i + 1, mapInfos.Count, deformattedOriginalMapName);
         using var downloadResponse = await _http.GetAsync(mapInfo.DownloadUrl, cancellationToken);
         using var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
-        _logger.LogInformation("Generating envimixes for map {MapIndex}/{MapCount} ({MapName})...", i + 1, mapInfos.Length, deformattedOriginalMapName);
+        _logger.LogInformation("Generating envimixes for map {MapIndex}/{MapCount} ({MapName})...", i + 1, mapInfos.Count, deformattedOriginalMapName);
 
         var carDict = new Dictionary<string, CarModel>();
 
@@ -197,6 +197,12 @@ public sealed class CampaignMaker
 
 			var mapInfo = await _nls.GetMapInfoAsync(map.OriginalUid, cancellationToken);
 
+            if (mapInfo is null)
+            {
+                _logger.LogWarning("Map '{OriginalName}' not found in Nadeo Live Services.", map.OriginalName);
+                continue;
+            }
+
             if (map.Validated && (map.LastModifiedAt is null || map.LastModifiedAt >= mapInfo.UpdateTimestamp))
             {
                 map.LastModifiedAt ??= mapInfo.UpdateTimestamp;
@@ -250,7 +256,7 @@ public sealed class CampaignMaker
 
             var mapInfos = await _nls.GetMapInfosAsync(newMaps, cancellationToken: cancellationToken);
         
-            for (int i = 0; i < mapInfos.Length; i++)
+            for (int i = 0; i < mapInfos.Count; i++)
             {
                 await AddConvertedMapsAsync(campaign, mapInfos, i, orderOffset: maps.Count, cancellationToken);
             }
@@ -302,7 +308,15 @@ public sealed class CampaignMaker
             return null;
         }
 
-        var mapInfo = await _nls.GetMapInfoAsync(latestCampaign.Playlist[mapNum - 1].MapUid, cancellationToken);
+        var mapUid = latestCampaign.Playlist[mapNum - 1].MapUid;
+
+        var mapInfo = await _nls.GetMapInfoAsync(mapUid, cancellationToken);
+
+        if (mapInfo is null)
+        {
+            _logger.LogWarning("Map info '{MapUid}' not found in Nadeo Live Services.", mapUid);
+            return null;
+        }
 
         _logger.LogInformation("Fixing map {Map}...", mapInfo.Name);
 
