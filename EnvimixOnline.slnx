@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="EnvimixDiscordBot/EnvimixDiscordBot.csproj" />
   <Project Path="EnvimixWebAPI/EnvimixWebAPI.csproj" />
+  <Project Path="EnvimixWebsite/EnvimixWebsite.Client/EnvimixWebsite.Client.csproj" Id="d6f27fc3-ee58-4cc5-ae95-cc2cf4a2576b" />
+  <Project Path="EnvimixWebsite/EnvimixWebsite/EnvimixWebsite.csproj" Id="197bcf99-9f86-41e5-ad90-8091938757ae" />
 </Solution>
