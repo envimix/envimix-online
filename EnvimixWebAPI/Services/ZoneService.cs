@@ -9,7 +9,7 @@ namespace EnvimixWebAPI.Services;
 public interface IZoneService
 {
     Task<IEnumerable<string>> CreateZonesAsync(CancellationToken cancellationToken);
-    Task<ImmutableHashSet<string>> GetZonesAsync(CancellationToken cancellationToken);
+    Task<ImmutableDictionary<string, int>> GetZonesAsync(CancellationToken cancellationToken);
     Task<bool> IsValidAsync(string zoneName, CancellationToken cancellationToken);
 }
 
@@ -61,21 +61,20 @@ public sealed class ZoneService(
         return fetchedZoneNames;
     }
 
-    public async Task<ImmutableHashSet<string>> GetZonesAsync(CancellationToken cancellationToken)
+    public async Task<ImmutableDictionary<string, int>> GetZonesAsync(CancellationToken cancellationToken)
     {
         return await hybridCache.GetOrCreateAsync(CacheHelper.GetZonesKey(), async token =>
         {
             var zones = await db.Zones
-                .Select(x => x.Name)
                 .AsNoTracking()
                 .ToListAsync(token);
-            return zones.ToImmutableHashSet();
+            return zones.ToImmutableDictionary(z => z.Name, z => z.Id);
         }, new() { Expiration = TimeSpan.FromHours(8) }, cancellationToken: cancellationToken);
     }
 
     public async Task<bool> IsValidAsync(string zoneName, CancellationToken cancellationToken)
     {
         var zones = await GetZonesAsync(cancellationToken);
-        return zones.Contains(zoneName);
+        return zones.ContainsKey(zoneName);
     }
 }

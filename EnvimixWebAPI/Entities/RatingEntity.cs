@@ -6,6 +6,7 @@ public sealed class RatingEntity
     public required UserEntity User { get; set; }
     public required MapEntity Map { get; set; }
     public required CarEntity Car { get; set; }
+    public string CarId { get; set; } = null!;
     public required int Gravity { get; set; }
     public float? Difficulty { get; set; }
     public float? Quality { get; set; }

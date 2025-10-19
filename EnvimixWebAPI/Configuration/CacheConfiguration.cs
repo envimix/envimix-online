@@ -6,6 +6,5 @@ public static class CacheConfiguration
     {
         services.AddOutputCache();
         services.AddHybridCache();
-        services.AddMemoryCache();
     }
 }

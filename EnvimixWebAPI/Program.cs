@@ -1,4 +1,5 @@
 using EnvimixWebAPI.Configuration;
+using EnvimixWebAPI.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,14 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateScopes = true;
     options.ValidateOnBuild = true;
 });
+
+builder.Services.AddOptions<EnvimaniaOptions>()
+    .Bind(builder.Configuration.GetSection("Envimania"))
+    .ValidateDataAnnotations();
+
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection("Jwt"))
+    .ValidateDataAnnotations();
 
 // Add services to the container.
 builder.Services.AddDomainServices();

@@ -40,7 +40,6 @@ public sealed class TotdService(AppDbContext db) : ITotdService
 
         var environment = random.Next(0, 4) switch
         {
-            0 => "Canyon",
             1 => "Stadium",
             2 => "Valley",
             3 => "Lagoon",
@@ -49,7 +48,6 @@ public sealed class TotdService(AppDbContext db) : ITotdService
 
         var difficulty = random.Next(0, 5) switch
         {
-            0 => "A",
             1 => "B",
             2 => "C",
             3 => "D",
@@ -61,7 +59,6 @@ public sealed class TotdService(AppDbContext db) : ITotdService
 
         var car = random.Next(0, 4) switch
         {
-            0 => "CanyonCar",
             1 => "StadiumCar",
             2 => "ValleyCar",
             3 => "LagoonCar",

@@ -21,5 +21,6 @@ public static class EndpointConfiguration
         RateEndpoints.Map(app.MapGroup("/rate"));
         TotdEndpoints.Map(app.MapGroup("/totd"));
         ZoneEndpoints.Map(app.MapGroup("/zones"));
+        UserEndpoints.Map(app.MapGroup("/users"));
     }
 }

@@ -5,10 +5,11 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>9d7b5d3e-6930-4fc0-8f18-c9cf40ab3dc4</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ManiaAPI.ManiaPlanetAPI" Version="2.4.0" />
+        <PackageReference Include="ManiaAPI.ManiaPlanetAPI" Version="2.5.1" />
         <PackageReference Include="ManiaAPI.ManiaPlanetAPI.Extensions.Hosting" Version="2.4.0" />
         <PackageReference Include="ManiaAPI.Xml" Version="2.5.0" />
         <PackageReference Include="ManiaAPI.Xml.Extensions.Hosting" Version="2.5.0" />
@@ -40,10 +41,15 @@
         </PackageReference>
         <PackageReference Include="TmEssentials" Version="2.5.3" />
         <PackageReference Include="FluentValidation" Version="12.0.0" />
-    </ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />
+	</ItemGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Migrations\" />
     </ItemGroup>
 
 </Project>

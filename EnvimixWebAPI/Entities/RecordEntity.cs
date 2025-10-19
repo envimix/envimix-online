@@ -14,7 +14,7 @@ public sealed class RecordEntity
     public required DateTimeOffset DrivenAt { get; set; }
 
     public EnvimaniaSessionEntity Session { get; set; } = null!;
-    public int SessionId { get; set; }
+    public Guid SessionId { get; set; }
 
     public required int Laps { get; set; }
 

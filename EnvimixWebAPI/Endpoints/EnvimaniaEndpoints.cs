@@ -25,17 +25,15 @@ public static class EnvimaniaEndpoints
 
     private static void MapSession(RouteGroupBuilder group)
     {
-        group.RequireAuthorization(Policies.ManiaPlanetRegisteredServerPolicy);
-
         group.MapPost("", Session);
-        group.MapGet("status", SessionStatus);
-        group.MapPost("record", SessionRecord);
-        group.MapPost("records", SessionRecordsPost);
-        group.MapGet("records/{car}", SessionRecordsGet);
-        group.MapPost("rate", SessionRate);
-        group.MapPost("user", SessionUser);
-        group.MapPost("users", SessionUsers);
-        group.MapPost("close", SessionClose);
+        group.MapGet("status", SessionStatus).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("record", SessionRecord).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("records", SessionRecordsPost).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapGet("records/{car}", SessionRecordsGet).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("rate", SessionRate).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("user", SessionUser).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("users", SessionUsers).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("close", SessionClose).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
     }
 
     private static async Task<Results<Ok<EnvimaniaServer>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>, ForbidHttpResult>> Register(
@@ -90,7 +88,17 @@ public static class EnvimaniaEndpoints
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
-        var result = await envimaniaService.CreateSessionAsync(sessionRequest, principal, cancellationToken);
+        if (!Validator.ValidateMapUid(sessionRequest.Map.Uid))
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Invalid MapUid"));
+        }
+
+        if (sessionRequest.Players.Length > 255)
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Too many players"));
+        }
+
+        var result = await envimaniaService.CreateSessionAsync(sessionRequest, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaSessionResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),

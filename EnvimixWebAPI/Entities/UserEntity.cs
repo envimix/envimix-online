@@ -10,6 +10,7 @@ public sealed class UserEntity
     [StringLength(255)]
     public string? Nickname { get; set; }
     public ZoneEntity? Zone { get; set; }
+    public int? ZoneId { get; set; }
 
     [StringLength(255)]
     public string? AvatarUrl { get; set; }

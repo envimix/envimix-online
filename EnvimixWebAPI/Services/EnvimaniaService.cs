@@ -2,14 +2,21 @@
 using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
+using EnvimixWebAPI.Options;
+using EnvimixWebAPI.Security;
+using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.Xml.MP4;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using OneOf;
 using System.Data;
-using System.Net.Http.Headers;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
+using System.Text;
 using TmEssentials;
 
 namespace EnvimixWebAPI.Services;
@@ -26,7 +33,7 @@ public interface IEnvimaniaService
         UnbanAsync(EnvimaniaUnbanRequest unbanRequest, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionResponse, ValidationFailureResponse, ActionForbiddenResponse>>
-        CreateSessionAsync(EnvimaniaSessionRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
+        CreateSessionAsync(EnvimaniaSessionRequest request, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionStatusResponse, ActionForbiddenResponse>>
         CheckSessionStatusAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
@@ -55,14 +62,15 @@ public interface IEnvimaniaService
 
 public sealed class EnvimaniaService(
     AppDbContext db,
-    IMemoryCache memoryCache,
-    IHttpClientFactory httpFactory,
+    HybridCache cache,
     MasterServerMP4 masterServer,
+    ManiaPlanetIngameAPI mpIngameApi,
     IMapService mapService,
     IUserService userService,
     IZoneService zoneService,
     IModService modService,
     IRatingService ratingService,
+    IOptions<JwtOptions> jwtOptions,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
@@ -72,8 +80,7 @@ public sealed class EnvimaniaService(
     {
         // VALIDATION START
 
-        logger.LogInformation("Attempt to register dedicated server {serverLogin} from {user}...",
-            request.ServerLogin, principal.GetName());
+        logger.LogInformation("Attempt to register dedicated server {serverLogin}...", request.ServerLogin);
 
         if (!Validator.ValidateLogin(request.ServerLogin))
         {
@@ -84,28 +91,36 @@ public sealed class EnvimaniaService(
 
         // validate with ManiaPlanet web services here, so that only owner can register the server login
 
-        if (memoryCache.TryGetValue<ServerEntity>(CacheHelper.GetServerKey(request.ServerLogin), out var server))
-        {
-            return new ActionUnprocessableResponse("Server login already registered");
-        }
-
-        server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
+        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
 
         if (server is not null)
         {
-            memoryCache.Set(CacheHelper.GetServerKey(request.ServerLogin), server, TimeSpan.FromMinutes(30));
             return new ActionUnprocessableResponse("Server login already registered");
         }
 
         // Check for server ownership (skipped for super admins)
         if (!principal.IsInRole(Roles.SuperAdmin))
         {
-            var userOwnsServerLogin = await UserOwnsServerLoginAsync(request.ServerLogin, principal, cancellationToken);
-
-            if (!userOwnsServerLogin)
+            if (string.IsNullOrWhiteSpace(request.ServerToken))
             {
-                return new ActionForbiddenResponse("Server login not owned by user");
+                return new ActionForbiddenResponse("Server registering from principals is not yet supported");
+
+                /*var userOwnsServerLogin = await UserOwnsServerLoginAsync(request.ServerLogin, principal, cancellationToken);
+
+                if (!userOwnsServerLogin)
+                {
+                    return new ActionForbiddenResponse("Server login not owned by user");
+                }*/
             }
+
+            var ingameAuthResult = await mpIngameApi.AuthenticateAsync(request.ServerLogin, request.ServerToken, cancellationToken);
+
+            if (ingameAuthResult.Login != request.ServerLogin)
+            {
+                return new ActionForbiddenResponse("Invalid server token");
+            }
+
+            logger.LogDebug("Server ownership of {serverLogin} verified.", request.ServerLogin);
         }
 
         // VALIDATION END
@@ -120,15 +135,13 @@ public sealed class EnvimaniaService(
 
         logger.LogInformation("Dedicated server {serverLogin} has been registered.", server.Id);
 
-        memoryCache.Set(CacheHelper.GetServerKey(request.ServerLogin), server, TimeSpan.FromMinutes(30));
-
         return new EnvimaniaServer
         {
             ServerLogin = server.Id
         };
     }
 
-    private async Task<bool> UserOwnsServerLoginAsync(string serverLogin, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    /*private async Task<bool> UserOwnsServerLoginAsync(string serverLogin, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var accessToken = principal.FindFirstValue("WebServicesToken") ?? throw new Exception("AccessToken is null");
 
@@ -152,7 +165,7 @@ public sealed class EnvimaniaService(
         }
 
         return serverIsOwned;
-    }
+    }*/
 
     public async Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>> BanAsync(
         EnvimaniaBanRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -186,8 +199,6 @@ public sealed class EnvimaniaService(
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Dedicated server {serverLogin} has been banned.", server.Id);
-
-        memoryCache.Set(CacheHelper.GetServerKey(request.ServerLogin), server, TimeSpan.FromMinutes(30));
 
         return new EnvimaniaBanResponse
         {
@@ -230,8 +241,6 @@ public sealed class EnvimaniaService(
 
         logger.LogInformation("Dedicated server {serverLogin} has been unbanned.", server.Id);
 
-        memoryCache.Set(CacheHelper.GetServerKey(request.ServerLogin), server, TimeSpan.FromMinutes(30));
-
         return new EnvimaniaUnbanResponse
         {
             ServerLogin = server.Id
@@ -239,16 +248,11 @@ public sealed class EnvimaniaService(
     }
 
     public async Task<OneOf<EnvimaniaSessionResponse, ValidationFailureResponse, ActionForbiddenResponse>> CreateSessionAsync(
-        EnvimaniaSessionRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
+        EnvimaniaSessionRequest request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Attempt to create a new session via {user} dedicated server...", principal.GetName());
+        logger.LogInformation("Attempt to create a new session via {user} dedicated server...", request.ServerLogin);
 
         // VALIDATION START
-
-        if (!Validator.ValidateMapUid(request.Map.Uid))
-        {
-            return new ValidationFailureResponse("Invalid MapUid");
-        }
 
         foreach (var car in request.Cars)
         {
@@ -258,28 +262,12 @@ public sealed class EnvimaniaService(
             }
         }
 
-        if (request.Players.Length > 255)
+        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
+
+        if (server is null)
         {
-            return new ValidationFailureResponse("Too many players");
+            return new ValidationFailureResponse("Server login not registered");
         }
-
-        if (principal.Identity?.Name is null)
-        {
-            throw new Exception("ClaimsIdentity.Name is null");
-        }
-
-        var serverLogin = principal.Identity.Name;
-        var banReason = principal.FindFirstValue("BanReason");
-
-        if (banReason is not null)
-        {
-            return ActionForbiddenResponse.ServerLoginBanned;
-        }
-
-        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == serverLogin, cancellationToken)
-            ?? throw new Exception("Server login not registered but supposedly was");
-
-        memoryCache.Set(CacheHelper.GetServerKey(serverLogin), server, TimeSpan.FromMinutes(30));
 
         if (server.BanReason is not null)
         {
@@ -288,11 +276,39 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        logger.LogDebug("Generating new token...");
+        // can throw 403
+        var ingameAuthResult = await mpIngameApi.AuthenticateAsync(request.ServerLogin, request.ServerToken, cancellationToken);
 
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(30));
-        var startedAt = DateTimeOffset.UtcNow;
-        var expiresAt = startedAt.AddMinutes(30);
+        if (ingameAuthResult.Login != request.ServerLogin)
+        {
+            return new ValidationFailureResponse("Invalid server token");
+        }
+
+        logger.LogDebug("Generating new session token...");
+
+        var sessionGuid = Guid.CreateVersion7();
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Issuer = jwtOptions.Value.Issuer,
+            Audience = Consts.EnvimaniaSession,
+            Subject = new ClaimsIdentity([
+                new Claim(JwtRegisteredClaimNames.UniqueName, request.ServerLogin),
+                new Claim(EnvimaniaClaimTypes.SessionGuid, sessionGuid.ToString()),
+                new Claim(EnvimaniaClaimTypes.SessionMapUid, request.Map.Uid)
+            ]),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Value.Key)),
+                SecurityAlgorithms.HmacSha256Signature),
+            Expires = DateTime.UtcNow.AddMinutes(30)
+        };
+
+        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+        var startedAt = securityToken.ValidFrom;
+        var expiresAt = securityToken.ValidTo;
+
+        var token = tokenHandler.WriteToken(securityToken);
 
         logger.LogInformation("Adding/updating map {mapName}...", TextFormatter.Deformat(request.Map.Name));
 
@@ -300,7 +316,7 @@ public sealed class EnvimaniaService(
 
         var session = new EnvimaniaSessionEntity
         {
-            Guid = Guid.NewGuid(),
+            Id = sessionGuid,
             Map = map,
             Server = server,
             StartedAt = startedAt
@@ -310,12 +326,12 @@ public sealed class EnvimaniaService(
 
         await db.EnvimaniaSessions.AddAsync(session, cancellationToken);
 
-        await db.EnvimaniaSessionTokens.AddAsync(new EnvimaniaSessionTokenEntity
+        /*await db.EnvimaniaSessionTokens.AddAsync(new EnvimaniaSessionTokenEntity
         {
             Id = token,
             Session = session,
             ExpiresAt = expiresAt
-        }, cancellationToken);
+        }, cancellationToken);*/
 
         logger.LogInformation("Updating user information of {playerCount} players...", request.Players.Length);
 
@@ -323,10 +339,7 @@ public sealed class EnvimaniaService(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Session on {serverLogin} created. Expires at {expiresAt}.", serverLogin, expiresAt);
-
-        memoryCache.Set(CacheHelper.GetEnvimaniaSessionTokenKey(token), session.Guid, expiresAt);
-        memoryCache.Set(CacheHelper.GetEnvimaniaSessionKey(session.Guid), session, expiresAt);
+        logger.LogInformation("Session on {serverLogin} created. Expires at {expiresAt}.", request.ServerLogin, expiresAt);
 
         logger.LogDebug("Retrieving general ratings of the modifications...");
 
@@ -379,14 +392,14 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Include(x => x.Checkpoints)
-            .GroupBy(x => new { x.Car, x.Gravity, x.Laps })
+            .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
             .Select(g => g.OrderBy(x => x.DrivenAt).FirstOrDefault())
             .ToListAsync(cancellationToken);
 
         return new EnvimaniaSessionResponse
         {
-            ServerLogin = serverLogin,
-            Token = token,
+            ServerLogin = request.ServerLogin,
+            SessionToken = token,
             Ratings = ratings,
             UserRatings = userRatings,
             Validations = validations.OfType<RecordEntity>().ToDictionary(x => $"{x.Car.Id}_{x.Gravity}_{x.Laps}", rec => new EnvimaniaRecordInfo
@@ -430,29 +443,16 @@ public sealed class EnvimaniaService(
         }
 
         // VALIDATION END
-
-        var token = principal.FindFirstValue("EnvimaniaSessionToken") ?? throw new Exception("EnvimaniaSessionToken is null");
-
-        var sessionTokenCacheKey = CacheHelper.GetEnvimaniaSessionTokenKey(token);
-        var sessionGuid = memoryCache.Get<Guid>(sessionTokenCacheKey);
-
-        memoryCache.Remove(sessionTokenCacheKey);
-        memoryCache.Remove(CacheHelper.GetEnvimaniaSessionKey(sessionGuid));
+        var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
 
         var session = await db.EnvimaniaSessions
-            .Include(x => x.EnvimaniaSessionToken)
-            .FirstOrDefaultAsync(x => x.Guid == sessionGuid, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == sessionGuid, cancellationToken)
             ?? throw new Exception("Session not found in database but should have been found");
 
         var sessionEnd = DateTimeOffset.UtcNow;
 
         session.FinishedGracefully = true;
         session.EndedAt = sessionEnd;
-
-        if (session.EnvimaniaSessionToken is not null)
-        {
-            session.EnvimaniaSessionToken.ExpiresAt = sessionEnd;
-        }
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -509,12 +509,7 @@ public sealed class EnvimaniaService(
         logger.LogInformation("Record set successfully.");
 
         // Get updated record list
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
-
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
         var filter = new EnvimaniaRecordFilter()
         {
@@ -524,7 +519,7 @@ public sealed class EnvimaniaService(
         };
 
         logger.LogDebug("Retrieving updated records...");
-        var recs = await GetRecordsWithoutValidationAsync(session.Map.Id, filter, "World", cancellationToken);
+        var recs = await GetRecordsWithoutValidationAsync(mapUid, filter, "World", cancellationToken);
 
         logger.LogDebug("Updated records retrieved.");
 
@@ -578,12 +573,7 @@ public sealed class EnvimaniaService(
         logger.LogInformation("{recCount} records set successfully.", allowedRequests.Count);
 
         // Get updated record list
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
-
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
         var updatedRecs = new List<EnvimaniaRecordsResponse>();
 
@@ -591,7 +581,7 @@ public sealed class EnvimaniaService(
 
         foreach (var f in filters)
         {
-            updatedRecs.Add(await GetRecordsWithoutValidationAsync(session.Map.Id, f, "World", cancellationToken));
+            updatedRecs.Add(await GetRecordsWithoutValidationAsync(mapUid, f, "World", cancellationToken));
         }
 
         logger.LogDebug("Updated records retrieved.");
@@ -652,14 +642,10 @@ public sealed class EnvimaniaService(
     {
         var userModel = await userService.GetAddOrUpdateAsync(request.User, cancellationToken);
 
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
+        var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
-
-        var map = await mapService.GetAsync(session.Map.Id, cancellationToken)
+        var map = await mapService.GetAsync(mapUid, cancellationToken)
             ?? throw new Exception("Map not found but should have been found");
 
         var car = await modService.GetOrAddCarAsync(request.Car, cancellationToken);
@@ -692,7 +678,7 @@ public sealed class EnvimaniaService(
             Car = car,
             Gravity = gravity,
             DrivenAt = DateTimeOffset.UtcNow, // + request.PreferenceNumber
-            SessionId = session.Id,
+            SessionId = sessionGuid,
             Laps = request.Laps
         };
 
@@ -777,14 +763,9 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
-
-        return await GetRecordsWithoutValidationAsync(session.Map.Id, filter, "World", cancellationToken);
+        return await GetRecordsWithoutValidationAsync(mapUid, filter, "World", cancellationToken);
     }
 
     public async Task<OneOf<EnvimaniaRecordsResponse, ValidationFailureResponse>> GetRecordsAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, CancellationToken cancellationToken)
@@ -863,11 +844,10 @@ public sealed class EnvimaniaService(
             };
         }
 
-        var mpRecords = await memoryCache.GetOrCreateAsync(CacheHelper.GetOfficialRecordsKey(mapUid, filter.Car, zone), async entry =>
+        var mpRecords = await cache.GetOrCreateAsync(CacheHelper.GetOfficialRecordsKey(mapUid, filter.Car, zone), async token =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-            return await masterServer.GetMapLeaderBoardAsync("Nadeo_Envimix@bigbang1112", mapUid, count: 20, offset: 0, zone, $"{filter.Car}2");
-        }) ?? [];
+            return await masterServer.GetMapLeaderBoardAsync("Nadeo_Envimix@bigbang1112", mapUid, count: 20, offset: 0, zone, $"{filter.Car}2", token);
+        }, new() { Expiration = TimeSpan.FromMinutes(10) }, cancellationToken: cancellationToken);
 
         if (mpRecords.Count > 0)
         {
@@ -939,17 +919,12 @@ public sealed class EnvimaniaService(
 
         await userService.GetAddOrUpdateAsync(userInfo, cancellationToken);
 
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
-
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
         return new EnvimaniaSessionUser
         {
             Login = userInfo.Login,
-            Ratings = await ratingService.GetByUserLoginAsync(session.Map.Id, userInfo.Login, cancellationToken)
+            Ratings = await ratingService.GetByUserLoginAsync(mapUid, userInfo.Login, cancellationToken)
         };
     }
 
@@ -980,14 +955,9 @@ public sealed class EnvimaniaService(
 
         logger.LogInformation("{userCount} users have been updated.", userInfos.Values.Count);
 
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
-
-        var ratings = await ratingService.GetByUserLoginsAsync(session.Map.Id, userInfos.Keys, cancellationToken);
+        var ratings = await ratingService.GetByUserLoginsAsync(mapUid, userInfos.Keys, cancellationToken);
 
         // Mapping rating nulls to -1s for ManiaScript
         foreach (var (_, filteredRatings) in ratings)

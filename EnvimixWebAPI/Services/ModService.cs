@@ -1,7 +1,8 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
+using EnvimixWebAPI.Options;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 namespace EnvimixWebAPI.Services;
 
@@ -13,31 +14,16 @@ public interface IModService
     bool IsValidGravity(int gravity);
 }
 
-public sealed class ModService(
-    AppDbContext db,
-    IConfiguration config,
-    IMemoryCache memoryCache) : IModService
+public sealed class ModService(AppDbContext db, IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions) : IModService
 {
     public bool IsValidCar(string carName)
     {
-        var cars = memoryCache.GetOrCreate(CacheHelper.GetCarsKey(), entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
-            return config.GetSection("Envimania:Car").Get<HashSet<string>>();
-        });
-
-        return cars?.Contains(carName) == true;
+        return envimaniaOptions.Value.Car?.Contains(carName) == true;
     }
 
     public bool IsValidGravity(int gravity)
     {
-        var allowedGravity = memoryCache.GetOrCreate(CacheHelper.GetGravityKey(), entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
-            return config.GetSection("Envimania:Gravity").Get<HashSet<int>>();
-        });
-
-        return allowedGravity?.Contains(gravity) == true;
+        return envimaniaOptions.Value.Gravity?.Contains(gravity) == true;
     }
 
     public async Task<CarEntity> GetOrAddCarAsync(string carName, CancellationToken cancellationToken)

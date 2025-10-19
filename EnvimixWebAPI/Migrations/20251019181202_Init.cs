@@ -48,20 +48,6 @@ namespace EnvimixWebAPI.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "EnvimaniaSessionTokens",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    ExpiresAt = table.Column<DateTimeOffset>(type: "datetime(6)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EnvimaniaSessionTokens", x => x.Id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "Servers",
                 columns: table => new
                 {
@@ -182,14 +168,10 @@ namespace EnvimixWebAPI.Migrations
                 name: "EnvimaniaSessions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Guid = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     MapId = table.Column<string>(type: "varchar(34)", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ServerId = table.Column<string>(type: "varchar(64)", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    EnvimaniaSessionTokenId = table.Column<string>(type: "varchar(64)", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     StartedAt = table.Column<DateTimeOffset>(type: "datetime(6)", nullable: false),
                     EndedAt = table.Column<DateTimeOffset>(type: "datetime(6)", nullable: false),
@@ -198,12 +180,6 @@ namespace EnvimixWebAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_EnvimaniaSessions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_EnvimaniaSessions_EnvimaniaSessionTokens_EnvimaniaSessionTok~",
-                        column: x => x.EnvimaniaSessionTokenId,
-                        principalTable: "EnvimaniaSessionTokens",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_EnvimaniaSessions_Maps_MapId",
                         column: x => x.MapId,
@@ -317,7 +293,7 @@ namespace EnvimixWebAPI.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Gravity = table.Column<int>(type: "int", nullable: false),
                     DrivenAt = table.Column<DateTimeOffset>(type: "datetime(6)", nullable: false),
-                    SessionId = table.Column<int>(type: "int", nullable: false),
+                    SessionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Laps = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -373,12 +349,6 @@ namespace EnvimixWebAPI.Migrations
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EnvimaniaSessions_EnvimaniaSessionTokenId",
-                table: "EnvimaniaSessions",
-                column: "EnvimaniaSessionTokenId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_EnvimaniaSessions_MapId",
@@ -504,9 +474,6 @@ namespace EnvimixWebAPI.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "EnvimaniaSessionTokens");
 
             migrationBuilder.DropTable(
                 name: "Maps");

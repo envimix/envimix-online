@@ -8,7 +8,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<UserEntity> Users { get; set; }
     public DbSet<DiscordUserEntity> DiscordUsers { get; set; }
     public DbSet<ServerEntity> Servers { get; set; }
-    public DbSet<EnvimaniaSessionTokenEntity> EnvimaniaSessionTokens { get; set; }
     public DbSet<EnvimaniaSessionEntity> EnvimaniaSessions { get; set; }
     public DbSet<MapEntity> Maps { get; set; }
     public DbSet<RecordEntity> Records { get; set; }
@@ -18,13 +17,4 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RatingEntity> Ratings { get; set; }
     public DbSet<StarEntity> Stars { get; set; }
     public DbSet<TitleEntity> Titles { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<EnvimaniaSessionTokenEntity>()
-            .HasOne(x => x.Session)
-            .WithOne(x => x.EnvimaniaSessionToken)
-            .HasForeignKey<EnvimaniaSessionEntity>()
-            .IsRequired();
-    }
 }

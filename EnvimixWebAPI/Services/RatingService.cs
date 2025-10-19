@@ -1,7 +1,7 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
+using EnvimixWebAPI.Security;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using OneOf;
 using System.Security.Claims;
 
@@ -15,20 +15,19 @@ public interface IRatingService
     Task<OneOf<RatingServerResponse, ValidationFailureResponse, ActionForbiddenResponse>>
         SetAsync(RatingServerRequest[] request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
-    Task<Models.Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken);
+    Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken);
     Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken);
     Task<Dictionary<string, List<FilteredRating>>> GetByUserLoginsAsync(string mapUid, IEnumerable<string> userLogins, CancellationToken cancellationToken);
 }
 
 public sealed class RatingService(
     AppDbContext db,
-    IMemoryCache memoryCache,
     IUserService userService,
     IMapService mapService,
     IModService modService,
     ILogger<RatingService> logger) : IRatingService
 {
-    private static ValidationFailureResponse? Validate(Models.Rating rating)
+    private static ValidationFailureResponse? Validate(Rating rating)
     {
         var difficulty = rating.Difficulty;
         var quality = rating.Quality;
@@ -160,14 +159,9 @@ public sealed class RatingService(
 
         // VALIDATION END
 
-        var sessionGuid = Guid.Parse(principal.FindFirstValue("EnvimaniaSessionGuid") ?? throw new Exception("EnvimaniaSessionGuid is null"));
-
-        if (!memoryCache.TryGetValue<EnvimaniaSessionEntity>(CacheHelper.GetEnvimaniaSessionKey(sessionGuid), out EnvimaniaSessionEntity? session) || session is null)
-        {
-            throw new Exception("Session not found but should have been found");
-        }
-
-        var mapUid = session.Map.Id;
+        var serverLogin = principal.Identity?.Name ?? throw new Exception("ClaimsIdentity.Name is null");
+        var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
+        var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
         foreach (var req in request)
         {
@@ -179,7 +173,7 @@ public sealed class RatingService(
                     && r.Map.Id == mapUid
                     && r.Car.Id == req.Car
                     && r.Gravity == req.Gravity
-                    && r.Server!.Id == session.Server.Id, cancellationToken);
+                    && r.Server!.Id == serverLogin, cancellationToken);
 
             if (rating is null)
             {
@@ -192,7 +186,7 @@ public sealed class RatingService(
                     Car = await modService.GetOrAddCarAsync(req.Car, cancellationToken),
                     Gravity = req.Gravity,
                     CreatedAt = DateTimeOffset.UtcNow,
-                    ServerId = session.Server.Id
+                    ServerId = serverLogin
                 };
 
                 await db.Ratings.AddAsync(rating, cancellationToken);
@@ -260,7 +254,6 @@ public sealed class RatingService(
     public async Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken)
     {
         var ratingsFromDb = await db.Ratings
-            .Include(x => x.Car)
             .Include(x => x.User)
             .Where(x => x.Map.Id == mapUid && x.User.Id == login && (x.Difficulty != null || x.Quality != null))
             .GroupBy(x => new { x.Car, x.Gravity })
@@ -271,7 +264,7 @@ public sealed class RatingService(
         {
             Filter = new()
             {
-                Car = rating.Car.Id,
+                Car = rating.CarId,
                 Gravity = rating.Gravity,
                 Type = Models.Envimania.EnvimaniaLeaderboardType.Time
             },
@@ -284,10 +277,8 @@ public sealed class RatingService(
     public async Task<Dictionary<string, List<FilteredRating>>> GetByUserLoginsAsync(string mapUid, IEnumerable<string> userLogins, CancellationToken cancellationToken)
     {
         var ratingsFromDb = await db.Ratings
-            .Include(x => x.Car)
-            .Include(x => x.User)
             .Where(x => x.Map.Id == mapUid && userLogins.Contains(x.User.Id) && (x.Difficulty != null || x.Quality != null))
-            .GroupBy(x => new { x.User, x.Car, x.Gravity })
+            .GroupBy(x => new { userId = x.User.Id, carId = x.Car.Id, x.Gravity })
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
 
@@ -299,7 +290,7 @@ public sealed class RatingService(
             {
                 Filter = new()
                 {
-                    Car = rating.Car.Id,
+                    Car = rating.CarId,
                     Gravity = rating.Gravity,
                     Type = Models.Envimania.EnvimaniaLeaderboardType.Time
                 },

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251018010032_Init")]
+    [Migration("20251019181202_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -94,24 +94,15 @@ namespace EnvimixWebAPI.Migrations
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.EnvimaniaSessionEntity", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset>("EndedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("EnvimaniaSessionTokenId")
-                        .IsRequired()
-                        .HasColumnType("varchar(64)");
-
                     b.Property<bool>("FinishedGracefully")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<Guid>("Guid")
-                        .HasColumnType("char(36)");
 
                     b.Property<string>("MapId")
                         .HasColumnType("varchar(34)");
@@ -124,28 +115,11 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EnvimaniaSessionTokenId")
-                        .IsUnique();
-
                     b.HasIndex("MapId");
 
                     b.HasIndex("ServerId");
 
                     b.ToTable("EnvimaniaSessions");
-                });
-
-            modelBuilder.Entity("EnvimixWebAPI.Entities.EnvimaniaSessionTokenEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<DateTimeOffset>("ExpiresAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("EnvimaniaSessionTokens");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapEntity", b =>
@@ -249,8 +223,8 @@ namespace EnvimixWebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(34)");
 
-                    b.Property<int>("SessionId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("UserId")
                         .HasColumnType("varchar(64)");
@@ -428,12 +402,6 @@ namespace EnvimixWebAPI.Migrations
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.EnvimaniaSessionEntity", b =>
                 {
-                    b.HasOne("EnvimixWebAPI.Entities.EnvimaniaSessionTokenEntity", "EnvimaniaSessionToken")
-                        .WithOne("Session")
-                        .HasForeignKey("EnvimixWebAPI.Entities.EnvimaniaSessionEntity", "EnvimaniaSessionTokenId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("EnvimixWebAPI.Entities.MapEntity", "Map")
                         .WithMany("EnvimaniaSessions")
                         .HasForeignKey("MapId");
@@ -441,8 +409,6 @@ namespace EnvimixWebAPI.Migrations
                     b.HasOne("EnvimixWebAPI.Entities.ServerEntity", "Server")
                         .WithMany("EnvimaniaSessions")
                         .HasForeignKey("ServerId");
-
-                    b.Navigation("EnvimaniaSessionToken");
 
                     b.Navigation("Map");
 
@@ -571,12 +537,6 @@ namespace EnvimixWebAPI.Migrations
             modelBuilder.Entity("EnvimixWebAPI.Entities.DiscordUserEntity", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("EnvimixWebAPI.Entities.EnvimaniaSessionTokenEntity", b =>
-                {
-                    b.Navigation("Session")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapEntity", b =>
