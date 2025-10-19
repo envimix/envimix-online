@@ -853,6 +853,16 @@ public sealed class EnvimaniaService(
             });
         }
 
+        if (records.Count == 0 || records.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
+        {
+            return new EnvimaniaRecordsResponse
+            {
+                Filter = filter,
+                Zone = zone,
+                Records = envimaniaRecords
+            };
+        }
+
         var mpRecords = await memoryCache.GetOrCreateAsync(CacheHelper.GetOfficialRecordsKey(mapUid, filter.Car, zone), async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);

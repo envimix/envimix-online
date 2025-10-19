@@ -11,6 +11,8 @@ public sealed class MapEntity
     public string Name { get; set; } = "";
 
     public TitleEntity? TitlePack { get; set; }
+    public string? TitlePackId { get; set; }
+
     public ServerEntity? FirstAppearedOnServer { get; set; }
 
     public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
