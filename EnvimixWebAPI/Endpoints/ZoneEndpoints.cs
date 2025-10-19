@@ -1,4 +1,5 @@
 ﻿using EnvimixWebAPI.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -11,7 +12,7 @@ public static class ZoneEndpoints
         group.MapPost("", PostZones).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
-    private static async Task<IResult> PostZones(IZoneService zoneService, CancellationToken cancellationToken)
+    private static async Task<Ok<IEnumerable<string>>> PostZones(IZoneService zoneService, CancellationToken cancellationToken)
     {
         var zones = await zoneService.CreateZonesAsync(cancellationToken);
 

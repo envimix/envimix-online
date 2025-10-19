@@ -1,4 +1,5 @@
 ﻿using EnvimixWebAPI.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnvimixWebAPI.Endpoints;
@@ -12,7 +13,7 @@ public static class MapEndpoints
         group.MapGet("{mapUid}", GetMap);
     }
 
-    private static async Task<IResult> GetMap(
+    private static async Task<Results<Ok<MapInfoResponse>, NotFound>> GetMap(
         string mapUid,
         AppDbContext db,
         CancellationToken cancellationToken)
@@ -46,6 +47,6 @@ public static class MapEndpoints
             Envimania = []
         };
 
-        return TypedResults.Ok(map);
+        return TypedResults.Ok(mapResponse);
     }
 }

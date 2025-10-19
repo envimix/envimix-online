@@ -1,6 +1,7 @@
 ﻿using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -37,7 +38,7 @@ public static class EnvimaniaEndpoints
         group.MapPost("close", SessionClose);
     }
 
-    private static async Task<IResult> Register(
+    private static async Task<Results<Ok<EnvimaniaServer>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>, ForbidHttpResult>> Register(
         [FromBody] EnvimaniaRegistrationRequest registerRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -45,7 +46,7 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.RegisterAsync(registerRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaServer>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse), // TODO: use Created here instead
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionUnprocessable => TypedResults.UnprocessableEntity(actionUnprocessable),
@@ -53,7 +54,7 @@ public static class EnvimaniaEndpoints
         );
     }
 
-    private static async Task<IResult> Ban(
+    private static async Task<Results<Ok<EnvimaniaBanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>> Ban(
         [FromBody] EnvimaniaBanRequest banRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -61,14 +62,14 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.BanAsync(banRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaBanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionUnprocessable => TypedResults.UnprocessableEntity(actionUnprocessable)
         );
     }
 
-    private static async Task<IResult> Unban(
+    private static async Task<Results<Ok<EnvimaniaUnbanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>> Unban(
         [FromBody] EnvimaniaUnbanRequest unbanRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -76,14 +77,14 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.UnbanAsync(unbanRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaUnbanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionUnprocessable => TypedResults.UnprocessableEntity(actionUnprocessable)
         );
     }
 
-    private static async Task<IResult> Session(
+    private static async Task<Results<Ok<EnvimaniaSessionResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> Session(
         [FromBody] EnvimaniaSessionRequest sessionRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -91,27 +92,27 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.CreateSessionAsync(sessionRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionStatus(
+    private static async Task<Results<Ok<EnvimaniaSessionStatusResponse>, ForbidHttpResult>> SessionStatus(
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
         var result = await envimaniaService.CheckSessionStatusAsync(principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionStatusResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionRecord(
+    private static async Task<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionRecord(
         [FromBody] EnvimaniaSessionRecordRequest sessionRecordRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -119,14 +120,14 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.SetSessionRecordAsync(sessionRecordRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionRecordsPost(
+    private static async Task<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionRecordsPost(
         [FromBody] EnvimaniaSessionRecordBulkRequest sessionRecordBulkRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -134,14 +135,14 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.SetSessionRecordsAsync(sessionRecordBulkRequest, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionRecordsGet(
+    private static async Task<Results<Ok<EnvimaniaRecordsResponse>, ForbidHttpResult>> SessionRecordsGet(
         string car,
         int? gravity,
         int? laps,
@@ -158,26 +159,26 @@ public static class EnvimaniaEndpoints
 
         var result = await envimaniaService.GetSessionRecordsAsync(filter, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaRecordsResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionClose(
+    private static async Task<Results<Ok<EnvimaniaSessionClosedResponse>, ForbidHttpResult>> SessionClose(
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
         var result = await envimaniaService.CloseSessionAsync(principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionClosedResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> Records(
+    private static async Task<Results<Ok<EnvimaniaRecordsResponse>, BadRequest<ValidationFailureResponse>>> Records(
         string mapUid,
         string car,
         int? gravity,
@@ -195,13 +196,13 @@ public static class EnvimaniaEndpoints
 
         var result = await envimaniaService.GetRecordsAsync(mapUid, filter, zone ?? "World", cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaRecordsResponse>, BadRequest<ValidationFailureResponse>>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure)
         );
     }
 
-    private static async Task<IResult> SessionRate(
+    private static async Task<Results<Ok<RatingServerResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionRate(
         [FromBody] RatingServerRequest[] request,
         IRatingService ratingService,
         ClaimsPrincipal principal,
@@ -209,14 +210,14 @@ public static class EnvimaniaEndpoints
     {
         var result = await ratingService.SetAsync(request, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<RatingServerResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionUser(
+    private static async Task<Results<Ok<EnvimaniaSessionUser>, ForbidHttpResult>> SessionUser(
         [FromBody] UserInfo request,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -224,13 +225,13 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.GetSessionUserAdditionalInfoAsync(request, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<EnvimaniaSessionUser>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             actionForbidden => TypedResults.Forbid()
         );
     }
 
-    private static async Task<IResult> SessionUsers(
+    private static async Task<Results<Ok<List<EnvimaniaSessionUser>>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionUsers(
         [FromBody] Dictionary<string, UserInfo> request,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
@@ -238,7 +239,7 @@ public static class EnvimaniaEndpoints
     {
         var result = await envimaniaService.GetSessionUsersAdditionalInfoAsync(request, principal, cancellationToken);
 
-        return result.Match<IResult>(
+        return result.Match<Results<Ok<List<EnvimaniaSessionUser>>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()

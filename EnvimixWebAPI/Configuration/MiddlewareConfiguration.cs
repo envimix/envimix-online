@@ -28,10 +28,9 @@ public static class MiddlewareConfiguration
 
         if (app.Environment.IsDevelopment())
         {
-            app.MapOpenApi();
+            app.MapOpenApi().CacheOutput();
             app.MapScalarApiReference(options =>
             {
-                options.DefaultHttpClient = new(ScalarTarget.CSharp, ScalarClient.HttpClient);
                 options.Theme = ScalarTheme.DeepSpace;
             });
         }

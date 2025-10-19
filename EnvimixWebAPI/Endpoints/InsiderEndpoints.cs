@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using EnvimixWebAPI.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -18,43 +19,25 @@ public static class InsiderEndpoints
         group.MapPost("", AddInsiders).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
-    private static async Task<IResult> Insiders(AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<Ok<List<string>>> Insiders(IInsiderService insiderService, CancellationToken cancellationToken)
     {
-        var insiders = await db.Users
-            .Where(u => u.IsInsider)
-            .Select(u => u.Id)
-            .ToListAsync(cancellationToken);
+        var insiders = await insiderService.GetAllUserIdsAsync(cancellationToken);
 
         return TypedResults.Ok(insiders);
     }
 
-    private static async Task<IResult> InsiderById(string id, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<Results<Ok<string>, NotFound>> InsiderById(string id, IInsiderService insiderService, CancellationToken cancellationToken)
     {
-        var insider = await db.Users
-            .Where(u => u.IsInsider && u.Id == id)
-            .Select(u => u.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        var insider = await insiderService.GetByUserIdAsync(id, cancellationToken);
 
-        if (insider is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return TypedResults.Ok(insider);
+        return insider is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(insider);
     }
 
-    private static async Task<IResult> AddInsiders([FromBody] string[] insiders, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<Ok> AddInsiders([FromBody] string[] insiders, IInsiderService insiderService, CancellationToken cancellationToken)
     {
-        var users = await db.Users
-            .Where(u => insiders.Contains(u.Id))
-            .ToListAsync(cancellationToken);
-
-        foreach (var user in users)
-        {
-            user.IsInsider = true;
-        }
-
-        await db.SaveChangesAsync(cancellationToken);
+        _ = await insiderService.AddInsidersAsync(insiders, cancellationToken);
 
         return TypedResults.Ok();
     }
