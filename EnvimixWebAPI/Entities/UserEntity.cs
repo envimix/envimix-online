@@ -39,5 +39,7 @@ public sealed class UserEntity
     /// </summary>
     public bool Interested { get; set; }
 
+    public Guid? TokenId { get; set; }
+
     public ICollection<RecordEntity> Records { get; } = [];
 }

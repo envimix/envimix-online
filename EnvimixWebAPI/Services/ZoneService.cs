@@ -11,6 +11,7 @@ public interface IZoneService
     Task<IEnumerable<string>> CreateZonesAsync(CancellationToken cancellationToken);
     Task<ImmutableDictionary<string, int>> GetZonesAsync(CancellationToken cancellationToken);
     Task<bool> IsValidAsync(string zoneName, CancellationToken cancellationToken);
+    Task<int?> GetZoneIdAsync(string zoneName, CancellationToken cancellationToken);
 }
 
 public sealed class ZoneService(
@@ -76,5 +77,11 @@ public sealed class ZoneService(
     {
         var zones = await GetZonesAsync(cancellationToken);
         return zones.ContainsKey(zoneName);
+    }
+
+    public async Task<int?> GetZoneIdAsync(string zoneName, CancellationToken cancellationToken)
+    {
+        var zones = await GetZonesAsync(cancellationToken);
+        return zones.TryGetValue(zoneName, out var zoneId) ? zoneId : null;
     }
 }

@@ -12,29 +12,33 @@ public static class UserEndpoints
     {
         group.WithTags("User");
 
-        group.MapPost("{login}", PostUser).RequireAuthorization(Policies.SuperAdminPolicy);
+        group.MapPost("", PostUser).RequireRateLimiting("20PerHour");
         group.MapGet("{login}", GetUser).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
-    private static async Task<Results<Ok<UserDto>, BadRequest<ValidationFailureResponse>>> PostUser(
-        string login,
-        [FromBody] UpdateUserRequest request,
+    private static async Task<Results<Ok<AuthenticateUserResponse>, BadRequest<ValidationFailureResponse>>> PostUser(
+        [FromBody] AuthenticateUserRequest request,
         IUserService userService,
         CancellationToken cancellationToken)
     {
-        if (!Validator.ValidateLogin(login))
+        if (!Validator.ValidateLogin(request.User.Login))
         {
             return TypedResults.BadRequest(new ValidationFailureResponse("Invalid login"));
         }
 
-        if (!Validator.ValidateNickname(request.Nickname))
+        if (!Validator.ValidateNickname(request.User.Nickname))
         {
             return TypedResults.BadRequest(new ValidationFailureResponse("Invalid nickname"));
         }
 
-        var result = await userService.UpdateUserAsync(login, request, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Token cannot be empty"));
+        }
 
-        return result.Match<Results<Ok<UserDto>, BadRequest<ValidationFailureResponse>>>(
+        var result = await userService.AuthenticateAsync(request, cancellationToken);
+
+        return result.Match<Results<Ok<AuthenticateUserResponse>, BadRequest<ValidationFailureResponse>>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure)
         );

@@ -1,30 +1,56 @@
 ﻿using EnvimixWebAPI.Dtos;
 using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
+using ManiaAPI.ManiaPlanetAPI;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using OneOf;
 
 namespace EnvimixWebAPI.Services;
 
 public interface IUserService
 {
-    Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, CancellationToken cancellationToken = default);
-    Task GetAddOrUpdateMultipleAsync(IEnumerable<UserInfo> users, CancellationToken cancellationToken = default);
-    Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken = default);
+    Task<OneOf<AuthenticateUserResponse, ValidationFailureResponse>> AuthenticateAsync(AuthenticateUserRequest userRequest, CancellationToken cancellationToken);
+    Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken);
+    Task GetAddOrUpdateMultipleAsync(IEnumerable<UserInfo> users, CancellationToken cancellationToken);
+    Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken);
     Task<UserDto?> GetUserDtoByLoginAsync(string login, CancellationToken cancellationToken);
-    Task<OneOf<UserDto, ValidationFailureResponse>> UpdateUserAsync(string login, UpdateUserRequest request, CancellationToken cancellationToken);
+    Task ResetTokenAsync(string login, CancellationToken cancellationToken);
 }
 
-public sealed class UserService(AppDbContext db, IZoneService zoneService) : IUserService
+public sealed class UserService(
+    AppDbContext db, 
+    IZoneService zoneService, 
+    ManiaPlanetIngameAPI mpIngameApi, 
+    ITokenService tokenService,
+    ILogger<UserService> logger) : IUserService
 {
-    private async Task<UserEntity> GetAddOrUpdateModelAsync(UserInfo user, CancellationToken cancellationToken)
+    public async Task<OneOf<AuthenticateUserResponse, ValidationFailureResponse>> AuthenticateAsync(AuthenticateUserRequest userRequest, CancellationToken cancellationToken)
     {
-        var zone = await db.Zones.FirstOrDefaultAsync(x => x.Name == user.Zone, cancellationToken);
+        var ingameAuthResult = await mpIngameApi.AuthenticateAsync(userRequest.User.Login, userRequest.Token, cancellationToken);
 
+        if (ingameAuthResult.Login != userRequest.User.Login)
+        {
+            return new ValidationFailureResponse("Invalid user token");
+        }
+
+        logger.LogDebug("Generating new user token...");
+
+        var token = tokenService.GenerateManiaPlanetUserAccessToken(userRequest.User.Login, out var tokenId);
+
+        logger.LogInformation("Creating or updating user '{UserLogin}'...", userRequest.User.Login);
+
+        _ = await GetAddOrUpdateAsync(userRequest.User, tokenId, cancellationToken);
+
+        return new AuthenticateUserResponse
+        {
+            Login = userRequest.User.Login,
+            Token = token
+        };
+    }
+
+    private async Task<UserEntity> GetAddOrUpdateModelAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken)
+    {
         var userModel = await db.Users
-            .Include(x => x.Zone)
-            .Include(x => x.Records)
             .FirstOrDefaultAsync(x => x.Id == user.Login, cancellationToken);
 
         if (userModel is null)
@@ -38,7 +64,7 @@ public sealed class UserService(AppDbContext db, IZoneService zoneService) : IUs
         }
 
         userModel.Nickname = user.Nickname;
-        userModel.Zone = zone;
+        userModel.ZoneId = await zoneService.GetZoneIdAsync(user.Zone, cancellationToken);
         userModel.AvatarUrl = user.AvatarUrl;
         userModel.Language = user.Language;
         userModel.Description = user.Description;
@@ -47,31 +73,36 @@ public sealed class UserService(AppDbContext db, IZoneService zoneService) : IUs
         userModel.FameStars = user.FameStars;
         userModel.LadderPoints = user.LadderPoints;
 
+        if (tokenId.HasValue)
+        {
+            userModel.TokenId = tokenId.Value;
+        }
+
         // TODO: add last seen on server, using ClaimsPrincipal
 
         return userModel;
     }
 
-    public async Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, CancellationToken cancellationToken = default)
+    public async Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken)
     {
-        var userModel = await GetAddOrUpdateModelAsync(user, cancellationToken);
+        var userModel = await GetAddOrUpdateModelAsync(user, tokenId, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
         return userModel;
     }
 
-    public async Task GetAddOrUpdateMultipleAsync(IEnumerable<UserInfo> users, CancellationToken cancellationToken = default)
+    public async Task GetAddOrUpdateMultipleAsync(IEnumerable<UserInfo> users, CancellationToken cancellationToken)
     {
         foreach (var user in users)
         {
-            _ = await GetAddOrUpdateModelAsync(user, cancellationToken);
+            _ = await GetAddOrUpdateModelAsync(user, tokenId: null, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken = default)
+    public async Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken)
     {
         return await db.Users.FindAsync([login], cancellationToken);
     }
@@ -96,54 +127,17 @@ public sealed class UserService(AppDbContext db, IZoneService zoneService) : IUs
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<OneOf<UserDto, ValidationFailureResponse>> UpdateUserAsync(string login, UpdateUserRequest request, CancellationToken cancellationToken)
+    public async Task ResetTokenAsync(string login, CancellationToken cancellationToken)
     {
-        var zones = await zoneService.GetZonesAsync(cancellationToken);
-
-        if (!zones.TryGetValue(request.Zone, out var zoneId))
-        {
-            return new ValidationFailureResponse("Invalid Zone");
-        }
-
         var userModel = await db.Users
-            .Include(x => x.DiscordUser)
             .FirstOrDefaultAsync(x => x.Id == login, cancellationToken);
 
         if (userModel is null)
         {
-            userModel = new UserEntity
-            {
-                Id = login
-            };
-
-            await db.Users.AddAsync(userModel, cancellationToken);
+            return;
         }
 
-        userModel.Nickname = request.Nickname;
-        userModel.ZoneId = zoneId;
-
-        if (request.DiscordSnowflake is not null)
-        {
-            var discordUser = await db.DiscordUsers
-                .FirstOrDefaultAsync(x => x.Id == request.DiscordSnowflake, cancellationToken);
-
-            userModel.DiscordUser = discordUser;
-        }
-
+        userModel.TokenId = null;
         await db.SaveChangesAsync(cancellationToken);
-
-        return new UserDto
-        {
-            Login = userModel.Id,
-            Nickname = userModel.Nickname,
-            Zone = userModel.Zone?.Name,
-            Discord = userModel.DiscordUser is null ? null : new DiscordUserDto
-            {
-                Snowflake = userModel.DiscordUser.Id,
-                Username = userModel.DiscordUser.Username,
-                Nickname = userModel.DiscordUser.Nickname,
-                AvatarHash = userModel.DiscordUser.AvatarHash
-            }
-        };
     }
 }

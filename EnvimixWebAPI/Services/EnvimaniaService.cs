@@ -2,21 +2,15 @@
 using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
-using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Security;
 using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.Xml.MP4;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using OneOf;
 using System.Data;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using TmEssentials;
 
 namespace EnvimixWebAPI.Services;
@@ -70,7 +64,7 @@ public sealed class EnvimaniaService(
     IZoneService zoneService,
     IModService modService,
     IRatingService ratingService,
-    IOptions<JwtOptions> jwtOptions,
+    ITokenService tokenService,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
@@ -288,27 +282,7 @@ public sealed class EnvimaniaService(
 
         var sessionGuid = Guid.CreateVersion7();
 
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Issuer = jwtOptions.Value.Issuer,
-            Audience = Consts.EnvimaniaSession,
-            Subject = new ClaimsIdentity([
-                new Claim(JwtRegisteredClaimNames.UniqueName, request.ServerLogin),
-                new Claim(EnvimaniaClaimTypes.SessionGuid, sessionGuid.ToString()),
-                new Claim(EnvimaniaClaimTypes.SessionMapUid, request.Map.Uid)
-            ]),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Value.Key)),
-                SecurityAlgorithms.HmacSha256Signature),
-            Expires = DateTime.UtcNow.AddMinutes(30)
-        };
-
-        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
-        var startedAt = securityToken.ValidFrom;
-        var expiresAt = securityToken.ValidTo;
-
-        var token = tokenHandler.WriteToken(securityToken);
+        var token = tokenService.GenerateEnvimaniaSessionToken(sessionGuid, request.Map.Uid, server.Id, out var startedAt, out var expiresAt);
 
         logger.LogInformation("Adding/updating map {mapName}...", TextFormatter.Deformat(request.Map.Name));
 
@@ -640,7 +614,7 @@ public sealed class EnvimaniaService(
 
     private async Task<string?> AddRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userModel = await userService.GetAddOrUpdateAsync(request.User, cancellationToken);
+        var userModel = await userService.GetAddOrUpdateAsync(request.User, tokenId: null, cancellationToken);
 
         var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
@@ -917,7 +891,7 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        await userService.GetAddOrUpdateAsync(userInfo, cancellationToken);
+        await userService.GetAddOrUpdateAsync(userInfo, tokenId: null, cancellationToken);
 
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 

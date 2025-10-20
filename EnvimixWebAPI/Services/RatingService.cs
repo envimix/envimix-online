@@ -177,7 +177,7 @@ public sealed class RatingService(
 
             if (rating is null)
             {
-                var userInDb = await userService.GetAddOrUpdateAsync(req.User, cancellationToken);
+                var userInDb = await userService.GetAddOrUpdateAsync(req.User, tokenId: null, cancellationToken);
 
                 rating = new RatingEntity
                 {
@@ -234,7 +234,7 @@ public sealed class RatingService(
         };
     }
 
-    public async Task<Models.Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken)
+    public async Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken)
     {
         var avgDifficulty = await db.Ratings
             .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Difficulty != null)

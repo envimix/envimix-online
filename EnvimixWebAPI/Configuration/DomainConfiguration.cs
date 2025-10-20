@@ -17,5 +17,6 @@ public static class DomainConfiguration
         services.AddScoped<IStarService, StarService>();
         services.AddScoped<IInsiderService, InsiderService>();
         services.AddScoped<ITotdService, TotdService>();
+        services.AddScoped<ITokenService, TokenService>();
     }
 }

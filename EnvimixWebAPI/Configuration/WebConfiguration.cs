@@ -5,7 +5,9 @@ using ManiaAPI.Xml.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace EnvimixWebAPI.Configuration;
 
@@ -19,7 +21,7 @@ public static class WebConfiguration
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidIssuer = config["Jwt:Issuer"],
-                    ValidAudiences = [Consts.EnvimaniaSession],
+                    ValidAudiences = [Consts.EnvimaniaSession, Consts.ManiaPlanetUser],
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!)),
                 };
@@ -29,25 +31,28 @@ public static class WebConfiguration
             .AddPolicy(Policies.EnvimaniaSessionPolicy, policy =>
             {
                 policy.RequireAuthenticatedUser();
-                policy.RequireClaim("aud", Consts.EnvimaniaSession);
-            });
-
-        services.AddHttpClient(Consts.ManiaPlanet).AddStandardResilienceHandler();
-        services.AddHttpClient(Consts.ManiaPlanetWebServices).AddStandardResilienceHandler();
+                policy.RequireClaim(JwtRegisteredClaimNames.Aud, Consts.EnvimaniaSession);
+            })
+            .AddPolicy(Policies.ManiaPlanetUserPolicy, policy =>
+             {
+                 policy.RequireAuthenticatedUser();
+                 policy.RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
+             });
 
         services.AddManiaPlanetAPI(options =>
         {
             options.Credentials = new ManiaPlanetAPICredentials(
                 config["ManiaPlanet:ClientId"]!,
                 config["ManiaPlanet:ClientSecret"]!);
-        });
+        }).AddStandardResilienceHandler();
 
-        services.AddMasterServerMP4();
+        services.AddMasterServerMP4(x => x.AddStandardResilienceHandler(), x => x.AddStandardResilienceHandler());
         services.AddHttpClient<ManiaPlanetIngameAPI>()
             .ConfigureHttpClient(client =>
             {
                 client.BaseAddress = new Uri(ManiaPlanetIngameAPI.BaseAddress);
-            });
+            })
+            .AddStandardResilienceHandler();
 
         services.AddResponseCompression(options =>
         {
@@ -61,12 +66,26 @@ public static class WebConfiguration
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
+            options.AddPolicy("20PerHour", httpContext =>
+            {
+                var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: remoteIp,
+                    partition => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,                   // Allow 20 requests
+                        Window = TimeSpan.FromHours(1),     // Per 1 hour window
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0                      // No queuing, reject immediately
+                    });
+            });
         });
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>()
-            .AddCheck<ManiaPlanetHealthCheck>(Consts.ManiaPlanet)
-            .AddCheck<ManiaPlanetWebServicesHealthCheck>(Consts.ManiaPlanetWebServices);
+            .AddCheck<ManiaPlanetHealthCheck>("ManiaPlanet")
+            .AddCheck<ManiaPlanetWebServicesHealthCheck>("ManiaPlanetWebServices");
 
         services.ConfigureHttpJsonOptions(options =>
         {
