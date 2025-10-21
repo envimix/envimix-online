@@ -177,7 +177,7 @@ public sealed class RatingService(
 
             if (rating is null)
             {
-                var userInDb = await userService.GetAddOrUpdateAsync(req.User, tokenId: null, cancellationToken);
+                var userInDb = await userService.GetAddOrUpdateAsync(req.User, cancellationToken);
 
                 rating = new RatingEntity
                 {

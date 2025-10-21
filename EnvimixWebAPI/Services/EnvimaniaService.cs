@@ -614,7 +614,7 @@ public sealed class EnvimaniaService(
 
     private async Task<string?> AddRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var userModel = await userService.GetAddOrUpdateAsync(request.User, tokenId: null, cancellationToken);
+        var userModel = await userService.GetAddOrUpdateAsync(request.User, cancellationToken);
 
         var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
@@ -891,7 +891,7 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        await userService.GetAddOrUpdateAsync(userInfo, tokenId: null, cancellationToken);
+        await userService.GetAddOrUpdateAsync(userInfo, cancellationToken);
 
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 

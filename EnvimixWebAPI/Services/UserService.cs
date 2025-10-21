@@ -10,7 +10,7 @@ namespace EnvimixWebAPI.Services;
 public interface IUserService
 {
     Task<OneOf<AuthenticateUserResponse, ValidationFailureResponse>> AuthenticateAsync(AuthenticateUserRequest userRequest, CancellationToken cancellationToken);
-    Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken);
+    Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, CancellationToken cancellationToken);
     Task GetAddOrUpdateMultipleAsync(IEnumerable<UserInfo> users, CancellationToken cancellationToken);
     Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken);
     Task<UserDto?> GetUserDtoByLoginAsync(string login, CancellationToken cancellationToken);
@@ -39,7 +39,9 @@ public sealed class UserService(
 
         logger.LogInformation("Creating or updating user '{UserLogin}'...", userRequest.User.Login);
 
-        _ = await GetAddOrUpdateAsync(userRequest.User, tokenId, cancellationToken);
+        _ = await GetAddOrUpdateModelAsync(userRequest.User, tokenId, interested: true, cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
 
         return new AuthenticateUserResponse
         {
@@ -48,7 +50,7 @@ public sealed class UserService(
         };
     }
 
-    private async Task<UserEntity> GetAddOrUpdateModelAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken)
+    private async Task<UserEntity> GetAddOrUpdateModelAsync(UserInfo user, Guid? tokenId, bool interested, CancellationToken cancellationToken)
     {
         var userModel = await db.Users
             .FirstOrDefaultAsync(x => x.Id == user.Login, cancellationToken);
@@ -78,14 +80,19 @@ public sealed class UserService(
             userModel.TokenId = tokenId.Value;
         }
 
+        if (interested)
+        {
+            userModel.Interested = true;
+        }
+
         // TODO: add last seen on server, using ClaimsPrincipal
 
         return userModel;
     }
 
-    public async Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, Guid? tokenId, CancellationToken cancellationToken)
+    public async Task<UserEntity> GetAddOrUpdateAsync(UserInfo user, CancellationToken cancellationToken)
     {
-        var userModel = await GetAddOrUpdateModelAsync(user, tokenId, cancellationToken);
+        var userModel = await GetAddOrUpdateModelAsync(user, tokenId: null, interested: false, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -96,7 +103,7 @@ public sealed class UserService(
     {
         foreach (var user in users)
         {
-            _ = await GetAddOrUpdateModelAsync(user, tokenId: null, cancellationToken);
+            _ = await GetAddOrUpdateModelAsync(user, tokenId: null, interested: false, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
