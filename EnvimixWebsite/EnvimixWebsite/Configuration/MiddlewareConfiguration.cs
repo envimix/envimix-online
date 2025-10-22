@@ -8,6 +8,19 @@ public static class MiddlewareConfiguration
 {
     public static void UseMiddleware(this WebApplication app)
     {
+        app.UseForwardedHeaders();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseWebAssemblyDebugging();
+        }
+        else
+        {
+            app.UseExceptionHandler("/Error", createScopeForErrors: true);
+            app.UseHsts();
+        }
+
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
         app.UseHttpsRedirection();
 
