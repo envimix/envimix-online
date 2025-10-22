@@ -1,4 +1,5 @@
 ﻿using EnvimixWebsite.Components;
+using EnvimixWebsite.Endpoints;
 using HealthChecks.UI.Client;
 
 namespace EnvimixWebsite.Configuration;
@@ -26,6 +27,9 @@ public static class MiddlewareConfiguration
         {
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         }).RequireAuthorization();
+
+        PrivateDownloadEndpoint.Map(app);
+        ConnectEndpoints.Map(app);
 
         app.UseAntiforgery();
 

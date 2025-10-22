@@ -5,7 +5,14 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+		<UserSecretsId>c279b5ef-180a-4e09-8cd2-2eeefd41664b</UserSecretsId>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="PrivateDownloads\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\EnvimixWebsite.Client\EnvimixWebsite.Client.csproj" />
@@ -18,10 +25,11 @@
 		<PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.13.1" />
 		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
 		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.13.1" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.13.0" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.12.0-beta.1" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.13.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.13.0" />
+		<PackageReference Include="AspNet.Security.OAuth.Discord" Version="9.4.1" />
 	</ItemGroup>
 
 </Project>
