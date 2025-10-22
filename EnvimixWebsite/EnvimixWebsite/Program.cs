@@ -14,7 +14,20 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
         ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownProxies.Add(IPAddress.Parse("172.19.0.23"));
+
+    foreach (var knownProxy in builder.Configuration.GetSection("KnownProxies").Get<string[]>() ?? [])
+    {
+        if (IPAddress.TryParse(knownProxy, out var ipAddress))
+        {
+            options.KnownProxies.Add(ipAddress);
+            continue;
+        }
+
+        foreach (var hostIpAddress in Dns.GetHostAddresses(knownProxy))
+        {
+            options.KnownProxies.Add(hostIpAddress);
+        }
+    }
 });
 
 var app = builder.Build();
