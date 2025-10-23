@@ -23,7 +23,7 @@ internal class PrivateDownloadEndpoint
 
         logger.LogInformation("User {UserName} is downloading file {FileName}", userName, fileName);
 
-        var fileInfo = env.ContentRootFileProvider.GetFileInfo(Path.Combine("PrivateDownloads", fileName));
+        var fileInfo = env.ContentRootFileProvider.GetFileInfo(Path.Combine("PrivateDownloads", Path.GetFileName(fileName)));
 
         if (!fileInfo.Exists || fileInfo.IsDirectory || fileInfo.PhysicalPath is null)
         {
