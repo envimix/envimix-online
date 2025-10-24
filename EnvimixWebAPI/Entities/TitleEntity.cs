@@ -9,4 +9,6 @@ public sealed class TitleEntity
 
     [StringLength(255)]
     public string? DisplayName { get; set; }
+
+    public required DateTimeOffset? ReleasedAt { get; set; }
 }

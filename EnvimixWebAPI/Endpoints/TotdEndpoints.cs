@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace EnvimixWebAPI.Endpoints;
 
-public sealed class TotdEndpoints
+public static class TotdEndpoints
 {
     public static void Map(RouteGroupBuilder group)
     {

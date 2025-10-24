@@ -23,5 +23,6 @@ public static class EndpointConfiguration
         ZoneEndpoints.Map(app.MapGroup("/zones"));
         UserEndpoints.Map(app.MapGroup("/users"));
         ActivityEndpoints.Map(app.MapGroup("/activity"));
+        TitleEndpoints.Map(app.MapGroup("/titles"));
     }
 }
