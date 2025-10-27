@@ -19,12 +19,19 @@ public sealed class TitleService : ITitleService
 
     public async Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, CancellationToken cancellationToken)
     {
-        return await db.Titles
-            .Where(t => t.Id == titleId)
-            .Select(t => new TitleReleaseInfo
-            {
-                ReleasedAt = t.ReleasedAt.HasValue ? t.ReleasedAt.Value.ToUnixTimeSeconds().ToString() : ""
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var title = await db.Titles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == titleId, cancellationToken);
+
+        if (title is null)
+        {
+            return null;
+        }
+
+        return new TitleReleaseInfo
+        {
+            ReleasedAt = title.ReleasedAt.HasValue ? title.ReleasedAt.Value.ToUnixTimeSeconds().ToString() : "",
+            Key = title.ReleasedAt.HasValue && DateTimeOffset.UtcNow >= (title.ReleasedAt.Value - TimeSpan.FromSeconds(2)) ? (title.Key ?? "") : ""
+        };
     }
 }
