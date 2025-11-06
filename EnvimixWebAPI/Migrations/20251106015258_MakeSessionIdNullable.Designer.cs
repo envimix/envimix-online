@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251106015258_MakeSessionIdNullable")]
+    partial class MakeSessionIdNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,9 +213,6 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<DateTimeOffset>("DrivenAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<byte[]>("GhostData")
-                        .HasColumnType("longblob");
-
                     b.Property<int>("Gravity")
                         .HasColumnType("int");
 
@@ -222,9 +222,6 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<string>("MapId")
                         .IsRequired()
                         .HasColumnType("varchar(34)");
-
-                    b.Property<DateTimeOffset?>("ServersideDrivenAt")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<Guid?>("SessionId")
                         .HasColumnType("char(36)");

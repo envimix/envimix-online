@@ -3,6 +3,8 @@ using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Security;
+using GBX.NET;
+using GBX.NET.Engines.Game;
 using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.Xml.MP4;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +13,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
 using System.Data;
 using System.Security.Claims;
+using System.Xml.Linq;
 using TmEssentials;
 
 namespace EnvimixWebAPI.Services;
@@ -34,6 +37,9 @@ public interface IEnvimaniaService
 
     Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>>
         SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
+
+    Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>>
+        SetRecordAsync(HttpRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>>
         SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
@@ -501,6 +507,154 @@ public sealed class EnvimaniaService(
         {
             UpdatedRecords = [recs]
         };
+    }
+
+    public async Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>> SetRecordAsync(HttpRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Attempt to set a record via {user} user...", principal.GetName());
+
+        // VALIDATION START
+
+        var banReason = principal.FindFirstValue("BanReason");
+
+        if (banReason is not null)
+        {
+            return ActionForbiddenResponse.UserLoginBanned;
+        }
+
+        // VALIDATION END
+
+        var serverTimestamp = DateTimeOffset.UtcNow;
+        var timestamp = serverTimestamp;
+
+        using var ms = new MemoryStream();
+        await request.Body.CopyToAsync(ms, CancellationToken.None);
+
+        var timestampSuggestedByUser = default(DateTimeOffset?);
+        if (request.Headers.TryGetValue("X-Envimix-Timestamp", out var tsValues) && long.TryParse(tsValues.FirstOrDefault(), out var tsLong))
+        {
+            timestampSuggestedByUser = DateTimeOffset.FromUnixTimeSeconds(tsLong);
+
+            if ((serverTimestamp - timestampSuggestedByUser.Value).Duration() < TimeSpan.FromSeconds(2))
+            {
+                timestamp = timestampSuggestedByUser.Value;
+            }
+        }
+
+        ms.Position = 0;
+
+        var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: CancellationToken.None);
+
+        var carName = ghost.PlayerModel?.Id switch
+        {
+            "CanyonCar" or "Vehicles\\CanyonCar.Item.Gbx" or "Vehicles\\CanyonCarTurbo.Item.Gbx" => "CanyonCar",
+            "StadiumCar" or "Vehicles\\StadiumCar.Item.Gbx" or "Vehicles\\StadiumCarTurbo.Item.Gbx" => "StadiumCar",
+            "ValleyCar" or "Vehicles\\ValleyCar.Item.Gbx" or "Vehicles\\ValleyCarTurbo.Item.Gbx" => "ValleyCar",
+            "LagoonCar" or "Vehicles\\LagoonCar.Item.Gbx" or "Vehicles\\LagoonCarTurbo.Item.Gbx" => "LagoonCar",
+            "Vehicles\\TrafficCar.Item.Gbx" => "TrafficCar",
+            "Vehicles\\DesertCar.Item.Gbx" => "DesertCar",
+            "Vehicles\\RallyCar.Item.Gbx" => "RallyCar",
+            "Vehicles\\SnowCar.Item.Gbx" => "SnowCar",
+            "Vehicles\\IslandCar.Item.Gbx" => "IslandCar",
+            "Vehicles\\BayCar.Item.Gbx" => "BayCar",
+            "Vehicles\\CoastCar.Item.Gbx" => "CoastCar",
+            _ => null
+        };
+
+        if (carName is null)
+        {
+            return new ValidationFailureResponse("Invalid vehicle");
+        }
+
+        var ghostRawData = ms.ToArray();
+
+        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
+
+        if (userModel is null)
+        {
+            return new ValidationFailureResponse("User not found");
+        }
+
+        if (string.IsNullOrWhiteSpace(ghost.Validate_ChallengeUid))
+        {
+            return new ValidationFailureResponse("Invalid map UID in ghost");
+        }
+
+        if (ghost.RaceTime is null)
+        {
+            return new ValidationFailureResponse("Invalid race time in ghost");
+        }
+
+        if (string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
+        {
+            return new ValidationFailureResponse("Invalid race settings in ghost");
+        }
+
+        var raceXml = XDocument.Parse($"<root>{ghost.Validate_RaceSettings}</root>");
+        var laps = (int?)raceXml.Descendants("laps").FirstOrDefault() ?? 0;
+
+        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, CancellationToken.None);
+
+        var car = await modService.GetOrAddCarAsync(carName, cancellationToken);
+
+        var gravity = 0; // TODO should be configurable
+
+        var bestLastCheckpointsQueryable = db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Where(x => x.User == userModel
+                && x.Map == map
+                && x.Car == car
+                && x.Gravity == gravity
+                && x.Laps == laps)
+            .Select(x => x.Checkpoints.OrderBy(x => x.Time).Last());
+
+        var newRecord = new EnvimaniaRecord
+        {
+            Time = ghost.RaceTime.Value.TotalMilliseconds,
+            Score = ghost.StuntScore ?? 0,
+            NbRespawns = ghost.Respawns ?? -1,
+            Speed = -1,
+            Distance = -1
+        };
+
+        var isPb = await IsRecordPersonalBestAsync(bestLastCheckpointsQueryable, newRecord, cancellationToken);
+
+        if (!isPb)
+        {
+            return new ValidationFailureResponse("Invalid record");
+        }
+
+        var record = new RecordEntity
+        {
+            User = userModel,
+            Map = map,
+            Car = car,
+            Gravity = gravity,
+            DrivenAt = timestamp, // + request.PreferenceNumber
+            ServersideDrivenAt = serverTimestamp,
+            SessionId = null,
+            Laps = laps,
+            GhostData = ghostRawData
+        };
+
+        foreach (var cp in ghost.Checkpoints ?? [])
+        {
+            record.Checkpoints.Add(new CheckpointEntity
+            {
+                Record = record,
+                Time = cp.Time.GetValueOrDefault().TotalMilliseconds,
+                Score = cp.StuntsScore ?? 0,
+                NbRespawns = ghost.Respawns ?? -1, // weird stuff
+                Distance = -1,
+                Speed = -1
+            });
+        }
+
+        await db.Records.AddAsync(record, cancellationToken);
+
+        return await db.SaveChangesAsync(cancellationToken) > 0;
     }
 
     public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)

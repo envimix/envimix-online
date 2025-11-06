@@ -1,6 +1,8 @@
 using EnvimixWebAPI.Configuration;
 using EnvimixWebAPI.Options;
 
+GBX.NET.Gbx.LZO = new GBX.NET.LZO.Lzo();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseDefaultServiceProvider(options =>

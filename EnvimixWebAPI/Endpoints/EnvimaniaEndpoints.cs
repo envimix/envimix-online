@@ -19,6 +19,7 @@ public static class EnvimaniaEndpoints
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapGet("records/{mapUid}/{car}", Records);
+        group.MapPost("record", Record).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
 
         MapSession(group.MapGroup("session"));
     }
@@ -207,6 +208,21 @@ public static class EnvimaniaEndpoints
         return result.Match<Results<Ok<EnvimaniaRecordsResponse>, BadRequest<ValidationFailureResponse>>>(
             validResponse => TypedResults.Ok(validResponse),
             validationFailure => TypedResults.BadRequest(validationFailure)
+        );
+    }
+
+    private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> Record(
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.SetRecordAsync(request, principal, cancellationToken);
+
+        return result.Match<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
+            validResponse => TypedResults.Ok(),
+            validationFailure => TypedResults.BadRequest(validationFailure),
+            actionForbidden => TypedResults.Forbid()
         );
     }
 

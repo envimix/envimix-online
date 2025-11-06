@@ -13,10 +13,13 @@ public sealed class RecordEntity
     public required int Gravity { get; set; }
     public required DateTimeOffset DrivenAt { get; set; }
 
-    public EnvimaniaSessionEntity Session { get; set; } = null!;
-    public Guid SessionId { get; set; }
+    public EnvimaniaSessionEntity? Session { get; set; } = null!;
+    public Guid? SessionId { get; set; }
 
     public required int Laps { get; set; }
+
+    public byte[]? GhostData { get; set; }
+    public DateTimeOffset? ServersideDrivenAt { get; set; }
 
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
 }
