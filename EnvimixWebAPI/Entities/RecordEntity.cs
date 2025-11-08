@@ -18,7 +18,9 @@ public sealed class RecordEntity
 
     public required int Laps { get; set; }
 
-    public byte[]? GhostData { get; set; }
+    public GhostEntity? Ghost { get; set; }
+    public Guid? GhostId { get; set; }
+
     public DateTimeOffset? ServersideDrivenAt { get; set; }
 
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];

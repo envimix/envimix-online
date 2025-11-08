@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251106182412_AddGhostEntity")]
+    partial class AddGhostEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -128,9 +131,6 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<byte[]>("Data")
                         .IsRequired()
                         .HasColumnType("longblob");
-
-                    b.Property<DateTimeOffset>("LastModifiedAt")
-                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
