@@ -1,7 +1,9 @@
-﻿namespace EnvimixWebAPI.Dtos;
+﻿using System.Text.Json.Serialization;
+
+namespace EnvimixWebAPI.Dtos;
 
 public sealed class TitleDto
 {
-    public required string Id { get; set; }
-    public string? DisplayName { get; set; }
+    [JsonPropertyName(nameof(Id))] public required string Id { get; set; }
+    [JsonPropertyName(nameof(DisplayName))] public string? DisplayName { get; set; }
 }

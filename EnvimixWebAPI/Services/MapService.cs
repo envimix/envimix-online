@@ -7,7 +7,7 @@ namespace EnvimixWebAPI.Services;
 public interface IMapService
 {
     Task<MapEntity?> GetAsync(string mapUid, CancellationToken cancellationToken = default);
-    Task<MapEntity> GetAddOrUpdateAsync(string mapUid, CancellationToken cancellationToken = default);
+    Task<MapEntity> GetAddOrUpdateAsync(string mapUid, string titleId, CancellationToken cancellationToken = default);
     Task<MapEntity> GetAddOrUpdateAsync(MapInfo mapInfo, ServerEntity? server, CancellationToken cancellationToken = default);
 }
 
@@ -18,7 +18,7 @@ public sealed class MapService(AppDbContext db) : IMapService
         return await db.Maps.FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
     }
 
-    public async Task<MapEntity> GetAddOrUpdateAsync(string mapUid, CancellationToken cancellationToken = default)
+    public async Task<MapEntity> GetAddOrUpdateAsync(string mapUid, string titleId, CancellationToken cancellationToken = default)
     {
         var map = await GetAsync(mapUid, cancellationToken);
 
@@ -26,7 +26,8 @@ public sealed class MapService(AppDbContext db) : IMapService
         {
             map = new MapEntity
             {
-                Id = mapUid
+                Id = mapUid,
+                TitlePackId = titleId
             };
 
             await db.Maps.AddAsync(map, cancellationToken);
@@ -45,6 +46,7 @@ public sealed class MapService(AppDbContext db) : IMapService
             map = new MapEntity
             {
                 Id = mapInfo.Uid,
+                //TitlePackId = mapInfo
                 FirstAppearedOnServer = server
             };
 

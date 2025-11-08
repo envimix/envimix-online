@@ -17,4 +17,5 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RatingEntity> Ratings { get; set; }
     public DbSet<StarEntity> Stars { get; set; }
     public DbSet<TitleEntity> Titles { get; set; }
+    public DbSet<GhostEntity> Ghosts { get; set; }
 }

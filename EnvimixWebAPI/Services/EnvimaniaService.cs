@@ -58,6 +58,8 @@ public interface IEnvimaniaService
 
     Task<OneOf<List<EnvimaniaSessionUser>, ValidationFailureResponse, ActionForbiddenResponse>>
         GetSessionUsersAdditionalInfoAsync(IDictionary<string, UserInfo> userInfos, ClaimsPrincipal principal, CancellationToken cancellationToken);
+
+    Task<List<RecordEntity>> GetValidationsAsync(string mapUid, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -367,14 +369,7 @@ public sealed class EnvimaniaService(
 
         logger.LogDebug("Ratings of players on the current server retrieved.");
 
-        var validations = await db.Records
-            .Include(x => x.User)
-            .Include(x => x.Car)
-            .Include(x => x.Map)
-            .Include(x => x.Checkpoints)
-            .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
-            .Select(g => g.OrderBy(x => x.DrivenAt).FirstOrDefault())
-            .ToListAsync(cancellationToken);
+        var validations = await GetValidationsAsync(map.Id, cancellationToken);
 
         return new EnvimaniaSessionResponse
         {
@@ -382,7 +377,7 @@ public sealed class EnvimaniaService(
             SessionToken = token,
             Ratings = ratings,
             UserRatings = userRatings,
-            Validations = validations.OfType<RecordEntity>().ToDictionary(x => $"{x.Car.Id}_{x.Gravity}_{x.Laps}", rec => new EnvimaniaRecordInfo
+            Validations = validations.ToDictionary(x => $"{x.Car.Id}_{x.Gravity}_{x.Laps}", rec => new EnvimaniaRecordInfo
             {
                 User = new UserInfo
                 {
@@ -580,6 +575,11 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid map UID in ghost");
         }
 
+        if (string.IsNullOrWhiteSpace(ghost.Validate_TitleId))
+        {
+            return new ValidationFailureResponse("Invalid title ID in ghost");
+        }
+
         if (ghost.RaceTime is null)
         {
             return new ValidationFailureResponse("Invalid race time in ghost");
@@ -593,7 +593,7 @@ public sealed class EnvimaniaService(
         var raceXml = XDocument.Parse($"<root>{ghost.Validate_RaceSettings}</root>");
         var laps = (int?)raceXml.Descendants("laps").FirstOrDefault() ?? 0;
 
-        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, CancellationToken.None);
+        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, ghost.Validate_TitleId, CancellationToken.None);
 
         var car = await modService.GetOrAddCarAsync(carName, cancellationToken);
 
@@ -636,7 +636,7 @@ public sealed class EnvimaniaService(
             ServersideDrivenAt = serverTimestamp,
             SessionId = null,
             Laps = laps,
-            GhostData = ghostRawData
+            Ghost = new GhostEntity { Data = ghostRawData }
         };
 
         foreach (var cp in ghost.Checkpoints ?? [])
@@ -1114,5 +1114,19 @@ public sealed class EnvimaniaService(
         }
 
         return users;
+    }
+
+    public async Task<List<RecordEntity>> GetValidationsAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        return await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Include(x => x.Checkpoints)
+            .Where(x => x.Map.Id == mapUid)
+            .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
+            .Select(g => g.OrderBy(x => x.DrivenAt).First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 }
