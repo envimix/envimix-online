@@ -256,7 +256,7 @@ public sealed class RatingService(
         var ratingsFromDb = await db.Ratings
             .Include(x => x.User)
             .Where(x => x.Map.Id == mapUid && x.User.Id == login && (x.Difficulty != null || x.Quality != null))
-            .GroupBy(x => new { x.Car, x.Gravity })
+            .GroupBy(x => new { x.CarId, x.Gravity })
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
 
