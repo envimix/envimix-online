@@ -33,20 +33,23 @@ public sealed class UserService(
             return new ValidationFailureResponse("Invalid user token");
         }
 
+        var isAdmin = await IsAdminAsync(userRequest.User.Login, cancellationToken);
+
         logger.LogDebug("Generating new user token...");
 
-        var token = tokenService.GenerateManiaPlanetUserAccessToken(userRequest.User.Login, out var tokenId);
+        var token = tokenService.GenerateManiaPlanetUserAccessToken(userRequest.User.Login, isAdmin, out var tokenId);
 
         logger.LogInformation("Creating or updating user '{UserLogin}'...", userRequest.User.Login);
 
-        _ = await GetAddOrUpdateModelAsync(userRequest.User, tokenId, interested: true, cancellationToken);
+        var user = await GetAddOrUpdateModelAsync(userRequest.User, tokenId, interested: true, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
         return new AuthenticateUserResponse
         {
             Login = userRequest.User.Login,
-            Token = token
+            Token = token,
+            IsAdmin = user.IsAdmin,
         };
     }
 
@@ -146,5 +149,10 @@ public sealed class UserService(
 
         userModel.TokenId = null;
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<bool> IsAdminAsync(string login, CancellationToken cancellationToken)
+    {
+        return await db.Users.AnyAsync(x => x.Id == login && x.IsAdmin, cancellationToken);
     }
 }

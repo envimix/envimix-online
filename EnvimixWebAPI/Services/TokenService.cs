@@ -11,7 +11,7 @@ namespace EnvimixWebAPI.Services;
 public interface ITokenService
 {
     string GenerateEnvimaniaSessionToken(Guid sessionGuid, string mapUid, string serverLogin, out DateTimeOffset startedAt, out DateTimeOffset expiresAt);
-    string GenerateManiaPlanetUserAccessToken(string login, out Guid tokenId);
+    string GenerateManiaPlanetUserAccessToken(string login, bool isAdmin, out Guid tokenId);
 }
 
 public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITokenService
@@ -32,7 +32,7 @@ public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITok
         return tokenHandler.WriteToken(securityToken);
     }
 
-    public string GenerateManiaPlanetUserAccessToken(string login, out Guid tokenId)
+    public string GenerateManiaPlanetUserAccessToken(string login, bool isAdmin, out Guid tokenId)
     {
         // This is not a standard practice
         // however, that way I don't need to handle refresh token complexity
@@ -40,7 +40,8 @@ public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITok
         // fucking ManiaPlanet doesn't need a refresh token overkill xdd
         var tokenDescriptor = GetDescriptor(Consts.ManiaPlanetUser, [
             new Claim(JwtRegisteredClaimNames.UniqueName, login),
-            new Claim(JwtRegisteredClaimNames.Jti, (tokenId = Guid.NewGuid()).ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, (tokenId = Guid.NewGuid()).ToString()),
+            new Claim(ClaimTypes.Role, isAdmin ? Roles.Admin : Roles.User)
         ], validFor: TimeSpan.FromDays(3));
 
         var tokenHandler = new JwtSecurityTokenHandler();

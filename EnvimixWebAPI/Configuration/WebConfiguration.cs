@@ -30,14 +30,20 @@ public static class WebConfiguration
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.EnvimaniaSessionPolicy, policy =>
             {
-                policy.RequireAuthenticatedUser();
-                policy.RequireClaim(JwtRegisteredClaimNames.Aud, Consts.EnvimaniaSession);
+                policy.RequireAuthenticatedUser()
+                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.EnvimaniaSession);
             })
             .AddPolicy(Policies.ManiaPlanetUserPolicy, policy =>
              {
-                 policy.RequireAuthenticatedUser();
-                 policy.RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
-             });
+                 policy.RequireAuthenticatedUser()
+                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
+             })
+            .AddPolicy(Policies.AdminPolicy, policy =>
+            {
+                policy.RequireAuthenticatedUser()
+                    .RequireRole(Roles.Admin)
+                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
+            });
 
         services.AddManiaPlanetAPI(options =>
         {
