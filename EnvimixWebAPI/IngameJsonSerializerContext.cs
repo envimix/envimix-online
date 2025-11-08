@@ -12,6 +12,7 @@ namespace EnvimixWebAPI;
 [JsonSerializable(typeof(EnvimaniaSessionResponse))]
 [JsonSerializable(typeof(EnvimaniaSessionUser))]
 [JsonSerializable(typeof(RatingServerResponse))]
+[JsonSerializable(typeof(RatingClientResponse))]
 [JsonSerializable(typeof(UserInfo))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.Unspecified)]
 internal partial class IngameJsonSerializerContext : JsonSerializerContext;

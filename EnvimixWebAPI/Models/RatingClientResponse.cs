@@ -1,6 +1,8 @@
-﻿namespace EnvimixWebAPI.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace EnvimixWebAPI.Models;
 
 public sealed class RatingClientResponse
 {
-    public required Rating Rating { get; init; }
+    [JsonPropertyName(nameof(Rating))] public required FilteredRating Rating { get; init; }
 }

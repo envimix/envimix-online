@@ -116,15 +116,25 @@ public sealed class RatingService(
         logger.LogInformation("User {user} rated map {mapUid} with car {car} and gravity {gravity} with difficulty '{difficulty}' and quality '{quality}'.",
             principal.Identity.Name, request.Map.Uid, request.Car, request.Gravity, request.Rating.Difficulty, request.Rating.Quality);
 
-        var avgRating = await GetAverageAsync(request.Map.Uid, new()
+        var filter = new RatingFilter()
         {
             Car = request.Car,
             Gravity = request.Gravity
-        }, cancellationToken);
+        };
+
+        var avgRating = await GetAverageAsync(request.Map.Uid, filter, cancellationToken);
 
         return new RatingClientResponse
         {
-            Rating = avgRating
+            Rating = new()
+            {
+                Filter = filter,
+                Rating = avgRating with
+                {
+                    Difficulty = avgRating.Difficulty is null ? -1 : avgRating.Difficulty,
+                    Quality = avgRating.Quality is null ? -1 : avgRating.Quality,
+                }
+            }
         };
     }
 
