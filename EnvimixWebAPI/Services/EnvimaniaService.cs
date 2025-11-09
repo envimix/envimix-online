@@ -918,24 +918,30 @@ public sealed class EnvimaniaService(
 
         // get records from category combinations
 
-        var records = await db.Records
+        var filteredRecords = await db.Records
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
             .Include(x => x.Map)
             .Include(x => x.Car)
             .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.User.Zone!.Name.StartsWith(zone))
-            .GroupBy(x => x.User)
-            .Select(group => group
-                .OrderBy(r => r.Checkpoints.OrderByDescending(cp => cp.Time).First())
-                .ThenBy(r => r.DrivenAt)
-                .First())
-            .OrderBy(x => x.Checkpoints.OrderByDescending(cp => cp.Time).First())
-            .Take(20)
+            .Where(x => x.Map.Id == mapUid
+                && x.Car.Id == filter.Car
+                && x.Gravity == filter.Gravity
+                && x.User.Zone!.Name.StartsWith(zone))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        foreach (var rec in records)
+        var bestRecordsPerUser = filteredRecords
+            .GroupBy(x => x.User)
+            .Select(group => group
+                .OrderBy(r => r.Checkpoints.OrderByDescending(cp => cp.Time).First().Time)
+                .ThenBy(r => r.DrivenAt)
+                .First())
+            .OrderBy(x => x.Checkpoints.OrderByDescending(cp => cp.Time).First().Time)
+            .Take(20)
+            .ToList();
+
+        foreach (var rec in bestRecordsPerUser)
         {
             envimaniaRecords.Add(new EnvimaniaRecordInfo
             {
