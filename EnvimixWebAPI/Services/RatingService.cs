@@ -18,6 +18,7 @@ public interface IRatingService
     Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken);
     Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken);
     Task<Dictionary<string, List<FilteredRating>>> GetByUserLoginsAsync(string mapUid, IEnumerable<string> userLogins, CancellationToken cancellationToken);
+    Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
 }
 
 public sealed class RatingService(
@@ -309,5 +310,17 @@ public sealed class RatingService(
         }
 
         return ratings;
+    }
+
+    public async Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        return await db.Stars
+            .Include(x => x.User)
+            .Where(x => x.Map.Id == mapUid)
+            .ToDictionaryAsync(x => $"{x.CarId}_{x.Gravity}_Time", x => new Star
+            {
+                Login = x.User.Id,
+                Nickname = x.User.Nickname ?? "",
+            }, cancellationToken);
     }
 }

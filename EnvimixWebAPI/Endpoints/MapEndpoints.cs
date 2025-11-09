@@ -110,7 +110,8 @@ public static class MapEndpoints
                 Verified = true,
                 Projected = false,
                 GhostUrl = "" // TODO: read from DB
-            })
+            }),
+            Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken)
         };
 
         return TypedResults.Ok(mapResponse);

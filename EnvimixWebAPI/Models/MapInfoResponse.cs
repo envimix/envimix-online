@@ -12,4 +12,5 @@ public sealed class MapInfoResponse
     [JsonPropertyName(nameof(Ratings))] public required List<FilteredRating> Ratings { get; init; }
     [JsonPropertyName(nameof(UserRatings))] public required List<FilteredRating> UserRatings { get; init; }
     [JsonPropertyName(nameof(Validations))] public required Dictionary<string, EnvimaniaRecordInfo> Validations { get; init; }
+    [JsonPropertyName(nameof(Stars))] public required Dictionary<string, Star> Stars { get; init; }
 }
