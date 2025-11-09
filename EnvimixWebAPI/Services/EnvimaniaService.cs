@@ -969,7 +969,7 @@ public sealed class EnvimaniaService(
             });
         }
 
-        if (records.Count == 0 || records.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
+        if (bestRecordsPerUser.Count == 0 || bestRecordsPerUser.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
         {
             return new EnvimaniaRecordsResponse
             {
