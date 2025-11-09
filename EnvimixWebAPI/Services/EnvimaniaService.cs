@@ -927,8 +927,11 @@ public sealed class EnvimaniaService(
                 && x.CarId == filter.Car
                 && x.Gravity == filter.Gravity
                 && x.User.Zone!.Name.StartsWith(zone))
+            .OrderBy(x => x.Checkpoints.First().Time)
+                .ThenBy(x => x.DrivenAt)
             .GroupBy(x => x.User.Id)
-            .Select(x => x.OrderBy(x => x.Checkpoints.First().Time).First())
+            .Select(g => g.First())
+            .Take(20)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
