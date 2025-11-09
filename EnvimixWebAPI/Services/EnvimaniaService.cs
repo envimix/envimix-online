@@ -919,6 +919,7 @@ public sealed class EnvimaniaService(
         // get records from category combinations
 
         var filteredRecords = await db.Records
+            .Include(x => x.Map)
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
             .Include(x => x.Checkpoints.OrderByDescending(x => x.Time).Take(1))
