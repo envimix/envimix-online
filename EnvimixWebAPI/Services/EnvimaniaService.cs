@@ -932,7 +932,7 @@ public sealed class EnvimaniaService(
             .ToListAsync(cancellationToken);
 
         var bestRecordsPerUser = filteredRecords
-            .GroupBy(x => x.User)
+            .GroupBy(x => x.User.Id)
             .Select(group => group
                 .OrderBy(r => r.Checkpoints.OrderByDescending(cp => cp.Time).First().Time)
                 .ThenBy(r => r.DrivenAt)
