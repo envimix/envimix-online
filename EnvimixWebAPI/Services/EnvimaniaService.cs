@@ -927,10 +927,10 @@ public sealed class EnvimaniaService(
             .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.User.Zone!.Name.StartsWith(zone))
             .GroupBy(x => x.User)
             .Select(group => group
-                .OrderBy(r => r.Checkpoints.Max(cp => cp.Time))
+                .OrderBy(r => r.Checkpoints.OrderByDescending(cp => cp.Time).First())
                 .ThenBy(r => r.DrivenAt)
                 .First())
-            .OrderBy(x => x.Checkpoints.Max(cp => cp.Time))
+            .OrderBy(x => x.Checkpoints.OrderByDescending(cp => cp.Time).First())
             .Take(20)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
