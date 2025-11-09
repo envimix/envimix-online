@@ -921,27 +921,17 @@ public sealed class EnvimaniaService(
         var filteredRecords = await db.Records
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
-            .Include(x => x.Map)
-            .Include(x => x.Car)
-            .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid
-                && x.Car.Id == filter.Car
+            .Include(x => x.Checkpoints.OrderByDescending(x => x.Time).Take(1))
+            .Where(x => x.MapId == mapUid
+                && x.CarId == filter.Car
                 && x.Gravity == filter.Gravity
                 && x.User.Zone!.Name.StartsWith(zone))
+            .GroupBy(x => x.User.Id)
+            .Select(x => x.OrderBy(x => x.Checkpoints.First().Time).First())
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var bestRecordsPerUser = filteredRecords
-            .GroupBy(x => x.User.Id)
-            .Select(group => group
-                .OrderBy(r => r.Checkpoints.OrderByDescending(cp => cp.Time).First().Time)
-                .ThenBy(r => r.DrivenAt)
-                .First())
-            .OrderBy(x => x.Checkpoints.OrderByDescending(cp => cp.Time).First().Time)
-            .Take(20)
-            .ToList();
-
-        foreach (var rec in bestRecordsPerUser)
+        foreach (var rec in filteredRecords)
         {
             envimaniaRecords.Add(new EnvimaniaRecordInfo
             {
@@ -969,7 +959,7 @@ public sealed class EnvimaniaService(
             });
         }
 
-        if (bestRecordsPerUser.Count == 0 || bestRecordsPerUser.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
+        if (filteredRecords.Count == 0 || filteredRecords.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
         {
             return new EnvimaniaRecordsResponse
             {
