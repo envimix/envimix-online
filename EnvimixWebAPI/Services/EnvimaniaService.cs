@@ -925,11 +925,12 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Checkpoints)
             .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.User.Zone!.Name.StartsWith(zone))
-            .OrderBy(y => y.Checkpoints.OrderByDescending(x => x.Time).First().Time)
-                .ThenBy(y => y.DrivenAt)
-                .ThenBy(y => y.Checkpoints.OrderByDescending(x => x.Time).First().Distance)
             .GroupBy(x => x.User)
-            .Select(group => group.First())
+            .Select(group => group
+                .OrderBy(r => r.Checkpoints.Max(cp => cp.Time))
+                .ThenBy(r => r.DrivenAt)
+                .First())
+            .OrderBy(x => x.Checkpoints.Max(cp => cp.Time))
             .Take(20)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
