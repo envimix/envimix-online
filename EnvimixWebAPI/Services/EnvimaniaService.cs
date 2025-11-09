@@ -927,7 +927,7 @@ public sealed class EnvimaniaService(
                 && x.CarId == filter.Car
                 && x.Gravity == filter.Gravity
                 && x.User.Zone!.Name.StartsWith(zone))
-            .OrderBy(x => x.Checkpoints.Last().Time)
+            .OrderBy(x => x.Checkpoints.OrderByDescending(x => x.Time).First().Time)
                 .ThenBy(x => x.DrivenAt)
             .GroupBy(x => x.User.Id)
             .Select(g => g.First())
