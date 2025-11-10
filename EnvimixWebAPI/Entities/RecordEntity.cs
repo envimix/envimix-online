@@ -30,5 +30,10 @@ public sealed class RecordEntity
 
     public DateTimeOffset? ServersideDrivenAt { get; set; }
 
+    // final time, score, and nb respawns to allow easier grouping
+    public required int Time { get; set; }
+    public required int Score { get; set; }
+    public required int NbRespawns { get; set; }
+
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
 }

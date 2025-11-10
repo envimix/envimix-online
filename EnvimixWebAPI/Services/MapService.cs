@@ -15,7 +15,9 @@ public sealed class MapService(AppDbContext db) : IMapService
 {
     public async Task<MapEntity?> GetAsync(string mapUid, CancellationToken cancellationToken = default)
     {
-        return await db.Maps.FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
+        return await db.Maps
+            .Include(x => x.TitlePack)
+            .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
     }
 
     public async Task<MapEntity> GetAddOrUpdateAsync(string mapUid, string titleId, CancellationToken cancellationToken = default)

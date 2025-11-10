@@ -595,6 +595,11 @@ public sealed class EnvimaniaService(
 
         var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, ghost.Validate_TitleId, CancellationToken.None);
 
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp)
+        {
+            return new ActionForbiddenResponse("Title pack not released yet");
+        }
+
         var car = await modService.GetOrAddCarAsync(carName, cancellationToken);
 
         var gravity = 0; // TODO should be configurable
@@ -636,7 +641,10 @@ public sealed class EnvimaniaService(
             ServersideDrivenAt = serverTimestamp,
             SessionId = null,
             Laps = laps,
-            Ghost = new GhostEntity { Data = ghostRawData }
+            Ghost = new GhostEntity { Data = ghostRawData },
+            Time = newRecord.Time,
+            Score = newRecord.Score,
+            NbRespawns = newRecord.NbRespawns
         };
 
         foreach (var cp in ghost.Checkpoints ?? [])
@@ -807,7 +815,10 @@ public sealed class EnvimaniaService(
             Gravity = gravity,
             DrivenAt = DateTimeOffset.UtcNow, // + request.PreferenceNumber
             SessionId = sessionGuid,
-            Laps = request.Laps
+            Laps = request.Laps,
+            Time = request.Record.Time,
+            Score = request.Record.Score,
+            NbRespawns = request.Record.NbRespawns
         };
 
         foreach (var cp in request.Record.Checkpoints)
@@ -939,7 +950,7 @@ public sealed class EnvimaniaService(
                 .First())
             .OrderBy(x => x.Checkpoints.Last().Time)
             .ThenByDescending(x => x.Checkpoints.Last().Distance)
-            .Take(20)
+            .Take(20) // why not load all records afterall lol
             .ToList();
 
         foreach (var rec in filteredRecords)
