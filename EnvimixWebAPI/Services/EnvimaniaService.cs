@@ -918,7 +918,7 @@ public sealed class EnvimaniaService(
 
         // get records from category combinations
 
-        var filteredRecords = await db.Records
+        var allRecords = await db.Records
             .Include(x => x.Map)
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
@@ -926,14 +926,21 @@ public sealed class EnvimaniaService(
             .Where(x => x.MapId == mapUid
                 && x.CarId == filter.Car
                 && x.Gravity == filter.Gravity
-                && x.User.Zone!.Name.StartsWith(zone))
-            .OrderBy(x => x.Checkpoints.OrderByDescending(x => x.Time).First().Time)
-                .ThenBy(x => x.DrivenAt)
-            .GroupBy(x => x.User.Id)
-            .Select(g => g.First())
-            .Take(20)
+                && x.User.Zone!.Name.StartsWith(zone)
+                && x.Checkpoints.Any())
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
+        var filteredRecords = allRecords
+            .GroupBy(x => x.User.Id)
+            .Select(g => g
+                .OrderBy(x => x.Checkpoints.Last().Time)
+                .ThenByDescending(x => x.Checkpoints.Last().Distance)
+                .First())
+            .OrderBy(x => x.Checkpoints.Last().Time)
+            .ThenByDescending(x => x.Checkpoints.Last().Distance)
+            .Take(20)
+            .ToList();
 
         foreach (var rec in filteredRecords)
         {
