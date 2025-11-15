@@ -77,6 +77,13 @@ public sealed class RatingService(
             return v;
         }
 
+        var map = await mapService.GetAsync(request.Map.Uid, cancellationToken);
+
+        if (map?.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow)
+        {
+            return new ActionForbiddenResponse("Title pack not released yet");
+        }
+
         // VALIDATION END
 
         if (principal.Identity?.Name is null)
