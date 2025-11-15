@@ -15,7 +15,13 @@ public static class MapEndpoints
     {
         group.WithTags("Map");
 
+        group.MapPost("", SubmitMaps).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapGet("{mapUid}", GetMap);
+    }
+
+    private static async Task SubmitMaps(MapInfo[] maps, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 
     private static async Task<Results<Ok<MapInfoResponse>, NotFound>> GetMap(
