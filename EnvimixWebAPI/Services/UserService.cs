@@ -62,7 +62,8 @@ public sealed class UserService(
         {
             userModel = new UserEntity
             {
-                Id = user.Login
+                Id = user.Login,
+                CreatedAt = DateTimeOffset.UtcNow,
             };
 
             await db.Users.AddAsync(userModel, cancellationToken);
@@ -77,6 +78,7 @@ public sealed class UserService(
         userModel.SteamUserId = user.SteamUserId;
         userModel.FameStars = user.FameStars;
         userModel.LadderPoints = user.LadderPoints;
+        userModel.UpdatedAt = DateTimeOffset.UtcNow;
 
         if (tokenId.HasValue)
         {

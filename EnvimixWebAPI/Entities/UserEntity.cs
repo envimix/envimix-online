@@ -41,5 +41,8 @@ public sealed class UserEntity
 
     public Guid? TokenId { get; set; }
 
+    public DateTimeOffset? CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
     public ICollection<RecordEntity> Records { get; } = [];
 }
