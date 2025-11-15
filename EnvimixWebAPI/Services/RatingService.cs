@@ -108,14 +108,17 @@ public sealed class RatingService(
             await db.Ratings.AddAsync(rating, cancellationToken);
         }
 
+        var difficulty = request.Rating.Difficulty is -1 ? rating.Difficulty : request.Rating.Difficulty;
+        var quality = request.Rating.Quality is -1 ? rating.Quality : request.Rating.Quality;
+
         rating.UpdatedAt = DateTimeOffset.UtcNow;
-        rating.Difficulty = request.Rating.Difficulty;
-        rating.Quality = request.Rating.Quality;
+        rating.Difficulty = difficulty;
+        rating.Quality = quality;
 
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("User {user} rated map {mapUid} with car {car} and gravity {gravity} with difficulty '{difficulty}' and quality '{quality}'.",
-            principal.Identity.Name, request.Map.Uid, request.Car, request.Gravity, request.Rating.Difficulty, request.Rating.Quality);
+            principal.Identity.Name, request.Map.Uid, request.Car, request.Gravity, difficulty, quality);
 
         var filter = new RatingFilter()
         {
@@ -248,13 +251,13 @@ public sealed class RatingService(
     public async Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken)
     {
         var avgDifficulty = await db.Ratings
-            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Difficulty != null)
+            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Difficulty != null && x.Difficulty != -1)
             .GroupBy(x => x.User)
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
 
         var avgQuality = await db.Ratings
-            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Quality != null)
+            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Quality != null && x.Quality != -1)
             .GroupBy(x => x.User)
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
