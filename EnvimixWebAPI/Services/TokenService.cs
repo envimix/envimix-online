@@ -65,7 +65,7 @@ public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITok
     private SigningCredentials GetSigningCredentials()
     {
         return new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Value.Key)),
+            new SymmetricSecurityKey(Convert.FromHexString(jwtOptions.Value.Key)),
             SecurityAlgorithms.HmacSha256Signature);
     }
 }

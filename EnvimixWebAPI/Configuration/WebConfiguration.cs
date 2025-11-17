@@ -23,7 +23,7 @@ public static class WebConfiguration
                     ValidIssuer = config["Jwt:Issuer"],
                     ValidAudiences = [Consts.EnvimaniaSession, Consts.ManiaPlanetUser],
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Convert.FromHexString(config["Jwt:Key"]!))
                 };
             });
 
