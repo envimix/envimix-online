@@ -1216,7 +1216,9 @@ public sealed class EnvimaniaService(
         return records.GroupBy(x => (x.CarId, x.Gravity, x.Laps))
             .ToDictionary(
                 g => $"{g.Key.CarId}_{g.Key.Gravity}_{g.Key.Laps}",
-                g => g.GroupBy(x => x.Time)
+                g => g
+                    .OrderBy(x => x.Time)
+                    .GroupBy(x => x.Time)
                     .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray());
     }
 }
