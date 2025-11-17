@@ -401,7 +401,8 @@ public sealed class EnvimaniaService(
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
                 Projected = false,
-                GhostUrl = "" // TODO: read from DB
+                GhostUrl = "", // TODO: read from DB
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             })
         };
     }
@@ -934,6 +935,7 @@ public sealed class EnvimaniaService(
 
         var allRecords = await db.Records
             .Include(x => x.Map)
+                .ThenInclude(x => x.TitlePack)
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
             .Include(x => x.Checkpoints.OrderByDescending(x => x.Time).Take(1))
@@ -981,7 +983,8 @@ public sealed class EnvimaniaService(
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
                 Projected = false,
-                GhostUrl = "" // TODO: read from DB
+                GhostUrl = "", // TODO: read from DB
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             });
         }
 
@@ -1008,7 +1011,8 @@ public sealed class EnvimaniaService(
             Speed = validation.Checkpoints.Last().Speed,
             Verified = true,
             Projected = false,
-            GhostUrl = "" // TODO: read from DB
+            GhostUrl = "", // TODO: read from DB
+            DrivenAt = validation.DrivenAt.ToUnixTimeSeconds().ToString()
         }];
 
         var skillpoints = allRecords
@@ -1016,7 +1020,10 @@ public sealed class EnvimaniaService(
             .SelectMany(g => new[] { g.Key, g.Count() })
             .ToArray();
 
-        if (filteredRecords.Count == 0 || filteredRecords.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
+        var titlePack = filteredRecords.First().Map.TitlePack;
+        var titlePackReleaseTimestamp = titlePack?.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "";
+
+        if (filteredRecords.Count == 0 || titlePack?.Id != "Nadeo_Envimix@bigbang1112")
         {
             return new EnvimaniaRecordsResponse
             {
@@ -1025,6 +1032,7 @@ public sealed class EnvimaniaService(
                 Records = envimaniaRecords,
                 Validation = mappedValidation,
                 Skillpoints = skillpoints,
+                TitlePackReleaseTimestamp = titlePackReleaseTimestamp
             };
         }
 
@@ -1068,7 +1076,8 @@ public sealed class EnvimaniaService(
                     Speed = -1,
                     Verified = true,
                     Projected = true,
-                    GhostUrl = rec.DownloadUrl
+                    GhostUrl = rec.DownloadUrl,
+                    DrivenAt = string.Empty
                 });
             }
 
@@ -1087,6 +1096,7 @@ public sealed class EnvimaniaService(
             Records = envimaniaRecords,
             Validation = mappedValidation,
             Skillpoints = skillpoints,
+            TitlePackReleaseTimestamp = titlePackReleaseTimestamp
         };
     }
 

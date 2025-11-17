@@ -160,7 +160,8 @@ public static class MapEndpoints
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
                 Projected = false,
-                GhostUrl = "" // TODO: read from DB
+                GhostUrl = "", // TODO: read from DB
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             }),
             Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken),
             Skillpoints = await envimaniaService.GetSkillpointsAsync(mapUid, cancellationToken)
