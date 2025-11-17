@@ -1,4 +1,6 @@
-﻿using EnvimixWebAPI.Models;
+﻿using EnvimixWebAPI.Entities;
+using EnvimixWebAPI.Extensions;
+using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Services;
@@ -17,6 +19,7 @@ public static class MapEndpoints
 
         group.MapPost("", SubmitMaps).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapGet("{mapUid}", GetMap);
+        group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
     }
 
     private static async Task SubmitMaps(MapInfo[] maps, CancellationToken cancellationToken)
@@ -24,7 +27,7 @@ public static class MapEndpoints
         throw new NotImplementedException();
     }
 
-    private static async Task<Results<Ok<MapInfoResponse>, NotFound>> GetMap(
+    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound>> GetMap(
         string mapUid,
         AppDbContext db,
         IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
@@ -42,29 +45,71 @@ public static class MapEndpoints
             return TypedResults.NotFound();
         }
 
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, principal, map, cancellationToken);
+        return TypedResults.Ok(mapResponse);
+    }
+
+    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult, NotFound>> VisitMap(
+        string mapUid,
+        AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        IRatingService ratingService,
+        IUserService userService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
+
+        if (userModel is null)
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("User not found"));
+        }
+
+        if (userModel.BanReason is not null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var map = await db.Maps
+            .Include(x => x.TitlePack)
+            .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken: cancellationToken);
+
+        if (map is null)
+        {
+            map = new MapEntity
+            {
+                Id = mapUid
+            };
+            await db.Maps.AddAsync(map, cancellationToken);
+        }
+
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow)
+        {
+            userModel.BanReason = "AUTOMATED: Attempted to access unreleased title pack map";
+            await db.SaveChangesAsync(CancellationToken.None);
+
+            return TypedResults.Forbid();
+        }
+
+        await db.MapVisits.AddAsync(new MapVisitEntity
+        {
+            Map = map,
+            User = userModel,
+            VisitedAt = DateTimeOffset.UtcNow
+        }, cancellationToken);
+
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, principal, map, cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Ok(mapResponse);
+    }
+
+    private static async Task<MapInfoResponse> GetMapInfoAsync(string mapUid, IEnvimaniaService envimaniaService, IRatingService ratingService, ClaimsPrincipal principal, MapEntity map, CancellationToken cancellationToken)
+    {
         var validations = await envimaniaService.GetValidationsAsync(mapUid, cancellationToken);
 
-        var ratings = new List<FilteredRating>();
-
-        foreach (var car in envimaniaOptions.Value.Car)
-        {
-            var filter = new RatingFilter()
-            {
-                Car = car
-            };
-
-            var rating = await ratingService.GetAverageAsync(map.Id, filter, cancellationToken);
-
-            ratings.Add(new()
-            {
-                Filter = filter,
-                Rating = rating with
-                {
-                    Difficulty = rating.Difficulty is null ? -1 : rating.Difficulty,
-                    Quality = rating.Quality is null ? -1 : rating.Quality
-                }
-            });
-        }
+        var ratings = await ratingService.GetAveragesAsync(mapUid, cancellationToken);
 
         var userRatings = new List<FilteredRating>();
 
@@ -117,9 +162,10 @@ public static class MapEndpoints
                 Projected = false,
                 GhostUrl = "" // TODO: read from DB
             }),
-            Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken)
+            Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken),
+            Skillpoints = await envimaniaService.GetSkillpointsAsync(mapUid, cancellationToken)
         };
 
-        return TypedResults.Ok(mapResponse);
+        return mapResponse;
     }
 }

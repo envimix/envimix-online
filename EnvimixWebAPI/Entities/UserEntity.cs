@@ -44,5 +44,8 @@ public sealed class UserEntity
     public DateTimeOffset? CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 
+    [StringLength(255)]
+    public string? BanReason { get; set; }
+
     public ICollection<RecordEntity> Records { get; } = [];
 }

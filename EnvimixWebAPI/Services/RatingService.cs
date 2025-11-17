@@ -1,7 +1,9 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
+using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
 
@@ -16,6 +18,7 @@ public interface IRatingService
         SetAsync(RatingServerRequest[] request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken);
+    Task<List<FilteredRating>> GetAveragesAsync(string mapUid, CancellationToken cancellationToken);
     Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken);
     Task<Dictionary<string, List<FilteredRating>>> GetByUserLoginsAsync(string mapUid, IEnumerable<string> userLogins, CancellationToken cancellationToken);
     Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
@@ -26,6 +29,7 @@ public sealed class RatingService(
     IUserService userService,
     IMapService mapService,
     IModService modService,
+    IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
     ILogger<RatingService> logger) : IRatingService
 {
     private static ValidationFailureResponse? Validate(Rating rating)
@@ -270,6 +274,63 @@ public sealed class RatingService(
             .ToListAsync(cancellationToken);
 
         return new(avgDifficulty.Average(x => x.Difficulty), avgQuality.Average(x => x.Quality));
+    }
+
+    public async Task<List<FilteredRating>> GetAveragesAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        var cars = envimaniaOptions.Value.Car;
+        var gravities = envimaniaOptions.Value.Gravity;
+
+        var avgDifficulties = await db.Ratings
+            .Where(x => x.Map.Id == mapUid && cars.Contains(x.Car.Id) && x.Difficulty != null && x.Difficulty != -1)
+            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
+            .ToListAsync(cancellationToken);
+
+        var avgQualities = await db.Ratings
+            .Where(x => x.Map.Id == mapUid && cars.Contains(x.Car.Id) && x.Quality != null && x.Quality != -1)
+            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
+            .ToListAsync(cancellationToken);
+
+        var groupedDifficulties = avgDifficulties
+            .GroupBy(x => new { x.CarId, x.Gravity })
+            .ToDictionary(
+                x => (x.Key.CarId, x.Key.Gravity), 
+                x => x.Average(x => x.Difficulty));
+
+        var groupedQualities = avgQualities
+            .GroupBy(x => new { x.CarId, x.Gravity })
+            .ToDictionary(
+                x => (x.Key.CarId, x.Key.Gravity), 
+                x => x.Average(x => x.Quality));
+
+        var ratings = new List<FilteredRating>();
+
+        foreach (var car in cars)
+        {
+            foreach (var gravity in gravities)
+            {
+                groupedDifficulties.TryGetValue((car, gravity), out var avgDifficulty);
+                groupedQualities.TryGetValue((car, gravity), out var avgQuality);
+
+                if (avgDifficulty is not null || avgQuality is not null)
+                {
+                    ratings.Add(new FilteredRating()
+                    {
+                        Filter = new()
+                        {
+                            Car = car,
+                            Gravity = gravity,
+                            Type = Models.Envimania.EnvimaniaLeaderboardType.Time
+                        },
+                        Rating = new(avgDifficulty, avgQuality)
+                    });
+                }
+            }
+        }
+
+        return ratings;
     }
 
     public async Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken)

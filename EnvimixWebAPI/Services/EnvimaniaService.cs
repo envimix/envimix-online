@@ -60,6 +60,8 @@ public interface IEnvimaniaService
         GetSessionUsersAdditionalInfoAsync(IDictionary<string, UserInfo> userInfos, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<List<RecordEntity>> GetValidationsAsync(string mapUid, CancellationToken cancellationToken);
+
+    Task<Dictionary<string, int[]>> GetSkillpointsAsync(string mapUid, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -510,14 +512,17 @@ public sealed class EnvimaniaService(
 
         // VALIDATION START
 
-        var banReason = principal.FindFirstValue("BanReason");
+        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
 
-        if (banReason is not null)
+        if (userModel is null)
+        {
+            return new ValidationFailureResponse("User not found");
+        }
+
+        if (userModel.BanReason is not null)
         {
             return ActionForbiddenResponse.UserLoginBanned;
         }
-
-        // VALIDATION END
 
         var serverTimestamp = DateTimeOffset.UtcNow;
         var timestamp = serverTimestamp;
@@ -563,13 +568,6 @@ public sealed class EnvimaniaService(
 
         var ghostRawData = ms.ToArray();
 
-        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
-
-        if (userModel is null)
-        {
-            return new ValidationFailureResponse("User not found");
-        }
-
         if (string.IsNullOrWhiteSpace(ghost.Validate_ChallengeUid))
         {
             return new ValidationFailureResponse("Invalid map UID in ghost");
@@ -597,8 +595,13 @@ public sealed class EnvimaniaService(
 
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp)
         {
+            userModel.BanReason = "AUTOMATED: Attempted record submission on unreleased title pack";
+            await db.SaveChangesAsync(CancellationToken.None);
+
             return new ActionForbiddenResponse("Title pack not released yet");
         }
+
+        // VALIDATION END
 
         var car = await modService.GetOrAddCarAsync(carName, cancellationToken);
 
@@ -937,6 +940,7 @@ public sealed class EnvimaniaService(
             .Where(x => x.MapId == mapUid
                 && x.CarId == filter.Car
                 && x.Gravity == filter.Gravity
+                && x.Laps == filter.Laps
                 && x.User.Zone!.Name.StartsWith(zone)
                 && x.Checkpoints.Any())
             .AsNoTracking()
@@ -945,11 +949,11 @@ public sealed class EnvimaniaService(
         var filteredRecords = allRecords
             .GroupBy(x => x.User.Id)
             .Select(g => g
-                .OrderBy(x => x.Checkpoints.Last().Time)
-                .ThenByDescending(x => x.Checkpoints.Last().Distance)
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
                 .First())
-            .OrderBy(x => x.Checkpoints.Last().Time)
-            .ThenByDescending(x => x.Checkpoints.Last().Distance)
+            .OrderBy(x => x.Time)
+            .ThenBy(x => x.DrivenAt)
             .Take(20) // why not load all records afterall lol
             .ToList();
 
@@ -970,9 +974,9 @@ public sealed class EnvimaniaService(
                     FameStars = rec.User.FameStars ?? 0,
                     LadderPoints = rec.User.LadderPoints ?? 0,
                 },
-                Time = rec.Checkpoints.Last().Time,
-                Score = rec.Checkpoints.Last().Score,
-                NbRespawns = rec.Checkpoints.Last().NbRespawns,
+                Time = rec.Time,
+                Score = rec.Score,
+                NbRespawns = rec.NbRespawns,
                 Distance = rec.Checkpoints.Last().Distance,
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
@@ -981,13 +985,46 @@ public sealed class EnvimaniaService(
             });
         }
 
+        var validation = await GetValidationAsync(mapUid, filter, cancellationToken);
+        EnvimaniaRecordInfo[] mappedValidation = validation is null ? [] : [new EnvimaniaRecordInfo
+        {
+            User = new UserInfo
+            {
+                Login = validation.User.Id,
+                Nickname = validation.User.Nickname ?? "",
+                Zone = validation.User.Zone?.Name ?? "",
+                AvatarUrl = validation.User.AvatarUrl ?? "",
+                Language = validation.User.Language ?? "",
+                Description = validation.User.Language ?? "",
+                Color = validation.User.Color ?? [-1, -1, -1],
+                SteamUserId = validation.User.SteamUserId ?? "",
+                FameStars = validation.User.FameStars ?? 0,
+                LadderPoints = validation.User.LadderPoints ?? 0,
+            },
+            Time = validation.Time,
+            Score = validation.Score,
+            NbRespawns = validation.NbRespawns,
+            Distance = validation.Checkpoints.Last().Distance,
+            Speed = validation.Checkpoints.Last().Speed,
+            Verified = true,
+            Projected = false,
+            GhostUrl = "" // TODO: read from DB
+        }];
+
+        var skillpoints = allRecords
+            .GroupBy(x => x.Time)
+            .SelectMany(g => new[] { g.Key, g.Count() })
+            .ToArray();
+
         if (filteredRecords.Count == 0 || filteredRecords.First().Map.TitlePackId != "Nadeo_Envimix@bigbang1112")
         {
             return new EnvimaniaRecordsResponse
             {
                 Filter = filter,
                 Zone = zone,
-                Records = envimaniaRecords
+                Records = envimaniaRecords,
+                Validation = mappedValidation,
+                Skillpoints = skillpoints,
             };
         }
 
@@ -1047,7 +1084,9 @@ public sealed class EnvimaniaService(
         {
             Filter = filter,
             Zone = zone,
-            Records = envimaniaRecords
+            Records = envimaniaRecords,
+            Validation = mappedValidation,
+            Skillpoints = skillpoints,
         };
     }
 
@@ -1147,5 +1186,37 @@ public sealed class EnvimaniaService(
             .Select(g => g.OrderBy(x => x.DrivenAt).First())
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+    }
+
+    private async Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken)
+    {
+        return await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Include(x => x.Checkpoints)
+            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Laps == filter.Laps)
+            .OrderBy(x => x.DrivenAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<Dictionary<string, int[]>> GetSkillpointsAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        var records = await db.Records
+            .Where(x => x.Map.Id == mapUid)
+            .GroupBy(x => new { x.UserId, x.CarId, x.Gravity, x.Laps })
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .Select(x => new { x.CarId, x.Gravity, x.Laps, x.Time })
+                .First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return records.GroupBy(x => (x.CarId, x.Gravity, x.Laps))
+            .ToDictionary(
+                g => $"{g.Key.CarId}_{g.Key.Gravity}_{g.Key.Laps}",
+                g => g.GroupBy(x => x.Time)
+                    .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray());
     }
 }
