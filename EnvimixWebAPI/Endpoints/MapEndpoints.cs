@@ -6,6 +6,7 @@ using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
@@ -25,6 +26,7 @@ public static class MapEndpoints
     private static async Task<Ok> SubmitMaps(
         SubmitMapsRequest request, 
         AppDbContext db,
+        HybridCache cache,
         CancellationToken cancellationToken)
     {
         var mapUids = request.Maps.Select(x => x.Uid).ToHashSet();
@@ -58,6 +60,8 @@ public static class MapEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await cache.RemoveAsync($"Totd_{request.TitleId}", CancellationToken.None);
 
         return TypedResults.Ok();
     }
