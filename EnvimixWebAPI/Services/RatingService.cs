@@ -1,5 +1,6 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
+using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Security;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +19,12 @@ public interface IRatingService
         SetAsync(RatingServerRequest[] request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<Rating> GetAverageAsync(string mapUid, RatingFilter filter, CancellationToken cancellationToken);
-    Task<List<FilteredRating>> GetAveragesAsync(string mapUid, CancellationToken cancellationToken);
+    Task<List<FilteredRating>> GetAveragesByMapUidAsync(string mapUid, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, Rating>>> GetAveragesByTitleIdAsync(string mapUid, CancellationToken cancellationToken);
     Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken);
     Task<Dictionary<string, List<FilteredRating>>> GetByUserLoginsAsync(string mapUid, IEnumerable<string> userLogins, CancellationToken cancellationToken);
     Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class RatingService(
@@ -276,7 +279,7 @@ public sealed class RatingService(
         return new(avgDifficulty.Average(x => x.Difficulty), avgQuality.Average(x => x.Quality));
     }
 
-    public async Task<List<FilteredRating>> GetAveragesAsync(string mapUid, CancellationToken cancellationToken)
+    public async Task<List<FilteredRating>> GetAveragesByMapUidAsync(string mapUid, CancellationToken cancellationToken)
     {
         var cars = envimaniaOptions.Value.Car;
         var gravities = envimaniaOptions.Value.Gravity;
@@ -333,6 +336,57 @@ public sealed class RatingService(
         return ratings;
     }
 
+    public async Task<Dictionary<string, Dictionary<string, Rating>>> GetAveragesByTitleIdAsync(string titleId, CancellationToken cancellationToken)
+    {
+        var cars = envimaniaOptions.Value.Car;
+        var gravities = envimaniaOptions.Value.Gravity;
+
+        var avgDifficulties = await db.Ratings
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && cars.Contains(x.Car.Id) && x.Difficulty != null && x.Difficulty != -1)
+            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
+            .ToListAsync(cancellationToken);
+
+        var avgQualities = await db.Ratings
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && cars.Contains(x.Car.Id) && x.Quality != null && x.Quality != -1)
+            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
+            .ToListAsync(cancellationToken);
+
+        var groupedDifficulties = avgDifficulties
+            .GroupBy(x => new { x.MapId, x.CarId, x.Gravity })
+            .ToDictionary(
+                x => (x.Key.MapId, x.Key.CarId, x.Key.Gravity),
+                x => x.Average(x => x.Difficulty));
+
+        var groupedQualities = avgQualities
+            .GroupBy(x => new { x.MapId, x.CarId, x.Gravity })
+            .ToDictionary(
+                x => (x.Key.MapId, x.Key.CarId, x.Key.Gravity),
+                x => x.Average(x => x.Quality));
+
+        var ratingsByMap = new Dictionary<string, Dictionary<string, Rating>>();
+        foreach (var mapId in groupedDifficulties.Keys.Select(x => x.MapId).Union(groupedQualities.Keys.Select(x => x.MapId)).Distinct())
+        {
+            var ratings = new Dictionary<string, Rating>();
+            foreach (var car in cars)
+            {
+                foreach (var gravity in gravities)
+                {
+                    groupedDifficulties.TryGetValue((mapId, car, gravity), out var avgDifficulty);
+                    groupedQualities.TryGetValue((mapId, car, gravity), out var avgQuality);
+                    if (avgDifficulty is not null || avgQuality is not null)
+                    {
+                        ratings[$"{car}_{gravity}_{EnvimaniaLeaderboardType.Time}"] = new(avgDifficulty, avgQuality);
+                    }
+                }
+            }
+            ratingsByMap[mapId] = ratings;
+        }
+
+        return ratingsByMap;
+    }
+
     public async Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken)
     {
         var ratingsFromDb = await db.Ratings
@@ -348,7 +402,7 @@ public sealed class RatingService(
             {
                 Car = rating.CarId,
                 Gravity = rating.Gravity,
-                Type = Models.Envimania.EnvimaniaLeaderboardType.Time
+                Type = EnvimaniaLeaderboardType.Time
             },
             Rating = new(rating.Difficulty, rating.Quality)
         }).ToList();
@@ -393,5 +447,33 @@ public sealed class RatingService(
                 Login = x.User.Id,
                 Nickname = x.User.Nickname ?? "",
             }, cancellationToken);
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
+    {
+        var starsFromDb = await db.Stars
+            .Include(x => x.User)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .ToListAsync(cancellationToken);
+
+        var starsByMap = new Dictionary<string, Dictionary<string, Star>>();
+
+        foreach (var starGroup in starsFromDb.GroupBy(x => x.MapId))
+        {
+            var stars = new Dictionary<string, Star>();
+
+            foreach (var star in starGroup)
+            {
+                stars[$"{star.CarId}_{star.Gravity}_Time"] = new Star
+                {
+                    Login = star.User.Id,
+                    Nickname = star.User.Nickname ?? "",
+                };
+            }
+
+            starsByMap[starGroup.Key] = stars;
+        }
+
+        return starsByMap;
     }
 }

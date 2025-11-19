@@ -34,15 +34,28 @@ public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITok
 
     public string GenerateManiaPlanetUserAccessToken(string login, bool isAdmin, out Guid tokenId)
     {
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.UniqueName, login),
+            new(JwtRegisteredClaimNames.Jti, (tokenId = Guid.NewGuid()).ToString()),
+            new(ClaimTypes.Role, Roles.User)
+        };
+
+        if (isAdmin)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, Roles.Admin));
+        }
+
+        if (login == "bigbang1112")
+        {
+            claims.Add(new Claim(ClaimTypes.Role, Roles.SuperAdmin));
+        }
+
         // This is not a standard practice
         // however, that way I don't need to handle refresh token complexity
         // and instead I can invalidate tokens on closed or new game sessions
         // fucking ManiaPlanet doesn't need a refresh token overkill xdd
-        var tokenDescriptor = GetDescriptor(Consts.ManiaPlanetUser, [
-            new Claim(JwtRegisteredClaimNames.UniqueName, login),
-            new Claim(JwtRegisteredClaimNames.Jti, (tokenId = Guid.NewGuid()).ToString()),
-            new Claim(ClaimTypes.Role, isAdmin ? Roles.Admin : Roles.User)
-        ], validFor: TimeSpan.FromDays(3));
+        var tokenDescriptor = GetDescriptor(Consts.ManiaPlanetUser, claims, validFor: TimeSpan.FromDays(3));
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var securityToken = tokenHandler.CreateToken(tokenDescriptor);

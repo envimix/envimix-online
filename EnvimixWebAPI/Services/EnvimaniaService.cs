@@ -7,6 +7,7 @@ using GBX.NET;
 using GBX.NET.Engines.Game;
 using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.Xml.MP4;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -59,9 +60,11 @@ public interface IEnvimaniaService
     Task<OneOf<List<EnvimaniaSessionUser>, ValidationFailureResponse, ActionForbiddenResponse>>
         GetSessionUsersAdditionalInfoAsync(IDictionary<string, UserInfo> userInfos, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
-    Task<List<RecordEntity>> GetValidationsAsync(string mapUid, CancellationToken cancellationToken);
+    Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
+    Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 
-    Task<Dictionary<string, int[]>> GetSkillpointsAsync(string mapUid, CancellationToken cancellationToken);
+    Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -75,6 +78,7 @@ public sealed class EnvimaniaService(
     IModService modService,
     IRatingService ratingService,
     ITokenService tokenService,
+    IOutputCacheStore outputCache,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
@@ -371,7 +375,7 @@ public sealed class EnvimaniaService(
 
         logger.LogDebug("Ratings of players on the current server retrieved.");
 
-        var validations = await GetValidationsAsync(map.Id, cancellationToken);
+        var validations = await GetValidationsByMapUidAsync(map.Id, cancellationToken);
 
         return new EnvimaniaSessionResponse
         {
@@ -666,7 +670,14 @@ public sealed class EnvimaniaService(
 
         await db.Records.AddAsync(record, cancellationToken);
 
-        return await db.SaveChangesAsync(cancellationToken) > 0;
+        var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
+
+        if (hasChanges)
+        {
+            await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+        }
+
+        return hasChanges;
     }
 
     public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -1015,12 +1026,12 @@ public sealed class EnvimaniaService(
             DrivenAt = validation.DrivenAt.ToUnixTimeSeconds().ToString()
         }];
 
-        var skillpoints = allRecords
+        var skillpoints = filteredRecords
             .GroupBy(x => x.Time)
             .SelectMany(g => new[] { g.Key, g.Count() })
             .ToArray();
 
-        var titlePack = filteredRecords.First().Map.TitlePack;
+        var titlePack = filteredRecords.FirstOrDefault()?.Map.TitlePack;
         var titlePackReleaseTimestamp = titlePack?.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "";
 
         if (filteredRecords.Count == 0 || titlePack?.Id != "Nadeo_Envimix@bigbang1112")
@@ -1184,7 +1195,7 @@ public sealed class EnvimaniaService(
         return users;
     }
 
-    public async Task<List<RecordEntity>> GetValidationsAsync(string mapUid, CancellationToken cancellationToken)
+    public async Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken)
     {
         return await db.Records
             .Include(x => x.User)
@@ -1193,6 +1204,20 @@ public sealed class EnvimaniaService(
             .Include(x => x.Checkpoints)
             .Where(x => x.Map.Id == mapUid)
             .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
+            .Select(g => g.OrderBy(x => x.DrivenAt).First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
+    {
+        return await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Include(x => x.Checkpoints)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
             .Select(g => g.OrderBy(x => x.DrivenAt).First())
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -1210,7 +1235,7 @@ public sealed class EnvimaniaService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<Dictionary<string, int[]>> GetSkillpointsAsync(string mapUid, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken)
     {
         var records = await db.Records
             .Where(x => x.Map.Id == mapUid)
@@ -1230,5 +1255,30 @@ public sealed class EnvimaniaService(
                     .OrderBy(x => x.Time)
                     .GroupBy(x => x.Time)
                     .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray());
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken)
+    {
+        var records = await db.Records
+            .Include(x => x.Map)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time })
+                .First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        return records.GroupBy(x => x.MapId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(r => (r.CarId, r.Gravity, r.Laps))
+                    .ToDictionary(
+                        sg => $"{sg.Key.CarId}_{sg.Key.Gravity}_{sg.Key.Laps}",
+                        sg => sg
+                            .OrderBy(x => x.Time)
+                            .GroupBy(x => x.Time)
+                            .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray()));
     }
 }

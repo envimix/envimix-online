@@ -18,7 +18,9 @@ public static class EnvimaniaEndpoints
 
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
+
         group.MapGet("records/{mapUid}/{car}", Records);
+
         group.MapPost("record", Record).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
 
         MapSession(group.MapGroup("session"));

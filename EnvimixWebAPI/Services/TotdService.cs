@@ -1,21 +1,22 @@
-﻿using EnvimixWebAPI.Entities;
+﻿using EnvimixWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.IO.Hashing;
+using System.Text;
 
 namespace EnvimixWebAPI.Services;
 
 public interface ITotdService
 {
-    Task<MapEntity?> GetMapAsync(string titleId, CancellationToken cancellationToken);
+    Task<MapInfo?> GetMapAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class TotdService(AppDbContext db) : ITotdService
 {
-    public async Task<MapEntity?> GetMapAsync(string titleId, CancellationToken cancellationToken)
+    public async Task<MapInfo?> GetMapAsync(string titleId, CancellationToken cancellationToken)
     {
         var mapCount = await db.Maps
             .Include(m => m.TitlePack)
-            .Where(m => m.TitlePack!.Id == titleId)
-            .OrderBy(m => m.Id)
+            .Where(m => m.TitlePack!.Id == titleId && m.IsCampaignMap)
             .CountAsync(cancellationToken);
 
         if (mapCount == 0)
@@ -26,12 +27,24 @@ public sealed class TotdService(AppDbContext db) : ITotdService
         var random = CreateRandom(titleId);
         var randomMapPosition = random.Next(0, mapCount);
 
-        return await db.Maps
-            .Include(m => m.TitlePack)
-            .Where(m => m.TitlePack!.Id == titleId)
+        var map = await db.Maps
+            .Where(m => m.TitlePackId == titleId && m.IsCampaignMap)
+            .OrderBy(m => m.Order)
             .Skip(randomMapPosition)
             .AsNoTracking()
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (map is null)
+        {
+            return null;
+        }
+
+        return new MapInfo
+        {
+            Name = map.Name,
+            Uid = map.Id,
+            Order = map.Order
+        };
     }
 
     public static string GetOldMapXml(string titleId)
@@ -78,7 +91,9 @@ public sealed class TotdService(AppDbContext db) : ITotdService
 
     private static Random CreateRandom(string titleId)
     {
-        var seed = HashCode.Combine(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 86400, titleId);
-        return new Random(seed);
+        var data = Encoding.UTF8.GetBytes(titleId)
+            .Concat(BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 86400 * 1112))
+            .ToArray();
+        return new Random((int)Crc32.HashToUInt32(data));
     }
 }

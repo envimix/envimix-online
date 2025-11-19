@@ -22,12 +22,47 @@ public static class MapEndpoints
         group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
     }
 
-    private static async Task SubmitMaps(MapInfo[] maps, CancellationToken cancellationToken)
+    private static async Task<Ok> SubmitMaps(
+        SubmitMapsRequest request, 
+        AppDbContext db,
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var mapUids = request.Maps.Select(x => x.Uid).ToHashSet();
+        var maps = await db.Maps
+            .Where(x => mapUids.Contains(x.Id) || (x.TitlePackId == request.TitleId && x.IsCampaignMap))
+            .ToListAsync(cancellationToken);
+
+        foreach (var mapInfo in request.Maps)
+        {
+            var map = maps.FirstOrDefault(x => x.Id == mapInfo.Uid);
+
+            if (map is null)
+            {
+                map = new MapEntity
+                {
+                    Id = mapInfo.Uid,
+                };
+                await db.Maps.AddAsync(map, cancellationToken);
+            }
+
+            map.Name = mapInfo.Name;
+            map.TitlePackId = request.TitleId;
+            map.IsCampaignMap = true;
+            map.Order = mapInfo.Order;
+        }
+
+        // unset campaign maps that are not in the submitted list
+        foreach (var map in maps.Where(x => x.TitlePackId == request.TitleId && x.IsCampaignMap && !mapUids.Contains(x.Id)))
+        {
+            map.IsCampaignMap = false;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Ok();
     }
 
-    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound>> GetMap(
+    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> GetMap(
         string mapUid,
         AppDbContext db,
         IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
@@ -45,11 +80,16 @@ public static class MapEndpoints
             return TypedResults.NotFound();
         }
 
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow)
+        {
+            return TypedResults.Forbid();
+        }
+
         var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, principal, map, cancellationToken);
         return TypedResults.Ok(mapResponse);
     }
 
-    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult, NotFound>> VisitMap(
+    private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> VisitMap(
         string mapUid,
         AppDbContext db,
         IEnvimaniaService envimaniaService,
@@ -107,9 +147,9 @@ public static class MapEndpoints
 
     private static async Task<MapInfoResponse> GetMapInfoAsync(string mapUid, IEnvimaniaService envimaniaService, IRatingService ratingService, ClaimsPrincipal principal, MapEntity map, CancellationToken cancellationToken)
     {
-        var validations = await envimaniaService.GetValidationsAsync(mapUid, cancellationToken);
+        var validations = await envimaniaService.GetValidationsByMapUidAsync(mapUid, cancellationToken);
 
-        var ratings = await ratingService.GetAveragesAsync(mapUid, cancellationToken);
+        var ratings = await ratingService.GetAveragesByMapUidAsync(mapUid, cancellationToken);
 
         var userRatings = new List<FilteredRating>();
 
@@ -164,7 +204,7 @@ public static class MapEndpoints
                 DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             }),
             Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken),
-            Skillpoints = await envimaniaService.GetSkillpointsAsync(mapUid, cancellationToken)
+            Skillpoints = await envimaniaService.GetSkillpointsByMapUidAsync(mapUid, cancellationToken)
         };
 
         return mapResponse;

@@ -15,6 +15,9 @@ public sealed class MapEntity
 
     public ServerEntity? FirstAppearedOnServer { get; set; }
 
+    public bool IsCampaignMap { get; set; }
+    public int? Order { get; set; }
+
     public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     public ICollection<RecordEntity> Records { get; } = [];
 }

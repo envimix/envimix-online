@@ -43,6 +43,12 @@ public static class WebConfiguration
                 policy.RequireAuthenticatedUser()
                     .RequireRole(Roles.Admin)
                     .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
+            })
+            .AddPolicy(Policies.SuperAdminPolicy, policy =>
+            {
+                policy.RequireAuthenticatedUser()
+                    .RequireRole(Roles.SuperAdmin)
+                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
             });
 
         services.AddManiaPlanetAPI(options =>
