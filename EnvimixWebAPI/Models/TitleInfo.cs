@@ -6,4 +6,5 @@ public sealed class TitleInfo
 {
     [JsonPropertyName(nameof(Id))] public required string Id { get; set; }
     [JsonPropertyName(nameof(DisplayName))] public string? DisplayName { get; set; }
+    [JsonPropertyName(nameof(ReleasedAt))] public required string ReleasedAt { get; set; }
 }

@@ -178,7 +178,8 @@ public static class MapEndpoints
             TitlePack = map.TitlePack is null ? null : new()
             {
                 Id = map.TitlePack.Id,
-                DisplayName = map.TitlePack.DisplayName ?? ""
+                DisplayName = map.TitlePack.DisplayName ?? "",
+                ReleasedAt = map.TitlePack.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "",
             },
             Ratings = ratings,
             UserRatings = userRatings,
