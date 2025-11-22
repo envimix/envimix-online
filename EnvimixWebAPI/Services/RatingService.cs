@@ -343,13 +343,13 @@ public sealed class RatingService(
 
         var avgDifficulties = await db.Ratings
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && cars.Contains(x.Car.Id) && x.Difficulty != null && x.Difficulty != -1)
-            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .GroupBy(x => new { x.MapId, x.User.Id, x.CarId, x.Gravity })
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
 
         var avgQualities = await db.Ratings
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && cars.Contains(x.Car.Id) && x.Quality != null && x.Quality != -1)
-            .GroupBy(x => new { x.User.Id, x.CarId, x.Gravity })
+            .GroupBy(x => new { x.MapId, x.User.Id, x.CarId, x.Gravity })
             .Select(x => x.OrderByDescending(x => x.CreatedAt).First())
             .ToListAsync(cancellationToken);
 
