@@ -14,6 +14,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
 using System.Data;
 using System.Security.Claims;
+using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
 
@@ -65,6 +66,7 @@ public interface IEnvimaniaService
 
     Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken);
+    Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -79,6 +81,7 @@ public sealed class EnvimaniaService(
     IRatingService ratingService,
     ITokenService tokenService,
     IOutputCacheStore outputCache,
+    Channel<ValidationWebhookDispatch> validationWebhookChannel,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
@@ -639,6 +642,8 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid record");
         }
 
+        var isValidation = !await db.Records.AnyAsync(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps, cancellationToken);
+
         var record = new RecordEntity
         {
             User = userModel,
@@ -675,6 +680,12 @@ public sealed class EnvimaniaService(
         if (hasChanges)
         {
             await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+
+            // if is validation, enqueue validation notification
+            if (isValidation)
+            {
+                await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(map, carName, gravity, laps), cancellationToken);
+        }
         }
 
         return hasChanges;
@@ -1223,7 +1234,7 @@ public sealed class EnvimaniaService(
             .ToListAsync(cancellationToken);
     }
 
-    private async Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken)
+    public async Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken)
     {
         return await db.Records
             .Include(x => x.User)

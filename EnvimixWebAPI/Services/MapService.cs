@@ -57,6 +57,11 @@ public sealed class MapService(AppDbContext db) : IMapService
 
         map.Name = mapInfo.Name;
 
+        if (!string.IsNullOrWhiteSpace(mapInfo.Collection))
+        {
+            map.Collection = mapInfo.Collection;
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         return map;

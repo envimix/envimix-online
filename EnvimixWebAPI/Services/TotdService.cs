@@ -42,6 +42,7 @@ public sealed class TotdService(AppDbContext db) : ITotdService
         return new MapInfo
         {
             Name = map.Name,
+            Collection = map.Collection,
             Uid = map.Id,
             Order = map.Order
         };

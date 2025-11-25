@@ -19,4 +19,5 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<TitleEntity> Titles { get; set; }
     public DbSet<GhostEntity> Ghosts { get; set; }
     public DbSet<MapVisitEntity> MapVisits { get; set; }
+    public DbSet<ValidationDiscordMessageEntity> ValidationDiscordMessages { get; set; }
 }

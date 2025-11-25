@@ -18,6 +18,9 @@ public sealed class MapEntity
     public bool IsCampaignMap { get; set; }
     public int? Order { get; set; }
 
+    [StringLength(64)]
+    public string Collection { get; set; } = "";
+
     public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     public ICollection<RecordEntity> Records { get; } = [];
 }

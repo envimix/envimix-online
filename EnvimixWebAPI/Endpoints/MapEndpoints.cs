@@ -48,6 +48,7 @@ public static class MapEndpoints
             }
 
             map.Name = mapInfo.Name;
+            map.Collection = mapInfo.Collection ?? "";
             map.TitlePackId = request.TitleId;
             map.IsCampaignMap = true;
             map.Order = mapInfo.Order;
@@ -175,6 +176,7 @@ public static class MapEndpoints
         {
             Name = map.Name,
             Uid = map.Id,
+            Collection = map.Collection,
             TitlePack = map.TitlePack is null ? null : new()
             {
                 Id = map.TitlePack.Id,

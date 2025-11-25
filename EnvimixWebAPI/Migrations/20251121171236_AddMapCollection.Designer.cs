@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121171236_AddMapCollection")]
+    partial class AddMapCollection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -466,24 +469,6 @@ namespace EnvimixWebAPI.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("EnvimixWebAPI.Entities.ValidationDiscordMessageEntity", b =>
-                {
-                    b.Property<ulong>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
-
-                    b.Property<int?>("RecordId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecordId");
-
-                    b.ToTable("ValidationDiscordMessages");
-                });
-
             modelBuilder.Entity("EnvimixWebAPI.Entities.ZoneEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -668,15 +653,6 @@ namespace EnvimixWebAPI.Migrations
                     b.Navigation("DiscordUser");
 
                     b.Navigation("Zone");
-                });
-
-            modelBuilder.Entity("EnvimixWebAPI.Entities.ValidationDiscordMessageEntity", b =>
-                {
-                    b.HasOne("EnvimixWebAPI.Entities.RecordEntity", "Record")
-                        .WithMany()
-                        .HasForeignKey("RecordId");
-
-                    b.Navigation("Record");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.DiscordUserEntity", b =>
