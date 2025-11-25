@@ -57,5 +57,10 @@ internal static class CacheHelper
     {
         return $"OfficialRecords:{mapUid}:{carName}:{zone}";
     }
+
+    public static string GetMapRecordsKey(string mapUid, string car, int gravity, int laps, string zone)
+    {
+        return $"MapRecords:{mapUid}:{car}:{gravity}:{laps}:{zone}";
+    }
 }
 

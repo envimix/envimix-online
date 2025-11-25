@@ -71,7 +71,7 @@ public interface IEnvimaniaService
 
 public sealed class EnvimaniaService(
     AppDbContext db,
-    HybridCache cache,
+    HybridCache hybridCache,
     MasterServerMP4 masterServer,
     ManiaPlanetIngameAPI mpIngameApi,
     IMapService mapService,
@@ -681,11 +681,14 @@ public sealed class EnvimaniaService(
         {
             await outputCache.EvictByTagAsync("title-stats", cancellationToken);
 
+            // TODO: also loop around the user's zone later
+            await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(map.Id, carName, gravity, laps, "World"), cancellationToken);
+
             // if is validation, enqueue validation notification
             if (isValidation)
             {
                 await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(map, carName, gravity, laps), cancellationToken);
-        }
+            }
         }
 
         return hasChanges;
@@ -946,7 +949,10 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        return await GetRecordsWithoutValidationAsync(mapUid, filter, zone, cancellationToken);
+        return await hybridCache.GetOrCreateAsync(CacheHelper.GetMapRecordsKey(mapUid, filter.Car, filter.Gravity, filter.Laps, zone), async token =>
+        {
+            return await GetRecordsWithoutValidationAsync(mapUid, filter, zone, token);
+        }, new() { Expiration = TimeSpan.FromMinutes(30) }, cancellationToken: cancellationToken);
     }
 
     private async Task<EnvimaniaRecordsResponse> GetRecordsWithoutValidationAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, CancellationToken cancellationToken)
@@ -1058,7 +1064,7 @@ public sealed class EnvimaniaService(
             };
         }
 
-        var mpRecords = await cache.GetOrCreateAsync(CacheHelper.GetOfficialRecordsKey(mapUid, filter.Car, zone), async token =>
+        var mpRecords = await hybridCache.GetOrCreateAsync(CacheHelper.GetOfficialRecordsKey(mapUid, filter.Car, zone), async token =>
         {
             return await masterServer.GetMapLeaderBoardAsync("Nadeo_Envimix@bigbang1112", mapUid, count: 20, offset: 0, zone, $"{filter.Car}2", token);
         }, new() { Expiration = TimeSpan.FromMinutes(10) }, cancellationToken: cancellationToken);
