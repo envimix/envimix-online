@@ -85,7 +85,7 @@ public static class MapEndpoints
             return TypedResults.NotFound();
         }
 
-        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow)
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
         {
             return TypedResults.Forbid();
         }
