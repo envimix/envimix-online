@@ -1,12 +1,13 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace EnvimixWebAPI.Services;
 
 public interface ITitleService
 {
-    Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, CancellationToken cancellationToken);
+    Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, ClaimsPrincipal principal, CancellationToken cancellationToken);
     Task<DateTimeOffset?> GetTitleReleaseDateAsync(string titleId, CancellationToken cancellationToken);
     Task<bool> SubmitTitleAsync(TitleSubmitRequest request, CancellationToken cancellationToken);
 }
@@ -20,7 +21,7 @@ public sealed class TitleService : ITitleService
         this.db = db;
     }
 
-    public async Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, CancellationToken cancellationToken)
+    public async Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var title = await db.Titles
             .Where(x => x.Id == titleId)
@@ -36,10 +37,19 @@ public sealed class TitleService : ITitleService
             return null;
         }
 
+        var releasedAt = title.ReleasedAt;
+
+        // for admins, allow access to title pack immediately
+        if (releasedAt.HasValue && principal.IsInRole(Roles.Admin))
+        {
+            var adminReleaseDate = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
+            releasedAt = releasedAt.Value > adminReleaseDate ? adminReleaseDate : releasedAt.Value;
+        }
+
         return new TitleReleaseInfo
         {
-            ReleasedAt = title.ReleasedAt.HasValue ? title.ReleasedAt.Value.ToUnixTimeSeconds().ToString() : "",
-            Key = title.ReleasedAt.HasValue && DateTimeOffset.UtcNow >= (title.ReleasedAt.Value - TimeSpan.FromSeconds(2)) ? (title.Key ?? "") : ""
+            ReleasedAt = releasedAt.HasValue ? releasedAt.Value.ToUnixTimeSeconds().ToString() : "",
+            Key = releasedAt.HasValue && DateTimeOffset.UtcNow >= (releasedAt.Value - TimeSpan.FromSeconds(2)) ? (title.Key ?? "") : ""
         };
     }
 

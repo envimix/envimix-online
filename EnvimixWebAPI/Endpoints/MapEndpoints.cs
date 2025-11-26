@@ -128,7 +128,7 @@ public static class MapEndpoints
             await db.Maps.AddAsync(map, cancellationToken);
         }
 
-        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow)
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
         {
             userModel.BanReason = "AUTOMATED: Attempted to access unreleased title pack map";
             await db.SaveChangesAsync(CancellationToken.None);

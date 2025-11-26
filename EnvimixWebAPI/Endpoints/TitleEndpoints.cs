@@ -28,9 +28,10 @@ public static class TitleEndpoints
     private static async Task<Results<Ok<TitleReleaseInfo>, NotFound>> GetTitleRelease(
         string titleId,
         ITitleService titleService,
+        ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
-        var info = await titleService.GetTitleReleaseInfoAsync(titleId, cancellationToken);
+        var info = await titleService.GetTitleReleaseInfoAsync(titleId, principal, cancellationToken);
 
         return info is null
             ? TypedResults.NotFound()

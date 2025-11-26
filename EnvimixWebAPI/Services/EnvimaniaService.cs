@@ -601,7 +601,7 @@ public sealed class EnvimaniaService(
 
         var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, ghost.Validate_TitleId, CancellationToken.None);
 
-        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp)
+        if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
         {
             userModel.BanReason = "AUTOMATED: Attempted record submission on unreleased title pack";
             await db.SaveChangesAsync(CancellationToken.None);
