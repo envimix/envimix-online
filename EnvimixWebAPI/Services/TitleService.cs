@@ -40,11 +40,11 @@ public sealed class TitleService : ITitleService
         var releasedAt = title.ReleasedAt;
 
         // for admins, allow access to title pack immediately
-        /*if (releasedAt.HasValue && principal.IsInRole(Roles.Admin))
+        if (releasedAt.HasValue && principal.IsInRole(Roles.Admin))
         {
             var adminReleaseDate = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
             releasedAt = releasedAt.Value > adminReleaseDate ? adminReleaseDate : releasedAt.Value;
-        }*/
+        }
 
         return new TitleReleaseInfo
         {
