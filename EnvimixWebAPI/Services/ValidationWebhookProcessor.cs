@@ -39,7 +39,7 @@ public sealed class ValidationWebhookProcessor : BackgroundService
                     continue;
                 }
 
-                if (webhook.Gravity != 0)
+                if (webhook.Gravity != 0 || !webhook.Map.IsCampaignMap)
                 {
                     logger.LogWarning("Skipping validation webhook for map {MapId} with gravity {Gravity}", webhook.Map.Id, webhook.Gravity);
                     continue;
