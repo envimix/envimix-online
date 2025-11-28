@@ -12,7 +12,7 @@ public static class UserEndpoints
     {
         group.WithTags("User");
 
-        group.MapPost("", PostUser).RequireRateLimiting("20PerHour");
+        group.MapPost("", PostUser);
         group.MapGet("{login}", GetUser).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
