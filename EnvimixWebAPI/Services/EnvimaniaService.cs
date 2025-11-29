@@ -1043,7 +1043,14 @@ public sealed class EnvimaniaService(
             DrivenAt = validation.DrivenAt.ToUnixTimeSeconds().ToString()
         }];
 
-        var skillpoints = filteredRecords
+        var skillpoints = allRecords
+            .GroupBy(x => x.User.Id)
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .First())
+            .OrderBy(x => x.Time)
+            .ThenBy(x => x.DrivenAt)
             .GroupBy(x => x.Time)
             .SelectMany(g => new[] { g.Key, g.Count() })
             .ToArray();
