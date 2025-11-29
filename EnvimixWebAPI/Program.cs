@@ -21,7 +21,7 @@ builder.Services.AddOptions<JwtOptions>()
 
 // Add services to the container.
 builder.Services.AddDomainServices();
-builder.Services.AddDataServices(builder.Configuration);
+builder.Services.AddDataServices(builder.Configuration, builder.Environment);
 builder.Services.AddWebServices(builder.Configuration);
 builder.Services.AddCacheServices();
 builder.Services.AddTelemetryServices(builder.Configuration, builder.Environment);
