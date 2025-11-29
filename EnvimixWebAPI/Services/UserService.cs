@@ -73,9 +73,7 @@ public sealed class UserService(
         userModel.ZoneId = await zoneService.GetZoneIdAsync(user.Zone, cancellationToken);
         userModel.AvatarUrl = user.AvatarUrl;
         userModel.Language = user.Language;
-        if (user.Description?.Length < 255) {
         userModel.Description = user.Description;
-        }
         userModel.Color = user.Color;
         userModel.SteamUserId = user.SteamUserId;
         userModel.FameStars = user.FameStars;

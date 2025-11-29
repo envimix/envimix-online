@@ -18,7 +18,7 @@ public sealed class UserEntity
     [StringLength(64)]
     public string? Language { get; set; }
 
-    [StringLength(255)]
+    [StringLength(short.MaxValue)]
     public string? Description { get; set; }
 
     public float[]? Color { get; set; }
