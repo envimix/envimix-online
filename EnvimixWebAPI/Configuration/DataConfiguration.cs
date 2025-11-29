@@ -9,8 +9,8 @@ public static class DataConfiguration
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionStr = config.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionStr, ServerVersion.AutoDetect(connectionStr));
-            //.ConfigureWarnings(w => w.Ignore(RelationalEventId.CommandExecuted)); // should be configurable
+            options.UseMySql(connectionStr, ServerVersion.AutoDetect(connectionStr))
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.CommandExecuted)); // should be configurable
         });
     }
 
