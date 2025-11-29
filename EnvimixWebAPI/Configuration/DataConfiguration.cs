@@ -1,16 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace EnvimixWebAPI.Configuration;
 
 public static class DataConfiguration
 {
-    public static void AddDataServices(this IServiceCollection services, IConfiguration config)
+    public static void AddDataServices(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
     {
         services.AddDbContext<AppDbContext>(options =>
         {
             var connectionStr = config.GetConnectionString("DefaultConnection");
-            options.UseMySql(connectionStr, ServerVersion.AutoDetect(connectionStr))
-            .ConfigureWarnings(w => w.Ignore(RelationalEventId.CommandExecuted)); // should be configurable
+            options.UseMySql(connectionStr, ServerVersion.AutoDetect(connectionStr));
+
+            if (!hostEnvironment.IsDevelopment())
+            {
+                options.ConfigureWarnings(w => w.Ignore(RelationalEventId.CommandExecuted)); // should be configurable
+            }
         });
     }
 
