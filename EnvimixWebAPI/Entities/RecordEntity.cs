@@ -36,5 +36,7 @@ public sealed class RecordEntity
     public required int Score { get; set; }
     public required int NbRespawns { get; set; }
 
+    public bool Restored { get; set; }
+
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
 }

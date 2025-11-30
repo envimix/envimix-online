@@ -1,7 +1,9 @@
-﻿using EnvimixWebAPI.Entities;
+﻿using Discord.Webhook;
+using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
+using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Security;
 using GBX.NET;
 using GBX.NET.Engines.Game;
@@ -11,8 +13,10 @@ using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Options;
 using OneOf;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
@@ -67,6 +71,8 @@ public interface IEnvimaniaService
     Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken);
     Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken);
+
+    Task RestoreValidationsAsync(CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -82,6 +88,9 @@ public sealed class EnvimaniaService(
     ITokenService tokenService,
     IOutputCacheStore outputCache,
     Channel<ValidationWebhookDispatch> validationWebhookChannel,
+    IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
+    IConfiguration config,
+    HttpClient http,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
@@ -553,53 +562,14 @@ public sealed class EnvimaniaService(
 
         var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: CancellationToken.None);
 
-        var carName = ghost.PlayerModel?.Id switch
+        if (!ValidateGhost(ghost, out var carName, out var laps, out var validationFailure))
         {
-            "CanyonCar" or "Vehicles\\CanyonCar.Item.Gbx" or "Vehicles\\CanyonCarTurbo.Item.Gbx" => "CanyonCar",
-            "StadiumCar" or "Vehicles\\StadiumCar.Item.Gbx" or "Vehicles\\StadiumCarTurbo.Item.Gbx" => "StadiumCar",
-            "ValleyCar" or "Vehicles\\ValleyCar.Item.Gbx" or "Vehicles\\ValleyCarTurbo.Item.Gbx" => "ValleyCar",
-            "LagoonCar" or "Vehicles\\LagoonCar.Item.Gbx" or "Vehicles\\LagoonCarTurbo.Item.Gbx" => "LagoonCar",
-            "Vehicles\\TrafficCar.Item.Gbx" => "TrafficCar",
-            "Vehicles\\DesertCar.Item.Gbx" => "DesertCar",
-            "Vehicles\\RallyCar.Item.Gbx" => "RallyCar",
-            "Vehicles\\SnowCar.Item.Gbx" => "SnowCar",
-            "Vehicles\\IslandCar.Item.Gbx" => "IslandCar",
-            "Vehicles\\BayCar.Item.Gbx" => "BayCar",
-            "Vehicles\\CoastCar.Item.Gbx" => "CoastCar",
-            _ => null
-        };
-
-        if (carName is null)
-        {
-            return new ValidationFailureResponse("Invalid vehicle");
+            return validationFailure;
         }
 
         var ghostRawData = ms.ToArray();
 
-        if (string.IsNullOrWhiteSpace(ghost.Validate_ChallengeUid))
-        {
-            return new ValidationFailureResponse("Invalid map UID in ghost");
-        }
-
-        if (string.IsNullOrWhiteSpace(ghost.Validate_TitleId))
-        {
-            return new ValidationFailureResponse("Invalid title ID in ghost");
-        }
-
-        if (ghost.RaceTime is null)
-        {
-            return new ValidationFailureResponse("Invalid race time in ghost");
-        }
-
-        if (string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
-        {
-            return new ValidationFailureResponse("Invalid race settings in ghost");
-        }
-
-        var raceXml = XDocument.Parse($"<root>{ghost.Validate_RaceSettings}</root>");
-        var laps = (int?)raceXml.Descendants("laps").FirstOrDefault() ?? 0;
-
-        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid, ghost.Validate_TitleId, CancellationToken.None);
+        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, CancellationToken.None);
 
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
         {
@@ -692,6 +662,63 @@ public sealed class EnvimaniaService(
         }
 
         return hasChanges;
+    }
+
+    private static bool ValidateGhost(CGameCtnGhost ghost, [NotNullWhen(true)] out string? carName, out int laps, [NotNullWhen(false)] out ValidationFailureResponse? validationFailure)
+    {
+        carName = ghost.PlayerModel?.Id switch
+        {
+            "CanyonCar" or "Vehicles\\CanyonCar.Item.Gbx" or "Vehicles\\CanyonCarTurbo.Item.Gbx" => "CanyonCar",
+            "StadiumCar" or "Vehicles\\StadiumCar.Item.Gbx" or "Vehicles\\StadiumCarTurbo.Item.Gbx" => "StadiumCar",
+            "ValleyCar" or "Vehicles\\ValleyCar.Item.Gbx" or "Vehicles\\ValleyCarTurbo.Item.Gbx" => "ValleyCar",
+            "LagoonCar" or "Vehicles\\LagoonCar.Item.Gbx" or "Vehicles\\LagoonCarTurbo.Item.Gbx" => "LagoonCar",
+            "Vehicles\\TrafficCar.Item.Gbx" => "TrafficCar",
+            "Vehicles\\DesertCar.Item.Gbx" => "DesertCar",
+            "Vehicles\\RallyCar.Item.Gbx" => "RallyCar",
+            "Vehicles\\SnowCar.Item.Gbx" => "SnowCar",
+            "Vehicles\\IslandCar.Item.Gbx" => "IslandCar",
+            "Vehicles\\BayCar.Item.Gbx" => "BayCar",
+            "Vehicles\\CoastCar.Item.Gbx" => "CoastCar",
+            _ => null
+        };
+
+        laps = 0;
+
+        if (carName is null)
+        {
+            validationFailure = new ValidationFailureResponse("Invalid vehicle");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(ghost.Validate_ChallengeUid))
+        {
+            validationFailure = new ValidationFailureResponse("Invalid map UID in ghost");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(ghost.Validate_TitleId))
+        {
+            validationFailure = new ValidationFailureResponse("Invalid title ID in ghost");
+            return false;
+        }
+
+        if (ghost.RaceTime is null)
+        {
+            validationFailure = new ValidationFailureResponse("Invalid race time in ghost");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
+        {
+            validationFailure = new ValidationFailureResponse("Invalid race settings in ghost");
+            return false;
+        }
+
+        var raceXml = XDocument.Parse($"<root>{ghost.Validate_RaceSettings}</root>");
+        laps = (int?)raceXml.Descendants("laps").FirstOrDefault() ?? 0;
+
+        validationFailure = null;
+        return true;
     }
 
     public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -1304,5 +1331,148 @@ public sealed class EnvimaniaService(
                             .OrderBy(x => x.Time)
                             .GroupBy(x => x.Time)
                             .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray()));
+    }
+
+    public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
+    {
+        var campaignMaps = await db.Maps
+            .Where(x => x.IsCampaignMap && x.Order != null)
+            .OrderBy(x => x.Order)
+            .ToListAsync(cancellationToken);
+
+        foreach (var map in campaignMaps)
+        {
+            var mapUid = map.Id;
+
+            logger.LogInformation("Restoring validations for map {mapUid}...", mapUid);
+
+            foreach (var car in envimaniaOptions.Value.Car)
+            {
+                logger.LogInformation("Restoring validation for car {car}...", car);
+
+                try
+                {
+                    var existingValidation = await db.Records
+                        .Include(x => x.Map)
+                        .Where(x => x.Map.Id == mapUid && x.CarId == car && x.Gravity == 0) // there should be a check for Laps == map.Laps but I didn't implment that into MapEntity fuck
+                        .GroupBy(x => new { x.CarId, x.Gravity, x.Laps })
+                        .Select(g => g.OrderBy(x => x.DrivenAt).First())
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    var officialLb = await masterServer.GetMapLeaderBoardAsync("Envimix_Turbo@bigbang1112", mapUid, count: 1000, offset: 0, "World", car, cancellationToken);
+
+                    var oldestLeaderboardRecord = default(LeaderboardItem<TimeInt32>);
+                    var oldestLeaderboardRecordTimestamp = default(DateTimeOffset?);
+
+                    foreach (var lbEntry in officialLb)
+                    {
+                        if (string.IsNullOrEmpty(lbEntry.DownloadUrl))
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to missing download URL", lbEntry.Login);
+                            continue;
+                        }
+
+                        using var headResponse = await http.HeadAsync(lbEntry.DownloadUrl, cancellationToken);
+
+                        if (!headResponse.IsSuccessStatusCode)
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to HEAD request failure with status code {statusCode}", lbEntry.Login, headResponse.StatusCode);
+                            continue;
+                        }
+
+                        var lastModified = headResponse.Content.Headers.LastModified;
+
+                        if (lastModified is null)
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to missing Last-Modified header", lbEntry.Login);
+                            continue;
+                        }
+
+                        if (oldestLeaderboardRecordTimestamp is null || lastModified < oldestLeaderboardRecordTimestamp)
+                        {
+                            oldestLeaderboardRecord = lbEntry;
+                            oldestLeaderboardRecordTimestamp = lastModified;
+                        }
+                    }
+
+                    if (oldestLeaderboardRecord is null || oldestLeaderboardRecordTimestamp is null)
+                    {
+                        logger.LogWarning("No valid leaderboard record found for car {car} on map {mapUid}", car, mapUid);
+                        continue;
+                    }
+
+                    if (existingValidation is not null && oldestLeaderboardRecordTimestamp >= existingValidation.DrivenAt)
+                    {
+                        logger.LogInformation("Existing validation for car {car} on map {mapUid} is older than or equal to the oldest leaderboard record. Skipping.", car, mapUid);
+                        continue;
+                    }
+
+                    var userModel = await userService.GetAsync(oldestLeaderboardRecord.Login, cancellationToken);
+
+                    if (userModel is null)
+                    {
+                        logger.LogWarning("User {login} not found in database. Skipping leaderboard entry.", oldestLeaderboardRecord.Login);
+                        continue;
+                    }
+
+                    await using var stream = await http.GetStreamAsync(oldestLeaderboardRecord.DownloadUrl, cancellationToken);
+                    await using var ms = new MemoryStream();
+                    await stream.CopyToAsync(ms, cancellationToken);
+
+                    var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: CancellationToken.None);
+
+                    if (!ValidateGhost(ghost, out var carName, out var laps, out var validationFailure))
+                    {
+                        logger.LogWarning("Invalid ghost for leaderboard entry {login} on map {mapUid}: {reason}", oldestLeaderboardRecord.Login, mapUid, validationFailure);
+                        continue;
+                    }
+
+                    if (car != carName)
+                    {
+                        logger.LogWarning("Car mismatch for leaderboard entry {login} on map {mapUid}: expected {expectedCar}, got {actualCar}", oldestLeaderboardRecord.Login, mapUid, car, carName);
+                        continue;
+                    }
+
+                    var record = new RecordEntity
+                    {
+                        User = userModel,
+                        Map = map,
+                        Car = await modService.GetOrAddCarAsync(car, cancellationToken),
+                        Gravity = 0,
+                        DrivenAt = oldestLeaderboardRecordTimestamp.Value, // + request.PreferenceNumber
+                        Laps = laps,
+                        Time = oldestLeaderboardRecord.Score.TotalMilliseconds,
+                        Score = ghost.StuntScore ?? -1,
+                        NbRespawns = ghost.Respawns ?? -1
+                    };
+
+                    await db.Records.AddAsync(record, cancellationToken);
+
+                    await db.SaveChangesAsync(cancellationToken);
+
+                    using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
+
+                    var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
+                    var carEmote = ValidationWebhookProcessor.GetCarEmote(carName);
+
+                    var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(userModel.Nickname ?? userModel.Id)}** has been restored");
+
+                    await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
+                    {
+                        Id = messageId,
+                        Record = record,
+                    }, cancellationToken);
+
+                    await db.SaveChangesAsync(cancellationToken);
+
+                    logger.LogInformation("Sent validation webhook for map {MapId}, message ID {MessageId}", mapUid, messageId);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error while restoring validation for car {car} on map {mapUid}", car, mapUid);
+                }
+            }
+        }
     }
 }

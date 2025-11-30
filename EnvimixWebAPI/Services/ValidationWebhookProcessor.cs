@@ -47,30 +47,8 @@ public sealed class ValidationWebhookProcessor : BackgroundService
 
                 using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
 
-                var envEmote = webhook.Map.Collection switch
-                {
-                    "Canyon" => "<:CanyonTMT:1441220239894253710>",
-                    "Valley" => "<:ValleyTMT:1441220278922514482>",
-                    "Lagoon" => "<:LagoonTMT:1441220242184339510>",
-                    "Stadium" => "<:StadiumTMT:1441220247100067900>",
-                    _ => "",
-                };
-
-                var carEmote = webhook.Car switch
-                {
-                    "CanyonCar" => "<:CanyonCar:1422392873927839794>",
-                    "ValleyCar" => "<:ValleyCar:1422393207697969152>",
-                    "LagoonCar" => "<:LagoonCar:1422392498835165296>",
-                    "StadiumCar" => "<:StadiumCarTM2:1441092118683586690>",
-                    "TrafficCar" => "<:TrafficCar:1441122726831063163>",
-                    "IslandCar" => "<:IslandCar:1441120664529535046>",
-                    "BayCar" => "<:BayCar:1420806883794616370>",
-                    "CoastCar" => "<:CoastCar:1420806241986281592>",
-                    "DesertCar" => "<:DesertCar:1441120705759547392>",
-                    "RallyCar" => "<:RallyCar:1420806885300502699>",
-                    "SnowCar" => "<:SnowCar:1420806887913426954>",
-                    _ => "",
-                };
+                var envEmote = GetEnvEmote(webhook.Map);
+                var carEmote = GetCarEmote(webhook.Car);
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
@@ -100,4 +78,29 @@ public sealed class ValidationWebhookProcessor : BackgroundService
             }
         }
     }
+
+    public static string GetEnvEmote(MapEntity map) => map.Collection switch
+    {
+        "Canyon" => "<:CanyonTMT:1441220239894253710>",
+        "Valley" => "<:ValleyTMT:1441220278922514482>",
+        "Lagoon" => "<:LagoonTMT:1441220242184339510>",
+        "Stadium" => "<:StadiumTMT:1441220247100067900>",
+        _ => "",
+    };
+
+    public static string GetCarEmote(string car) => car switch
+    {
+        "CanyonCar" => "<:CanyonCar:1422392873927839794>",
+        "ValleyCar" => "<:ValleyCar:1422393207697969152>",
+        "LagoonCar" => "<:LagoonCar:1422392498835165296>",
+        "StadiumCar" => "<:StadiumCarTM2:1441092118683586690>",
+        "TrafficCar" => "<:TrafficCar:1441122726831063163>",
+        "IslandCar" => "<:IslandCar:1441120664529535046>",
+        "BayCar" => "<:BayCar:1420806883794616370>",
+        "CoastCar" => "<:CoastCar:1420806241986281592>",
+        "DesertCar" => "<:DesertCar:1441120705759547392>",
+        "RallyCar" => "<:RallyCar:1420806885300502699>",
+        "SnowCar" => "<:SnowCar:1420806887913426954>",
+        _ => "",
+    };
 }
