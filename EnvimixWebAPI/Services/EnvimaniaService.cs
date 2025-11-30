@@ -598,7 +598,7 @@ public sealed class EnvimaniaService(
 
         var newRecord = new EnvimaniaRecord
         {
-            Time = ghost.RaceTime.Value.TotalMilliseconds,
+            Time = ghost.RaceTime!.Value.TotalMilliseconds,
             Score = ghost.StuntScore ?? 0,
             NbRespawns = ghost.Respawns ?? -1,
             Speed = -1,
@@ -1343,6 +1343,7 @@ public sealed class EnvimaniaService(
         foreach (var map in campaignMaps)
         {
             var mapUid = map.Id;
+            var gravity = 0; // TODO should be configurable
 
             logger.LogInformation("Restoring validations for map {mapUid}...", mapUid);
 
@@ -1419,6 +1420,7 @@ public sealed class EnvimaniaService(
                     await using var stream = await http.GetStreamAsync(oldestLeaderboardRecord.DownloadUrl, cancellationToken);
                     await using var ms = new MemoryStream();
                     await stream.CopyToAsync(ms, cancellationToken);
+                    ms.Position = 0;
 
                     var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: CancellationToken.None);
 
@@ -1439,17 +1441,40 @@ public sealed class EnvimaniaService(
                         User = userModel,
                         Map = map,
                         Car = await modService.GetOrAddCarAsync(car, cancellationToken),
-                        Gravity = 0,
+                        Gravity = gravity,
                         DrivenAt = oldestLeaderboardRecordTimestamp.Value, // + request.PreferenceNumber
+                        ServersideDrivenAt = oldestLeaderboardRecordTimestamp.Value,
                         Laps = laps,
                         Time = oldestLeaderboardRecord.Score.TotalMilliseconds,
                         Score = ghost.StuntScore ?? -1,
-                        NbRespawns = ghost.Respawns ?? -1
+                        NbRespawns = ghost.Respawns ?? -1,
+                        Ghost = new GhostEntity { Data = ms.ToArray() },
                     };
 
                     await db.Records.AddAsync(record, cancellationToken);
 
-                    await db.SaveChangesAsync(cancellationToken);
+                    foreach (var cp in ghost.Checkpoints ?? [])
+                    {
+                        record.Checkpoints.Add(new CheckpointEntity
+                        {
+                            Record = record,
+                            Time = cp.Time.GetValueOrDefault().TotalMilliseconds,
+                            Score = cp.StuntsScore ?? 0,
+                            NbRespawns = ghost.Respawns ?? -1, // weird stuff
+                            Distance = -1,
+                            Speed = -1
+                        });
+                    }
+
+                    var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
+
+                    if (hasChanges)
+                    {
+                        await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+
+                        // TODO: also loop around the user's zone later
+                        await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(map.Id, carName, gravity, laps, "World"), cancellationToken);
+                    }
 
                     using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
 
