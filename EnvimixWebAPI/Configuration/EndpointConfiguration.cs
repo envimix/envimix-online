@@ -24,5 +24,6 @@ public static class EndpointConfiguration
         UserEndpoints.Map(app.MapGroup("/users"));
         ActivityEndpoints.Map(app.MapGroup("/activity"));
         TitleEndpoints.Map(app.MapGroup("/titles"));
+        GhostEndpoints.Map(app.MapGroup("/ghosts"));
     }
 }

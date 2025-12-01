@@ -128,10 +128,10 @@ public static class EnvimaniaEndpoints
     private static async Task<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionRecord(
         [FromBody] EnvimaniaSessionRecordRequest sessionRecordRequest,
         IEnvimaniaService envimaniaService,
-        ClaimsPrincipal principal,
+        HttpContext context,
         CancellationToken cancellationToken)
     {
-        var result = await envimaniaService.SetSessionRecordAsync(sessionRecordRequest, principal, cancellationToken);
+        var result = await envimaniaService.SetSessionRecordAsync(sessionRecordRequest, context.User, context.Request, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
@@ -143,10 +143,10 @@ public static class EnvimaniaEndpoints
     private static async Task<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> SessionRecordsPost(
         [FromBody] EnvimaniaSessionRecordBulkRequest sessionRecordBulkRequest,
         IEnvimaniaService envimaniaService,
-        ClaimsPrincipal principal,
+        HttpContext context,
         CancellationToken cancellationToken)
     {
-        var result = await envimaniaService.SetSessionRecordsAsync(sessionRecordBulkRequest, principal, cancellationToken);
+        var result = await envimaniaService.SetSessionRecordsAsync(sessionRecordBulkRequest, context.User, context.Request, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaSessionRecordResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
@@ -160,7 +160,7 @@ public static class EnvimaniaEndpoints
         int? gravity,
         int? laps,
         IEnvimaniaService envimaniaService,
-        ClaimsPrincipal principal,
+        HttpContext context,
         CancellationToken cancellationToken)
     {
         var filter = new EnvimaniaRecordFilter
@@ -170,7 +170,7 @@ public static class EnvimaniaEndpoints
             Laps = laps ?? 1
         };
 
-        var result = await envimaniaService.GetSessionRecordsAsync(filter, principal, cancellationToken);
+        var result = await envimaniaService.GetSessionRecordsAsync(filter, context.User, context.Request, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaRecordsResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
@@ -198,6 +198,7 @@ public static class EnvimaniaEndpoints
         int? laps,
         string? zone,
         IEnvimaniaService envimaniaService,
+        HttpRequest httpRequest,
         CancellationToken cancellationToken)
     {
         var filter = new EnvimaniaRecordFilter
@@ -207,7 +208,7 @@ public static class EnvimaniaEndpoints
             Laps = laps ?? 1
         };
 
-        var result = await envimaniaService.GetRecordsAsync(mapUid, filter, zone ?? "World", cancellationToken);
+        var result = await envimaniaService.GetRecordsAsync(mapUid, filter, zone ?? "World", httpRequest, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaRecordsResponse>, BadRequest<ValidationFailureResponse>>>(
             validResponse => TypedResults.Ok(validResponse),

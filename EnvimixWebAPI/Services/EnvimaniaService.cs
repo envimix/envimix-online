@@ -42,22 +42,22 @@ public interface IEnvimaniaService
         CheckSessionStatusAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>>
-        SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
+        SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken);
 
     Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>>
         SetRecordAsync(HttpRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>>
-        SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
+        SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaRecordsResponse, ActionForbiddenResponse>>
-        GetSessionRecordsAsync(EnvimaniaRecordFilter filter, ClaimsPrincipal principal, CancellationToken cancellationToken);
+        GetSessionRecordsAsync(EnvimaniaRecordFilter filter, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionClosedResponse, ActionForbiddenResponse>>
         CloseSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaRecordsResponse, ValidationFailureResponse>>
-        GetRecordsAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, CancellationToken cancellationToken);
+        GetRecordsAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, HttpRequest httpRequest, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaSessionUser, ActionForbiddenResponse>>
         GetSessionUserAdditionalInfoAsync(UserInfo user, ClaimsPrincipal principal, CancellationToken cancellationToken);
@@ -473,7 +473,7 @@ public sealed class EnvimaniaService(
         return new EnvimaniaSessionStatusResponse();
     }
 
-    public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
         logger.LogInformation("Attempt to set a record in a session via {user} dedicated server...", principal.GetName());
 
@@ -513,7 +513,7 @@ public sealed class EnvimaniaService(
         };
 
         logger.LogDebug("Retrieving updated records...");
-        var recs = await GetRecordsWithoutValidationAsync(mapUid, filter, "World", cancellationToken);
+        var recs = await GetRecordsWithoutValidationAsync(mapUid, filter, "World", httpRequest, cancellationToken);
 
         logger.LogDebug("Updated records retrieved.");
 
@@ -721,7 +721,7 @@ public sealed class EnvimaniaService(
         return true;
     }
 
-    public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordsAsync(EnvimaniaSessionRecordBulkRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
         logger.LogInformation("Attempt to set records in a session via {user} dedicated server...", principal.GetName());
 
@@ -773,7 +773,7 @@ public sealed class EnvimaniaService(
 
         foreach (var f in filters)
         {
-            updatedRecs.Add(await GetRecordsWithoutValidationAsync(mapUid, f, "World", cancellationToken));
+            updatedRecs.Add(await GetRecordsWithoutValidationAsync(mapUid, f, "World", httpRequest, cancellationToken));
         }
 
         logger.LogDebug("Updated records retrieved.");
@@ -945,7 +945,7 @@ public sealed class EnvimaniaService(
         return false;
     }
 
-    public async Task<OneOf<EnvimaniaRecordsResponse, ActionForbiddenResponse>> GetSessionRecordsAsync(EnvimaniaRecordFilter filter, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    public async Task<OneOf<EnvimaniaRecordsResponse, ActionForbiddenResponse>> GetSessionRecordsAsync(EnvimaniaRecordFilter filter, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
         // VALIDATION START
 
@@ -960,10 +960,10 @@ public sealed class EnvimaniaService(
 
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
 
-        return await GetRecordsWithoutValidationAsync(mapUid, filter, "World", cancellationToken);
+        return await GetRecordsWithoutValidationAsync(mapUid, filter, "World", httpRequest, cancellationToken);
     }
 
-    public async Task<OneOf<EnvimaniaRecordsResponse, ValidationFailureResponse>> GetRecordsAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, CancellationToken cancellationToken)
+    public async Task<OneOf<EnvimaniaRecordsResponse, ValidationFailureResponse>> GetRecordsAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
         // VALIDATION START
 
@@ -978,12 +978,14 @@ public sealed class EnvimaniaService(
 
         return await hybridCache.GetOrCreateAsync(CacheHelper.GetMapRecordsKey(mapUid, filter.Car, filter.Gravity, filter.Laps, zone), async token =>
         {
-            return await GetRecordsWithoutValidationAsync(mapUid, filter, zone, token);
+            return await GetRecordsWithoutValidationAsync(mapUid, filter, zone, httpRequest, token);
         }, new() { Expiration = TimeSpan.FromMinutes(30) }, cancellationToken: cancellationToken);
     }
 
-    private async Task<EnvimaniaRecordsResponse> GetRecordsWithoutValidationAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, CancellationToken cancellationToken)
+    private async Task<EnvimaniaRecordsResponse> GetRecordsWithoutValidationAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
+        var ghostBaseUrl = $"{httpRequest.Scheme}://{httpRequest.Host.Value}";
+
         var envimaniaRecords = new List<EnvimaniaRecordInfo>();
 
         // get records from category combinations
@@ -1038,7 +1040,7 @@ public sealed class EnvimaniaService(
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
                 Projected = false,
-                GhostUrl = "", // TODO: read from DB
+                GhostUrl = string.IsNullOrWhiteSpace(ghostBaseUrl) ? "" : $"{ghostBaseUrl}/ghosts/{rec.GhostId}/download",
                 DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             });
         }
@@ -1435,6 +1437,8 @@ public sealed class EnvimaniaService(
                         logger.LogWarning("Car mismatch for leaderboard entry {login} on map {mapUid}: expected {expectedCar}, got {actualCar}", oldestLeaderboardRecord.Login, mapUid, car, carName);
                         continue;
                     }
+
+                    // TODO: one more check is not considered: if the user on the official lb is the same as this new record with the same time, should be added
 
                     var record = new RecordEntity
                     {
