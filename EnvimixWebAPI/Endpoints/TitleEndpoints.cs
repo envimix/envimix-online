@@ -42,9 +42,11 @@ public static class TitleEndpoints
         string titleId, 
         IRatingService ratingService,
         IEnvimaniaService envimaniaService,
-        ClaimsPrincipal principal,
+        HttpContext context,
         CancellationToken cancellationToken)
     {
+        context.Response.Headers.ETag = $"\"{Guid.NewGuid():n}\"";
+
         var ratings = await ratingService.GetAveragesByTitleIdAsync(titleId, cancellationToken);
         var stars = await ratingService.GetStarsByTitleIdAsync(titleId, cancellationToken);
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
