@@ -1,7 +1,5 @@
-using EnvimixWebAPI;
 using EnvimixWebAPI.Configuration;
 using EnvimixWebAPI.Options;
-using Microsoft.AspNetCore.Authorization;
 
 GBX.NET.Gbx.LZO = new GBX.NET.LZO.Lzo();
 
@@ -27,9 +25,6 @@ builder.Services.AddDataServices(builder.Configuration, builder.Environment);
 builder.Services.AddWebServices(builder.Configuration);
 builder.Services.AddCacheServices();
 builder.Services.AddTelemetryServices(builder.Configuration, builder.Environment);
-
-builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler,
-    LoggingAuthorizationMiddlewareResultHandler>();
 
 var app = builder.Build();
 
