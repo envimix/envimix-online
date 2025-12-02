@@ -54,7 +54,7 @@ public static class TitleEndpoints
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
         var skillpoints = await envimaniaService.GetSkillpointsByTitleId(titleId, cancellationToken);
         var possibleEnvimixCombinations = await envimaniaService.GetPossibleEnvimixCombinationsAsync(titleId, cancellationToken);
-        var timeLoginPairsMaps = await envimaniaService.GetTimeLoginPairsByTitleId(titleId, cancellationToken);
+        var envimixTimeLoginPairsMaps = await envimaniaService.GetEnvimixTimeLoginPairsByTitleId(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
 
         var mappedValidations = validations.GroupBy(x => x.MapId)
@@ -82,7 +82,7 @@ public static class TitleEndpoints
         var playerActivityPoints = new Dictionary<string, int>();
         var playerCompleted = new Dictionary<string, int>();
 
-        foreach (var (mapUid, timeLoginPairsCombinations) in timeLoginPairsMaps)
+        foreach (var (mapUid, timeLoginPairsCombinations) in envimixTimeLoginPairsMaps)
         {
             var hasValidation = mappedValidations.ContainsKey(mapUid);
 

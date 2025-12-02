@@ -21,6 +21,7 @@ using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
+using static GBX.NET.Engines.Game.CGameCtnChallengeGroup;
 
 namespace EnvimixWebAPI.Services;
 
@@ -75,7 +76,8 @@ public interface IEnvimaniaService
     Task RestoreValidationsAsync(CancellationToken cancellationToken);
 
     Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken);
-    Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetGlobalTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetEnvimixTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -1522,12 +1524,45 @@ public sealed class EnvimaniaService(
         }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 
-    public async Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetGlobalTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken)
     {
-        // similar to GetSkillpointsByTitleId but returning time-login pairs instead
         var records = await db.Records
             .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
+                .First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return records.GroupBy(x => x.MapId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(r => (r.CarId, r.Gravity, r.Laps))
+                    .ToDictionary(
+                        sg => $"{sg.Key.CarId}_{sg.Key.Gravity}_{sg.Key.Laps}",
+                        sg => sg
+                            .OrderBy(x => x.Time)
+                            .SelectMany(x => new (int Time, string Login)[] { (x.Time, x.UserId) })
+                            .ToArray()));
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetEnvimixTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken)
+    {
+        var records = await db.Records
+            .Include(x => x.Map)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap
+                && (x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
+                    (x.Map.Collection == "Stadium" && x.CarId != "StadiumCar") ||
+                    (x.Map.Collection == "Valley" && x.CarId != "ValleyCar") ||
+                    (x.Map.Collection == "Lagoon" && x.CarId != "LagoonCar") ||
+                    (x.Map.Collection != "Canyon" &&
+                     x.Map.Collection != "Stadium" &&
+                     x.Map.Collection != "Valley" &&
+                     x.Map.Collection != "Lagoon"))
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)
