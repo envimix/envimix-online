@@ -73,6 +73,9 @@ public interface IEnvimaniaService
     Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken);
 
     Task RestoreValidationsAsync(CancellationToken cancellationToken);
+
+    Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -1027,7 +1030,7 @@ public sealed class EnvimaniaService(
                     Zone = rec.User.Zone?.Name ?? "",
                     AvatarUrl = rec.User.AvatarUrl ?? "",
                     Language = rec.User.Language ?? "",
-                    Description = rec.User.Language ?? "",
+                    Description = rec.User.Description ?? "",
                     Color = rec.User.Color ?? [-1, -1, -1],
                     SteamUserId = rec.User.SteamUserId ?? "",
                     FameStars = rec.User.FameStars ?? 0,
@@ -1503,5 +1506,46 @@ public sealed class EnvimaniaService(
                 }
             }
         }
+    }
+
+    public async Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken)
+    {
+        return await hybridCache.GetOrCreateAsync($"PossibleEnvimixCombinations_{titleId}", async token =>
+        {
+            var mapCount = await db.Maps
+                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+                .CountAsync(cancellationToken);
+
+            var carCount = envimaniaOptions.Value.Car.Count - 1;
+
+            return mapCount * carCount;
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken)
+    {
+        // similar to GetSkillpointsByTitleId but returning time-login pairs instead
+        var records = await db.Records
+            .Include(x => x.Map)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
+                .First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return records.GroupBy(x => x.MapId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(r => (r.CarId, r.Gravity, r.Laps))
+                    .ToDictionary(
+                        sg => $"{sg.Key.CarId}_{sg.Key.Gravity}_{sg.Key.Laps}",
+                        sg => sg
+                            .OrderBy(x => x.Time)
+                            .SelectMany(x => new (int Time, string Login)[] { (x.Time, x.UserId) })
+                            .ToArray()));
     }
 }

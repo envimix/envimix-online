@@ -15,6 +15,7 @@ public interface IUserService
     Task<UserEntity?> GetAsync(string login, CancellationToken cancellationToken);
     Task<UserDto?> GetUserDtoByLoginAsync(string login, CancellationToken cancellationToken);
     Task ResetTokenAsync(string login, CancellationToken cancellationToken);
+    Task<Dictionary<string, string>> GetNicknamesAsync(IEnumerable<string> logins, CancellationToken cancellationToken);
 }
 
 public sealed class UserService(
@@ -156,5 +157,12 @@ public sealed class UserService(
     private async Task<bool> IsAdminAsync(string login, CancellationToken cancellationToken)
     {
         return await db.Users.AnyAsync(x => x.Id == login && x.IsAdmin, cancellationToken);
+    }
+
+    public async Task<Dictionary<string, string>> GetNicknamesAsync(IEnumerable<string> logins, CancellationToken cancellationToken)
+    {
+        return await db.Users
+            .Where(x => logins.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Nickname ?? x.Id, cancellationToken);
     }
 }

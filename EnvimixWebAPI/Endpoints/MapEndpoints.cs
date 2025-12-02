@@ -63,6 +63,7 @@ public static class MapEndpoints
         await db.SaveChangesAsync(cancellationToken);
 
         await cache.RemoveAsync($"Totd_{request.TitleId}", CancellationToken.None);
+        await cache.RemoveAsync($"PossibleEnvimixCombinations_{request.TitleId}", CancellationToken.None);
 
         return TypedResults.Ok();
     }
