@@ -3,10 +3,11 @@ using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 using ManiaAPI.Xml.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+using System.Net;
 using System.Threading.RateLimiting;
 
 namespace EnvimixWebAPI.Configuration;
@@ -106,5 +107,24 @@ public static class WebConfiguration
 
         services.AddSingleton(TimeProvider.System);
 
+        // Figures out HTTPS behind proxies
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            foreach (var knownProxy in config.GetSection("KnownProxies").Get<string[]>() ?? [])
+            {
+                if (IPAddress.TryParse(knownProxy, out var ipAddress))
+                {
+                    options.KnownProxies.Add(ipAddress);
+                    continue;
+                }
+
+                foreach (var hostIpAddress in Dns.GetHostAddresses(knownProxy))
+                {
+                    options.KnownProxies.Add(hostIpAddress);
+                }
+            }
+        });
     }
 }
