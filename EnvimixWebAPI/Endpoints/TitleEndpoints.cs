@@ -57,7 +57,9 @@ public static class TitleEndpoints
         var envimixTimeLoginPairsMaps = await envimaniaService.GetEnvimixTimeLoginPairsByTitleId(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
 
-        var mappedValidations = validations.GroupBy(x => x.MapId)
+        var envimixValidations = validations.Where(x => x.IsDefaultCar());
+
+        var mappedValidations = envimixValidations.GroupBy(x => x.MapId)
             .ToDictionary(
             g => g.Key,
             g => g.ToDictionary(
@@ -77,7 +79,6 @@ public static class TitleEndpoints
         /*var validatedCount = validations
             .Where(x => x.Gravity == 0)
             .CountBy(x => new { x.MapId, x.CarId });*/
-        var envimixValidations = validations.Where(x => x.IsDefaultCar());
 
         var playerSkillpoints = new Dictionary<string, int>();
         var playerActivityPoints = new Dictionary<string, int>();
