@@ -989,7 +989,9 @@ public sealed class EnvimaniaService(
 
     private async Task<EnvimaniaRecordsResponse> GetRecordsWithoutValidationAsync(string mapUid, EnvimaniaRecordFilter filter, string zone, HttpRequest httpRequest, CancellationToken cancellationToken)
     {
-        var ghostBaseUrl = $"{httpRequest.Scheme}://{httpRequest.Host.Value}";
+        var ghostBaseUrl = httpRequest.Headers.TryGetValue("X-Forwarded-Proto", out var proto) && proto == "https"
+            ? $"https://{httpRequest.Host.Value}"
+            : $"{httpRequest.Scheme}://{httpRequest.Host.Value}";
 
         var envimaniaRecords = new List<EnvimaniaRecordInfo>();
 
