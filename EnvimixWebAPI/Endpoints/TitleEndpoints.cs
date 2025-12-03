@@ -57,7 +57,7 @@ public static class TitleEndpoints
         var envimixTimeLoginPairsMaps = await envimaniaService.GetEnvimixTimeLoginPairsByTitleId(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
 
-        var envimixValidations = validations.Where(x => x.IsDefaultCar());
+        var envimixValidations = validations.Where(x => !x.IsDefaultCar());
 
         var mappedValidations = envimixValidations.GroupBy(x => x.MapId)
             .ToDictionary(
