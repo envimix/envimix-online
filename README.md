@@ -1,6 +1,6 @@
 # Envimix Online
 
-### Warning. This is not a representative code. The goal was just to finish to project in some way so that players can enjoy Envimix Turbo finally. Refer to this just if you want to see how something works.
+### Warning. This is not a representative code. The goal was just to finish the project in some way so that players can enjoy Envimix Turbo finally. Refer to this just if you want to see how something works.
 
 Envimix Online is the overall backend behind the Envimix project. It includes the main Envimix Turbo Web API, the Envimix Discord bot, and the main website under https://envimix.gbx.tools.
 
