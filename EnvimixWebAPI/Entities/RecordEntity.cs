@@ -39,4 +39,16 @@ public sealed class RecordEntity
     public bool Restored { get; set; }
 
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
+
+    public bool IsDefaultCar()
+    {
+        return (Map.Collection == "Canyon" && CarId != "CanyonCar") ||
+               (Map.Collection == "Stadium" && CarId != "StadiumCar") ||
+               (Map.Collection == "Valley" && CarId != "ValleyCar") ||
+               (Map.Collection == "Lagoon" && CarId != "LagoonCar") ||
+               (Map.Collection != "Canyon" &&
+                Map.Collection != "Stadium" &&
+                Map.Collection != "Valley" &&
+                Map.Collection != "Lagoon");
+    }
 }

@@ -1555,14 +1555,14 @@ public sealed class EnvimaniaService(
         var records = await db.Records
             .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap
-                && (x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
+                && ((x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
                     (x.Map.Collection == "Stadium" && x.CarId != "StadiumCar") ||
                     (x.Map.Collection == "Valley" && x.CarId != "ValleyCar") ||
                     (x.Map.Collection == "Lagoon" && x.CarId != "LagoonCar") ||
                     (x.Map.Collection != "Canyon" &&
                      x.Map.Collection != "Stadium" &&
                      x.Map.Collection != "Valley" &&
-                     x.Map.Collection != "Lagoon"))
+                     x.Map.Collection != "Lagoon")))
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)

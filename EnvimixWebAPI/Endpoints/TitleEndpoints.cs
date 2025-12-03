@@ -74,9 +74,10 @@ public static class TitleEndpoints
             
         }*/
 
-        var validatedCount = validations
+        /*var validatedCount = validations
             .Where(x => x.Gravity == 0)
-            .CountBy(x => new { x.MapId, x.CarId });
+            .CountBy(x => new { x.MapId, x.CarId });*/
+        var envimixValidations = validations.Where(x => x.IsDefaultCar());
 
         var playerSkillpoints = new Dictionary<string, int>();
         var playerActivityPoints = new Dictionary<string, int>();
@@ -217,7 +218,7 @@ public static class TitleEndpoints
             Stars = stars,
             Validations = mappedValidations,
             Skillpoints = skillpoints,
-            EnvimixOverallCompletion = possibleEnvimixCombinations == 0 ? 0 : (float)validations.Count / possibleEnvimixCombinations,
+            EnvimixOverallCompletion = possibleEnvimixCombinations == 0 ? 0 : (float)envimixValidations.Count() / possibleEnvimixCombinations,
             EnvimixCompletion = envimixCompletion,
             EnvimixMostSkillpoints = envimixMostSkillpoints,
             EnvimixMostActivityPoints = envimixMostActivityPoints
