@@ -29,10 +29,15 @@ public sealed class UserService(
     {
         var ingameAuthResult = await mpIngameApi.AuthenticateAsync(userRequest.User.Login, userRequest.Token, cancellationToken);
 
-        if (ingameAuthResult.Login != userRequest.User.Login)
+        if (!string.Equals(ingameAuthResult.Login, userRequest.User.Login, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Invalid token provided for user: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
             return new ValidationFailureResponse("Invalid user token");
+        }
+
+        if (ingameAuthResult.Login != userRequest.User.Login)
+        {
+            logger.LogWarning("Case insensitive login match, weird but should be fine: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
         }
 
         var isAdmin = await IsAdminAsync(userRequest.User.Login, cancellationToken);
