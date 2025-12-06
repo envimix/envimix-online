@@ -40,6 +40,8 @@ public sealed class UserService(
             logger.LogWarning("Case insensitive login match, weird but should be fine: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
         }
 
+        userRequest.User.Login = ingameAuthResult.Login; // fix the login to lowercase in case this shit happens again
+
         var isAdmin = await IsAdminAsync(userRequest.User.Login, cancellationToken);
 
         logger.LogDebug("Generating new user token...");
