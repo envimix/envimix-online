@@ -19,20 +19,24 @@ public static class UserEndpoints
     private static async Task<Results<Ok<AuthenticateUserResponse>, BadRequest<ValidationFailureResponse>>> PostUser(
         [FromBody] AuthenticateUserRequest request,
         IUserService userService,
+        ILogger<IUserService> logger,
         CancellationToken cancellationToken)
     {
         if (!Validator.ValidateLogin(request.User.Login))
         {
+            logger.LogWarning("Invalid login: {Login}", request.User.Login);
             return TypedResults.BadRequest(new ValidationFailureResponse("Invalid login"));
         }
 
         if (!Validator.ValidateNickname(request.User.Nickname))
         {
+            logger.LogWarning("Invalid nickname: {Nickname}", request.User.Nickname);
             return TypedResults.BadRequest(new ValidationFailureResponse("Invalid nickname"));
         }
 
         if (string.IsNullOrWhiteSpace(request.Token))
         {
+            logger.LogWarning("Empty token provided for user: {Login}", request.User.Login);
             return TypedResults.BadRequest(new ValidationFailureResponse("Token cannot be empty"));
         }
 

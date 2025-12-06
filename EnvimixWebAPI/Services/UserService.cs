@@ -31,6 +31,7 @@ public sealed class UserService(
 
         if (ingameAuthResult.Login != userRequest.User.Login)
         {
+            logger.LogWarning("Invalid token provided for user: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
             return new ValidationFailureResponse("Invalid user token");
         }
 
