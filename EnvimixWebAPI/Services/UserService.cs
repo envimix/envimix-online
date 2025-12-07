@@ -78,8 +78,15 @@ public sealed class UserService(
             await db.Users.AddAsync(userModel, cancellationToken);
         }
 
+        var zoneId = await zoneService.GetZoneIdAsync(user.Zone, cancellationToken);
+
+        // sometimes, the user doesnt send appropriate zone. make sure that its not reset
+        if (zoneId.HasValue)
+        {
+            userModel.ZoneId = zoneId;
+        }
+
         userModel.Nickname = user.Nickname;
-        userModel.ZoneId = await zoneService.GetZoneIdAsync(user.Zone, cancellationToken);
         userModel.AvatarUrl = user.AvatarUrl;
         userModel.Language = user.Language;
         userModel.Description = user.Description;
