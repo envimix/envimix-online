@@ -68,10 +68,12 @@ public static class TitleEndpoints
         var envimixValidationCount = 0;
         var defaultCarValidationCount = 0;
 
-        var combinations = new Dictionary<string, CombinationStat>();
+        var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
         foreach (var validation in validations)
         {
-            var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"].OrderBy(x => x.Time).ToArray();
+            var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"]
+                .OrderBy(x => x.Time) // TODO: somehow put OrderBy as part of original query
+                .ToArray();
 
             var skillpoints = timeLoginPairs
                 .GroupBy(x => x.Time)
@@ -92,7 +94,12 @@ public static class TitleEndpoints
                 envimixValidationCount++;
             }
 
-            combinations[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}"] = new CombinationStat
+            if (!mapCombinations.TryGetValue(validation.MapId, out var combinations))
+            {
+                mapCombinations[validation.MapId] = combinations = [];
+            }
+
+            combinations[$"{validation.CarId}_{validation.Gravity}"] = new CombinationStat
             {
                 ValidationLogin = isDefaultCar ? "" : validation.UserId,
                 ValidationDrivenAt = isDefaultCar ? "" : validation.DrivenAt.ToUnixTimeSeconds().ToString(),
@@ -277,7 +284,7 @@ public static class TitleEndpoints
             GlobalCompletionPercentage = totalCombinations.TotalCount == 0 ? 0 : (float)(envimixValidationCount + defaultCarValidationCount) / totalCombinations.TotalCount,
             Players = players,
             Stars = stars,
-            Combinations = combinations,
+            Combinations = mapCombinations,
             EnvimixMostSkillpoints = envimixMostSkillpoints,
             EnvimixMostActivityPoints = envimixMostActivityPoints,
             EnvimixCompletion = envimixCompletion,
