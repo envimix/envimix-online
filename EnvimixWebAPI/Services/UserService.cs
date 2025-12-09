@@ -3,6 +3,7 @@ using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
 using ManiaAPI.ManiaPlanetAPI;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
 
 namespace EnvimixWebAPI.Services;
@@ -24,6 +25,7 @@ public sealed class UserService(
     IZoneService zoneService, 
     ManiaPlanetIngameAPI mpIngameApi, 
     ITokenService tokenService,
+    HybridCache cache,
     ILogger<UserService> logger) : IUserService
 {
     public async Task<OneOf<AuthenticateUserResponse, ValidationFailureResponse>> AuthenticateAsync(AuthenticateUserRequest userRequest, CancellationToken cancellationToken)
@@ -54,6 +56,7 @@ public sealed class UserService(
         var user = await GetAddOrUpdateModelAsync(userRequest.User, tokenId, interested: true, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
+        await cache.RemoveByTagAsync("user", CancellationToken.None);
 
         return new AuthenticateUserResponse
         {
@@ -77,6 +80,7 @@ public sealed class UserService(
             };
 
             await db.Users.AddAsync(userModel, cancellationToken);
+            await cache.RemoveByTagAsync("user", CancellationToken.None); // in case of error during save, the cache is still cleared, but 99.9999% it should be fine
         }
 
         var zoneId = await zoneService.GetZoneIdAsync(user.Zone, cancellationToken);

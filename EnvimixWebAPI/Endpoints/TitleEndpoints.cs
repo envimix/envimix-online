@@ -1,8 +1,9 @@
 ﻿using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Caching.Hybrid;
+using System.Diagnostics;
 using System.Security.Claims;
-using static GBX.NET.Engines.Game.CGameCtnChallenge;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -40,13 +41,15 @@ public static class TitleEndpoints
     }
 
     private static async Task<Results<Ok<TitleStats>, NotFound>> GetTitleStats(
-        string titleId, 
+        string titleId,
         IRatingService ratingService,
         IStarService starService,
         IEnvimaniaService envimaniaService,
         ITitleService titleService,
         IUserService userService,
         HttpContext context,
+        HybridCache cache,
+        ILogger<TitleService> logger,
         CancellationToken cancellationToken)
     {
         context.Response.Headers.ETag = $"\"{Guid.NewGuid():n}\"";
@@ -57,6 +60,8 @@ public static class TitleEndpoints
         var playerRecords = await envimaniaService.GetPlayerRecordsByTitleId(titleId, cancellationToken);
         var totalCombinations = await envimaniaService.GetTotalCombinationsAsync(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
+
+        var calculationStartTimestamp = Stopwatch.GetTimestamp();
 
         var playerEnvimixSkillpoints = new Dictionary<string, int>();
         var playerEnvimixActivityPoints = new Dictionary<string, int>();
@@ -275,7 +280,13 @@ public static class TitleEndpoints
             .OrderByDescending(x => x.Score)
             .ToList();
 
-        var players = await userService.GetTitleUserInfosAsync(globalCompletion.Select(x => x.Login), cancellationToken);
+        var calculationElapsed = Stopwatch.GetElapsedTime(calculationStartTimestamp);
+        logger.LogInformation("Title stats calculated in {ElapsedMilliseconds} ms", calculationElapsed.TotalMilliseconds);
+
+        var players = await cache.GetOrCreateAsync($"TitleStatsPlayers_{titleId}", async entry =>
+        {
+            return await userService.GetTitleUserInfosAsync(globalCompletion.Select(x => x.Login), cancellationToken);
+        }, new() { Expiration = TimeSpan.FromHours(1) }, tags: ["user"], cancellationToken: cancellationToken);
 
         return TypedResults.Ok(new TitleStats
         {

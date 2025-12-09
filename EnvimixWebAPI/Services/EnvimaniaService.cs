@@ -16,12 +16,12 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
-using static GBX.NET.Engines.Game.CGameCtnChallengeGroup;
 
 namespace EnvimixWebAPI.Services;
 
@@ -1350,6 +1350,8 @@ public sealed class EnvimaniaService(
 
     public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken)
     {
+        var startTimestamp = Stopwatch.GetTimestamp();
+
         var records = await db.Records
             .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
@@ -1361,6 +1363,8 @@ public sealed class EnvimaniaService(
                 .First())
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
+        logger.LogInformation("Title player records retrieved in {ElapsedMilliseconds} ms", Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
 
         return records.ToLookup(
             x => $"{x.MapId}_{x.CarId}_{x.Gravity}_{x.Laps}", 
