@@ -71,7 +71,7 @@ public static class TitleEndpoints
         var combinations = new Dictionary<string, CombinationStat>();
         foreach (var validation in validations)
         {
-            var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"].ToArray();
+            var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"].OrderBy(x => x.Time).ToArray();
 
             var skillpoints = timeLoginPairs
                 .GroupBy(x => x.Time)
