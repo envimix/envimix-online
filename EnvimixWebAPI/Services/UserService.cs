@@ -60,7 +60,7 @@ public sealed class UserService(
 
         return new AuthenticateUserResponse
         {
-            Login = userRequest.User.Login,
+            Login = ingameAuthResult.Login,
             Token = token,
             IsAdmin = user.IsAdmin,
         };
