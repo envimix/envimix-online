@@ -1,6 +1,7 @@
 ﻿using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using System.Security.Claims;
 
 namespace EnvimixWebAPI.Services;
@@ -15,10 +16,12 @@ public interface ITitleService
 public sealed class TitleService : ITitleService
 {
     private readonly AppDbContext db;
+    private readonly HybridCache cache;
 
-    public TitleService(AppDbContext db)
+    public TitleService(AppDbContext db, HybridCache cache)
     {
         this.db = db;
+        this.cache = cache;
     }
 
     public async Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -55,10 +58,13 @@ public sealed class TitleService : ITitleService
 
     public async Task<DateTimeOffset?> GetTitleReleaseDateAsync(string titleId, CancellationToken cancellationToken)
     {
-        return await db.Titles
-            .Where(x => x.Id == titleId)
-            .Select(x => x.ReleasedAt)
-            .FirstOrDefaultAsync(cancellationToken);
+        return await cache.GetOrCreateAsync($"TitleReleaseDate_{titleId}", async token =>
+        {
+            return await db.Titles
+                .Where(x => x.Id == titleId)
+                .Select(x => x.ReleasedAt)
+                .FirstOrDefaultAsync(token);
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<bool> SubmitTitleAsync(TitleSubmitRequest request, CancellationToken cancellationToken)

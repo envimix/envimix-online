@@ -74,6 +74,7 @@ public static class MapEndpoints
         IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
         IEnvimaniaService envimaniaService,
         IRatingService ratingService,
+        IStarService starService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
@@ -91,7 +92,7 @@ public static class MapEndpoints
             return TypedResults.Forbid();
         }
 
-        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, principal, map, cancellationToken);
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, principal, map, cancellationToken);
         return TypedResults.Ok(mapResponse);
     }
 
@@ -100,6 +101,7 @@ public static class MapEndpoints
         AppDbContext db,
         IEnvimaniaService envimaniaService,
         IRatingService ratingService,
+        IStarService starService,
         IUserService userService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
@@ -144,14 +146,21 @@ public static class MapEndpoints
             VisitedAt = DateTimeOffset.UtcNow
         }, cancellationToken);
 
-        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, principal, map, cancellationToken);
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, principal, map, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
         return TypedResults.Ok(mapResponse);
     }
 
-    private static async Task<MapInfoResponse> GetMapInfoAsync(string mapUid, IEnvimaniaService envimaniaService, IRatingService ratingService, ClaimsPrincipal principal, MapEntity map, CancellationToken cancellationToken)
+    private static async Task<MapInfoResponse> GetMapInfoAsync(
+        string mapUid, 
+        IEnvimaniaService envimaniaService, 
+        IRatingService ratingService, 
+        IStarService starService, 
+        ClaimsPrincipal principal, 
+        MapEntity map, 
+        CancellationToken cancellationToken)
     {
         var validations = await envimaniaService.GetValidationsByMapUidAsync(mapUid, cancellationToken);
 
@@ -211,7 +220,7 @@ public static class MapEndpoints
                 GhostUrl = "", // TODO: read from DB
                 DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
             }),
-            Stars = await ratingService.GetStarsByMapUidAsync(map.Id, cancellationToken),
+            Stars = await starService.GetStarsByMapUidAsync(map.Id, cancellationToken),
             Skillpoints = await envimaniaService.GetSkillpointsByMapUidAsync(mapUid, cancellationToken)
         };
 

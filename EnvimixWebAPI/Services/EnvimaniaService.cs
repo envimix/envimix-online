@@ -70,14 +70,17 @@ public interface IEnvimaniaService
     Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 
     Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
-    Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken);
+    [Obsolete] Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken);
     Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken);
 
     Task RestoreValidationsAsync(CancellationToken cancellationToken);
 
-    Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken);
+    Task<TotalCombinations> GetTotalCombinationsAsync(string titleId, CancellationToken cancellationToken);
+    [Obsolete] Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetGlobalTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetEnvimixTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
+
+    Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -663,6 +666,8 @@ public sealed class EnvimaniaService(
             if (isValidation)
             {
                 await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(map, carName, gravity, laps), cancellationToken);
+
+                await hybridCache.RemoveAsync($"ValidationsByTitleId_{map.TitlePackId}", CancellationToken.None);
             }
         }
 
@@ -1271,16 +1276,16 @@ public sealed class EnvimaniaService(
 
     public async Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
-        return await db.Records
-            .Include(x => x.User)
-            .Include(x => x.Car)
-            .Include(x => x.Map)
-            .Include(x => x.Checkpoints)
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
-            .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
-            .Select(g => g.OrderBy(x => x.DrivenAt).First())
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+        return await hybridCache.GetOrCreateAsync($"ValidationsByTitleId_{titleId}", async token =>
+        {
+            return await db.Records
+                .Include(x => x.Map)
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+                .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
+                .Select(g => g.OrderBy(x => x.DrivenAt).First())
+                .AsNoTracking()
+                .ToListAsync(token);
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken)
@@ -1317,6 +1322,7 @@ public sealed class EnvimaniaService(
                     .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray());
     }
 
+    [Obsolete]
     public async Task<Dictionary<string, Dictionary<string, int[]>>> GetSkillpointsByTitleId(string titleId, CancellationToken cancellationToken)
     {
         var records = await db.Records
@@ -1340,6 +1346,25 @@ public sealed class EnvimaniaService(
                             .OrderBy(x => x.Time)
                             .GroupBy(x => x.Time)
                             .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray()));
+    }
+
+    public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken)
+    {
+        var records = await db.Records
+            .Include(x => x.Map)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
+            .Select(g => g
+                .OrderBy(x => x.Time)
+                .ThenBy(x => x.DrivenAt)
+                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
+                .First())
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return records.ToLookup(
+            x => $"{x.MapId}_{x.CarId}_{x.Gravity}_{x.Laps}", 
+            x => new PlayerRecord(x.Time, x.UserId));
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
@@ -1510,6 +1535,20 @@ public sealed class EnvimaniaService(
                 }
             }
         }
+    }
+
+    public async Task<TotalCombinations> GetTotalCombinationsAsync(string titleId, CancellationToken cancellationToken)
+    {
+        return await hybridCache.GetOrCreateAsync($"TotalCombinations_{titleId}", async token =>
+        {
+            var mapCount = await db.Maps
+                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+                .CountAsync(cancellationToken);
+
+            var envimixCarCount = envimaniaOptions.Value.Car.Count - 1;
+
+            return new TotalCombinations(mapCount * envimixCarCount, mapCount);
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken)

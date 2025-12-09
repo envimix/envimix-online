@@ -2,6 +2,7 @@
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
+using static GBX.NET.Engines.Game.CGameCtnChallenge;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -41,6 +42,7 @@ public static class TitleEndpoints
     private static async Task<Results<Ok<TitleStats>, NotFound>> GetTitleStats(
         string titleId, 
         IRatingService ratingService,
+        IStarService starService,
         IEnvimaniaService envimaniaService,
         ITitleService titleService,
         IUserService userService,
@@ -50,179 +52,241 @@ public static class TitleEndpoints
         context.Response.Headers.ETag = $"\"{Guid.NewGuid():n}\"";
 
         var ratings = await ratingService.GetAveragesByTitleIdAsync(titleId, cancellationToken);
-        var stars = await ratingService.GetStarsByTitleIdAsync(titleId, cancellationToken);
+        var stars = await starService.GetStarsByTitleIdAsync(titleId, cancellationToken);
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
-        var skillpoints = await envimaniaService.GetSkillpointsByTitleId(titleId, cancellationToken);
-        var possibleEnvimixCombinations = await envimaniaService.GetPossibleEnvimixCombinationsAsync(titleId, cancellationToken);
-        var envimixTimeLoginPairsMaps = await envimaniaService.GetEnvimixTimeLoginPairsByTitleId(titleId, cancellationToken);
+        var playerRecords = await envimaniaService.GetPlayerRecordsByTitleId(titleId, cancellationToken);
+        var totalCombinations = await envimaniaService.GetTotalCombinationsAsync(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
 
-        var envimixValidations = validations.Where(x => !x.IsDefaultCar());
+        var playerEnvimixSkillpoints = new Dictionary<string, int>();
+        var playerEnvimixActivityPoints = new Dictionary<string, int>();
+        var playerEnvimixCompleted = new Dictionary<string, int>();
+        var playerDefaultCarSkillpoints = new Dictionary<string, int>();
+        var playerDefaultCarActivityPoints = new Dictionary<string, int>();
+        var playerDefaultCarCompleted = new Dictionary<string, int>();
 
-        var mappedValidations = envimixValidations.GroupBy(x => x.MapId)
-            .ToDictionary(
-            g => g.Key,
-            g => g.ToDictionary(
-                x => $"{x.CarId}_{x.Gravity}_{x.Laps}",
-                x => new ValidationInfo 
-                { 
-                    Login = x.UserId, 
-                    Nickname = x.User.Nickname ?? "", 
-                    DrivenAt = x.DrivenAt.ToUnixTimeSeconds().ToString(),
-                }));
+        var envimixValidationCount = 0;
+        var defaultCarValidationCount = 0;
 
-        /*if (principal.Identity?.IsAuthenticated == true && principal.Identity.Name is not null)
+        var combinations = new Dictionary<string, CombinationStat>();
+        foreach (var validation in validations)
         {
-            
-        }*/
+            var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"].ToArray();
 
-        /*var validatedCount = validations
-            .Where(x => x.Gravity == 0)
-            .CountBy(x => new { x.MapId, x.CarId });*/
+            var skillpoints = timeLoginPairs
+                .GroupBy(x => x.Time)
+                .SelectMany(g => new[] { g.Key, g.Count() })
+                .ToArray();
 
-        var playerSkillpoints = new Dictionary<string, int>();
-        var playerActivityPoints = new Dictionary<string, int>();
-        var playerCompleted = new Dictionary<string, int>();
+            var rating = ratings.GetValueOrDefault(validation.MapId)?
+                .GetValueOrDefault($"{validation.CarId}_{validation.Gravity}_Time");
 
-        foreach (var (mapUid, timeLoginPairsCombinations) in envimixTimeLoginPairsMaps)
-        {
-            var hasValidation = mappedValidations.ContainsKey(mapUid);
+            var isDefaultCar = validation.IsDefaultCar();
 
-            foreach (var (combination, timeLoginPairs) in timeLoginPairsCombinations)
+            if (isDefaultCar)
             {
-                var totalRecordCount = timeLoginPairs.Length;
+                defaultCarValidationCount++;
+            }
+            else
+            {
+                envimixValidationCount++;
+            }
 
-                if (totalRecordCount == 0)
+            combinations[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}"] = new CombinationStat
+            {
+                ValidationLogin = isDefaultCar ? "" : validation.UserId,
+                ValidationDrivenAt = isDefaultCar ? "" : validation.DrivenAt.ToUnixTimeSeconds().ToString(),
+                Difficulty = rating?.Difficulty ?? -1,
+                Quality = rating?.Quality ?? -1,
+                Skillpoints = skillpoints
+            };
+
+            var totalRecordCount = timeLoginPairs.Length;
+
+            var worstRanks = timeLoginPairs
+                .Select((x, idx) => new { x.Time, Rank = idx + 1 })
+                .GroupBy(x => x.Time)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Max(x => x.Rank)
+                );
+
+            foreach (var (time, login) in timeLoginPairs)
+            {
+                var rank = worstRanks[time];
+
+                var loginSkillpoints = (int)Math.Ceiling((totalRecordCount - rank) * 100f / rank);
+
+                var wr = timeLoginPairs[0].Time;
+                var wrPb = wr * 1f / time;
+                var activityPoints = (int)Math.Round(1000 * Math.Exp(totalRecordCount * (wrPb - 1)));
+
+                if (!isDefaultCar && validation.UserId == login && titleRelease.HasValue)
                 {
-                    continue;
+                    var validationTimestampInSeconds = validation.DrivenAt.ToUnixTimeSeconds();
+                    var titlePackReleaseTimestampInSeconds = titleRelease.Value.ToUnixTimeSeconds();
+                    var validationAge = validationTimestampInSeconds - titlePackReleaseTimestampInSeconds;
+                    var extraActivityPoints = (int)Math.Round(100 + validationAge / 86400f * 10);
+                    activityPoints += extraActivityPoints;
                 }
 
-                var worstRanks = timeLoginPairs
-                    .Select((x, idx) => new { x.Time, Rank = idx + 1 })
-                    .GroupBy(x => x.Time)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Max(x => x.Rank)
-                    );
-
-                foreach (var (time, login) in timeLoginPairs)
+                if (isDefaultCar)
                 {
-                    var rank = worstRanks[time];
-
-                    var loginSkillpoints = (int)Math.Ceiling((totalRecordCount - rank) * 100f / rank);
-
-                    var wr = timeLoginPairs[0].Time;
-                    var wrPb = wr * 1f / time;
-                    var activityPoints = (int)Math.Round(1000 * Math.Exp(totalRecordCount * (wrPb - 1)));
-
-                    if (hasValidation && mappedValidations[mapUid].TryGetValue(combination, out var validation))
+                    if (!playerDefaultCarSkillpoints.ContainsKey(login))
                     {
-                        if (validation.Login == login && validation.DrivenAt != "" && titleRelease.HasValue)
-                        {
-                            var validationTimestampInSeconds = long.Parse(validation.DrivenAt);
-                            var titlePackReleaseTimestampInSeconds = titleRelease.Value.ToUnixTimeSeconds();
-                            var validationAge = validationTimestampInSeconds - titlePackReleaseTimestampInSeconds;
-                            var extraActivityPoints = (int)Math.Round(100 + validationAge / 86400f * 10);
-                            activityPoints += extraActivityPoints;
-                        }
+                        playerDefaultCarSkillpoints[login] = 0;
                     }
+                    playerDefaultCarSkillpoints[login] += loginSkillpoints;
 
-                    if (!playerSkillpoints.ContainsKey(login))
+                    if (!playerDefaultCarActivityPoints.ContainsKey(login))
                     {
-                        playerSkillpoints[login] = 0;
+                        playerDefaultCarActivityPoints[login] = 0;
                     }
-                    playerSkillpoints[login] += loginSkillpoints;
+                    playerDefaultCarActivityPoints[login] += activityPoints;
 
-                    if (!playerActivityPoints.ContainsKey(login))
+                    if (!playerDefaultCarCompleted.ContainsKey(login))
                     {
-                        playerActivityPoints[login] = 0;
+                        playerDefaultCarCompleted[login] = 0;
                     }
-                    playerActivityPoints[login] += activityPoints;
+                    playerDefaultCarCompleted[login] += 1;
+                }
+                else
+                {
+                    if (!playerEnvimixSkillpoints.ContainsKey(login))
+                    {
+                        playerEnvimixSkillpoints[login] = 0;
+                    }
+                    playerEnvimixSkillpoints[login] += loginSkillpoints;
 
-                    if (!playerCompleted.ContainsKey(login))
+                    if (!playerEnvimixActivityPoints.ContainsKey(login))
                     {
-                        playerCompleted[login] = 0;
+                        playerEnvimixActivityPoints[login] = 0;
                     }
-                    playerCompleted[login] += 1;
+                    playerEnvimixActivityPoints[login] += activityPoints;
+
+                    if (!playerEnvimixCompleted.ContainsKey(login))
+                    {
+                        playerEnvimixCompleted[login] = 0;
+                    }
+                    playerEnvimixCompleted[login] += 1;
                 }
             }
         }
 
-        var envimixMostSkillpoints = playerSkillpoints
+        // NEW RULE: unfinished combinations cannot be rated
+
+        var envimixMostSkillpoints = playerEnvimixSkillpoints
             .OrderByDescending(x => x.Value)
             .ThenBy(x => x.Key)
-            .Take(20)
             .Select(x => new PlayerScore
             {
-                PlayerLogin = x.Key,
-                PlayerNickname = x.Key,
+                Login = x.Key,
                 Score = x.Value
             })
             .ToList();
 
-        var envimixMostActivityPoints = playerActivityPoints
+        var envimixMostActivityPoints = playerEnvimixActivityPoints
             .OrderByDescending(x => x.Value)
             .ThenBy(x => x.Key)
-            .Take(20)
             .Select(x => new PlayerScore
             {
-                PlayerLogin = x.Key,
-                PlayerNickname = x.Key,
+                Login = x.Key,
                 Score = x.Value
             })
             .ToList();
 
-        var envimixCompletion = playerCompleted
+        var envimixCompletion = playerEnvimixCompleted
             .OrderByDescending(x => x.Value)
             .ThenBy(x => x.Key)
-            .Take(20)
             .Select(x => new PlayerCompletion
             {
-                PlayerLogin = x.Key,
-                PlayerNickname = x.Key,
-                Score = (float)x.Value / possibleEnvimixCombinations
+                Login = x.Key,
+                Score = (float)x.Value / totalCombinations.EnvimixCount
             })
             .ToList();
 
-        var nicknames = await userService.GetNicknamesAsync(envimixMostSkillpoints.Select(x => x.PlayerLogin)
-            .Concat(envimixMostActivityPoints.Select(x => x.PlayerLogin))
-            .Concat(envimixCompletion.Select(x => x.PlayerLogin))
-            .Distinct(), cancellationToken);
-
-        foreach (var player in envimixMostSkillpoints)
-        {
-            if (nicknames.TryGetValue(player.PlayerLogin, out var nickname))
+        var defaultCarMostSkillpoints = playerDefaultCarSkillpoints
+            .OrderByDescending(x => x.Value)
+            .ThenBy(x => x.Key)
+            .Select(x => new PlayerScore
             {
-                player.PlayerNickname = nickname;
-            }
-        }
+                Login = x.Key,
+                Score = x.Value
+            })
+            .ToList();
 
-        foreach (var player in envimixMostActivityPoints)
-        {
-            if (nicknames.TryGetValue(player.PlayerLogin, out var nickname))
+        var defaultCarMostActivityPoints = playerDefaultCarActivityPoints
+            .OrderByDescending(x => x.Value)
+            .ThenBy(x => x.Key)
+            .Select(x => new PlayerScore
             {
-                player.PlayerNickname = nickname;
-            }
-        }
+                Login = x.Key,
+                Score = x.Value
+            })
+            .ToList();
 
-        foreach (var player in envimixCompletion)
-        {
-            if (nicknames.TryGetValue(player.PlayerLogin, out var nickname))
+        var defaultCarCompletion = playerDefaultCarCompleted
+            .OrderByDescending(x => x.Value)
+            .ThenBy(x => x.Key)
+            .Select(x => new PlayerCompletion
             {
-                player.PlayerNickname = nickname;
-            }
-        }
+                Login = x.Key,
+                Score = (float)x.Value / totalCombinations.DefaultCarCount
+            })
+            .ToList();
+
+        var globalMostSkillpoints = playerEnvimixSkillpoints
+            .Concat(playerDefaultCarSkillpoints)
+            .GroupBy(x => x.Key)
+            .Select(g => new PlayerScore
+            {
+                Login = g.Key,
+                Score = g.Sum(x => x.Value)
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        var globalMostActivityPoints = playerEnvimixActivityPoints
+            .Concat(playerDefaultCarActivityPoints)
+            .GroupBy(x => x.Key)
+            .Select(g => new PlayerScore
+            {
+                Login = g.Key,
+                Score = g.Sum(x => x.Value)
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        var globalCompletion = playerEnvimixCompleted
+            .Concat(playerDefaultCarCompleted)
+            .GroupBy(x => x.Key)
+            .Select(g => new PlayerCompletion
+            {
+                Login = g.Key,
+                Score = (float)g.Sum(x => x.Value) / totalCombinations.TotalCount
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        var players = await userService.GetTitleUserInfosAsync(globalCompletion.Select(x => x.Login), cancellationToken);
 
         return TypedResults.Ok(new TitleStats
         {
-            Ratings = ratings,
+            EnvimixCompletionPercentage = totalCombinations.EnvimixCount == 0 ? 0 : (float)envimixValidationCount / totalCombinations.EnvimixCount,
+            DefaultCarCompletionPercentage = totalCombinations.DefaultCarCount == 0 ? 0 : (float)defaultCarValidationCount / totalCombinations.DefaultCarCount,
+            GlobalCompletionPercentage = totalCombinations.TotalCount == 0 ? 0 : (float)(envimixValidationCount + defaultCarValidationCount) / totalCombinations.TotalCount,
+            Players = players,
             Stars = stars,
-            Validations = mappedValidations,
-            Skillpoints = skillpoints,
-            EnvimixOverallCompletion = possibleEnvimixCombinations == 0 ? 0 : (float)envimixValidations.Count() / possibleEnvimixCombinations,
-            EnvimixCompletion = envimixCompletion,
+            Combinations = combinations,
             EnvimixMostSkillpoints = envimixMostSkillpoints,
-            EnvimixMostActivityPoints = envimixMostActivityPoints
+            EnvimixMostActivityPoints = envimixMostActivityPoints,
+            EnvimixCompletion = envimixCompletion,
+            DefaultCarMostSkillpoints = defaultCarMostSkillpoints,
+            DefaultCarMostActivityPoints = defaultCarMostActivityPoints,
+            DefaultCarCompletion = defaultCarCompletion,
+            GlobalMostSkillpoints = globalMostSkillpoints,
+            GlobalMostActivityPoints = globalMostActivityPoints,
+            GlobalCompletion = globalCompletion
         });
     }
 }

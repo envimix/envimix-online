@@ -1,8 +1,9 @@
-﻿using EnvimixWebAPI.Models;
+﻿using EnvimixWebAPI.Entities;
+using EnvimixWebAPI.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
-using EnvimixWebAPI.Entities;
 
 namespace EnvimixWebAPI.Services;
 
@@ -15,6 +16,9 @@ public interface IStarService
         UnstarAsync(RatingStarRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
     Task<bool> HasStarAsync(string mapUid, string car, int gravity, ClaimsPrincipal principal, CancellationToken cancellationToken);
+
+    Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class StarService(
@@ -22,6 +26,7 @@ public sealed class StarService(
     IModService modService,
     IUserService userService,
     IMapService mapService,
+    HybridCache cache,
     ILogger<StarService> logger) : IStarService
 {
     public async Task<bool> HasStarAsync(string mapUid, string car, int gravity, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -82,6 +87,8 @@ public sealed class StarService(
 
             await db.Stars.AddAsync(star, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
+
+            await cache.RemoveAsync($"StarsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
         }
 
         logger.LogInformation("User {user} starred map {mapUid} with car {car} and gravity {gravity}.",
@@ -124,11 +131,56 @@ public sealed class StarService(
         {
             db.Stars.Remove(star);
             await db.SaveChangesAsync(cancellationToken);
+
+            await cache.RemoveAsync($"StarsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
         }
 
         logger.LogInformation("User {user} unstarred map {mapUid} with car {car} and gravity {gravity}.",
             principal.Identity.Name, request.MapUid, request.Filter.Car, request.Filter.Gravity);
 
         return true;
+    }
+
+    public async Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        return await db.Stars
+            .Include(x => x.User)
+            .Where(x => x.Map.Id == mapUid)
+            .ToDictionaryAsync(x => $"{x.CarId}_{x.Gravity}_Time", x => new Star
+            {
+                Login = x.User.Id,
+                Nickname = x.User.Nickname ?? "",
+            }, cancellationToken);
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
+    {
+        return await cache.GetOrCreateAsync($"StarsByTitleId_{titleId}", async entry =>
+        {
+            var starsFromDb = await db.Stars
+                .Include(x => x.User)
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+                .ToListAsync(entry);
+
+            var starsByMap = new Dictionary<string, Dictionary<string, Star>>();
+
+            foreach (var starGroup in starsFromDb.GroupBy(x => x.MapId))
+            {
+                var stars = new Dictionary<string, Star>();
+
+                foreach (var star in starGroup)
+                {
+                    stars[$"{star.CarId}_{star.Gravity}_Time"] = new Star
+                    {
+                        Login = star.User.Id,
+                        Nickname = star.User.Nickname ?? "",
+                    };
+                }
+
+                starsByMap[starGroup.Key] = stars;
+            }
+
+            return starsByMap;
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 }

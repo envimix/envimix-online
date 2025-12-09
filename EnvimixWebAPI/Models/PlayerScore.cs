@@ -4,7 +4,6 @@ namespace EnvimixWebAPI.Models;
 
 public sealed class PlayerScore
 {
-    [JsonPropertyName(nameof(PlayerLogin))] public required string PlayerLogin { get; set; }
-    [JsonPropertyName(nameof(PlayerNickname))] public required string PlayerNickname { get; set; }
-    [JsonPropertyName(nameof(Score))] public required int Score { get; set; }
+    [JsonPropertyName("L")] public required string Login { get; set; }
+    [JsonPropertyName("S")] public required int Score { get; set; }
 }
