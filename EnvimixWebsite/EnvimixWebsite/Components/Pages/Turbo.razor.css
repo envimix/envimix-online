@@ -1,0 +1,76 @@
+﻿header {
+    margin-top: 5rem;
+}
+
+.punchline {
+    margin: 2rem 0;
+    text-shadow: 0 0 5px #111;
+    text-align: center;
+}
+
+.note {
+    max-width: 1200px;
+    text-align: center;
+    font-size: 80%;
+    text-shadow: 0 0 5px #111;
+}
+
+.rules {
+    margin: 0.5rem 0;
+}
+
+.rule {
+    background-color: #111A;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    margin: 0.5rem;
+}
+
+#installation {
+    border-radius: 1rem;
+    margin: 0.5rem 2rem;
+    max-width: 1000px;
+    margin-bottom: 1rem;
+}
+
+#installation .options {
+    display: flex;
+    gap: 1rem;
+}
+
+    #installation .options div {
+        flex: 1;
+    }
+
+    #installation p {
+        font-size: 85%;
+    }
+
+h4 {
+    margin: 0.5rem 0 0 0;
+}
+
+ol {
+    font-size: 80%;
+    padding-left: 15px;
+}
+
+    ol li {
+        margin-bottom: 0.5rem;
+    }
+
+code {
+    background-color: #4444;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+}
+
+.logo {
+    max-width: 100%;
+}
+
+@media (max-width: 700px) {
+    #installation .options {
+        flex-direction: column;
+    }
+}

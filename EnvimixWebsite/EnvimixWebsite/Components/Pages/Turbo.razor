@@ -1,0 +1,75 @@
+﻿@page "/turbo"
+
+<PageTitle>ENVIMIX Turbo - ENVIMIX project</PageTitle>
+
+<ReuCenter CssClass="turbo-bg">
+    <header class="logo-area">
+        <img src="/img/turbo/logo.png" width="600" alt="Logo" class="logo">
+    </header>
+
+    <h2 class="punchline">Play any Trackmania Turbo map with any car in Trackmania 2!</h2>
+
+    <div class="primary-buttons">
+        <div>
+            <ReuButton Href="maniaplanet://#menustations=store?Envimix_Turbo@bigbang1112" Variant="ReuButtonVariant.Yellow" CssClass="install-btn">Install in ManiaPlanet</ReuButton>
+            <a href="maniaplanet:///:envimix:turbo" class="alternative">Quick install in ManiaPlanet</a>
+        </div>
+        <div>
+            <ReuButton Href="turbo/download" CssClass="download-btn" download>Download manually</ReuButton>
+            <a href="turbo/download/preview" class="alternative" download>Download preview version</a>
+        </div>
+    </div>
+    <div class="secondary-buttons">
+    </div>
+    <p class="note">Requires <a href="https://maniaplanet.com/download">ManiaPlanet</a> installed and owning <b><a href="https://store.steampowered.com/developer/nadeo/list/34687/">all TrackMania 2 games</a> (Canyon, Stadium, Valley, and Lagoon)</b>. <a href="turbo#installation">(installation guide)</a></p>
+
+    <div class="rules">
+        <p class="rule">Get on a map, <b>pick a car of your choice</b>, and <b>figure out the solution!</b></p>
+        <p class="rule">If you finish <b>first ahead of everyone</b>, you become <b>a validator</b>, a permanent one.</p>
+        <p class="rule">Receive <b><span style="color:#0F0">skillpoints</span></b> and <b><span style="color:#0FF">activity points</span></b> as you progress!</p>
+    </div>
+</ReuCenter>
+<ReuCenter>
+    <section id="installation">
+        <h3>Installation guide</h3>
+        <p>First, make sure you bought <a href="https://store.steampowered.com/developer/nadeo/list/34687/">all 4 TrackMania 2 games</a> and registered them in your ManiaPlanet account. You can buy them from Steam or Ubisoft Store and mix them however you want.</p>
+        <p>If <b>Install in ManiaPlanet</b> doesn't do anything, that means the ManiaPlanet protocol isn't working for you. You can activate it by installing the <a href="https://maniaplanet.com/download">standalone ManiaPlanet version</a>.</p>
+        <p>In case you don't want to install the title pack this way, below are other options. <b>In case the title pack updates very slowly, use Option 3.</b></p>
+        <div class="options">
+            <div>
+                <h4>Option 1 - Install in title store</h4>
+                <ol>
+                    <li>Open ManiaPlanet (or any Trackmania 2 game)</li>
+                    <li>At the bottom, click on an empty frame with heaven on it (that's called 'station')</li>
+                    <li>Click FROM THE STORE</li>
+                    <li>You might already see ENVIMIX Turbo there. In case not, click on TRENDING and scroll through different categories and pages.</li>
+                </ol>
+            </div>
+            <div>
+                <h4>Option 2 - Install from URL</h4>
+                <ol>
+                    <li>Open ManiaPlanet (or any Trackmania 2 game)</li>
+                    <li>At the bottom, click on an empty frame with heaven on it (that's called 'station')</li>
+                    <li>Click FROM URL</li>
+                    <li>Enter this text: <code>envimix:turbo</code></li>
+                    <li>Click OK</li>
+                </ol>
+            </div>
+            <div>
+                <h4>Option 3 - Install manually</h4>
+                <ol>
+                    <li>Click <b>Download manually</b> on this page, or just <a href="turbo/download">here</a>.</li>
+                    <li>Put the downloaded Pack.Gbx file to the <code>Documents/ManiaPlanet/Packs</code> folder. In case you're updating, close ManiaPlanet first.</li>
+                    <li>Open ManiaPlanet (or any Trackmania 2 game)</li>
+                    <li>At the bottom, click on an empty frame with heaven on it (that's called 'station')</li>
+                    <li>Click FROM DISK</li>
+                    <li>Look for the ENVIMIX Turbo package, click on it, and load it</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+</ReuCenter>
+
+@code {
+
+}
