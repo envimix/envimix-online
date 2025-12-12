@@ -32,6 +32,7 @@ public sealed class UserService(
     {
         var ingameAuthResult = await mpIngameApi.AuthenticateAsync(userRequest.User.Login, userRequest.Token, cancellationToken);
 
+        // this looks to be a ManiaPlanet server bug, where uppercase letters aren't properly lowercased, but only in some places
         if (!string.Equals(ingameAuthResult.Login, userRequest.User.Login, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Invalid token provided for user: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
@@ -40,10 +41,9 @@ public sealed class UserService(
 
         if (ingameAuthResult.Login != userRequest.User.Login)
         {
-            logger.LogWarning("Case insensitive login match, weird but should be fine: {UserLogin} != {AuthLogin}", userRequest.User.Login, ingameAuthResult.Login);
+            logger.LogWarning("Case insensitive login match, weird but should be fine (client: {UserLogin} != server: {AuthLogin})", userRequest.User.Login, ingameAuthResult.Login);
+            userRequest.User.Login = ingameAuthResult.Login.ToLower();
         }
-
-        userRequest.User.Login = ingameAuthResult.Login; // fix the login to lowercase in case this shit happens again
 
         var isAdmin = await IsAdminAsync(userRequest.User.Login, cancellationToken);
 
@@ -60,7 +60,7 @@ public sealed class UserService(
 
         return new AuthenticateUserResponse
         {
-            Login = ingameAuthResult.Login,
+            Login = userRequest.User.Login,
             Token = token,
             IsAdmin = user.IsAdmin,
         };
