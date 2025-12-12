@@ -5,6 +5,6 @@ public static class CacheConfiguration
     public static void AddCacheServices(this IServiceCollection services)
     {
         services.AddOutputCache();
-        services.AddMemoryCache();
+        services.AddHybridCache();
     }
 }

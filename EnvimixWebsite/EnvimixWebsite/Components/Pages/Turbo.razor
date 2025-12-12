@@ -1,4 +1,6 @@
 ﻿@page "/turbo"
+@inject IWebHostEnvironment Env
+@inject HybridCache Cache
 
 <PageTitle>ENVIMIX Turbo - ENVIMIX project</PageTitle>
 
@@ -16,7 +18,14 @@
         </div>
         <div>
             <ReuButton Href="turbo/download" CssClass="download-btn" download>Download manually</ReuButton>
-            <a href="turbo/download/preview" class="alternative" download>Download preview version</a>
+            @if (hasPreview)
+            {
+                <a href="turbo/download/preview" class="alternative" download>Download preview version</a>
+            }
+            else
+            {
+                <span class="alternative">Download preview version</span>
+            }
         </div>
     </div>
     <div class="secondary-buttons">
@@ -71,5 +80,15 @@
 </ReuCenter>
 
 @code {
+    private bool hasPreview;
 
+    protected override async Task OnInitializedAsync()
+    {
+        hasPreview = await Cache.GetOrCreateAsync("turbo:hasPreview", async entry =>
+        {
+            var fileInfo = Env.ContentRootFileProvider.GetFileInfo(Path.Combine("EnvimixTurboPreview", "Envimix_Turbo@bigbang1112.Title.Pack.Gbx"));
+
+            return fileInfo.Exists && !fileInfo.IsDirectory && fileInfo.PhysicalPath is not null;
+        }, new() { Expiration = TimeSpan.FromMinutes(1) });
+    }
 }

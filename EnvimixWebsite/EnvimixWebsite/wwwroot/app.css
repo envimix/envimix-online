@@ -18,6 +18,17 @@ body {
         text-shadow: 0 0 5px #111;
     }
 
+    .primary-buttons span.alternative {
+        display: block;
+        font-size: 80%;
+        margin-top: 0.2rem;
+        padding: 0.5rem;
+        color: #888;
+        font-weight: bold;
+        text-decoration: line-through;
+        text-shadow: 0 0 5px #111;
+    }
+
 .install-btn {
     font-size: 150%;
     font-weight: bold;
