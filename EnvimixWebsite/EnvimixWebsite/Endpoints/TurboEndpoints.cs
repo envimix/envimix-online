@@ -27,13 +27,13 @@ internal static class TurboEndpoints
     {
         var maniaCodeContent = $"""
             ﻿<?xml version="1.0" encoding="utf-8" ?>
-            <manialink version="3">
+            <maniacode noconfirmation="1">
                 <install_pack>
                     <name>$fffENVIMIX $ff0Turbo</name>
                     <file>Packs/Envimix_Turbo@bigbang1112.Title.Pack.Gbx</file>
                     <url>{StableDownloadUrl}</url>
                 </install_pack>
-            </manialink>
+            </maniacode>
             """;
 
         return TypedResults.Content(maniaCodeContent, "application/xml");
