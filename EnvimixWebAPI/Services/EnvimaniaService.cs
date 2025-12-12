@@ -1025,7 +1025,7 @@ public sealed class EnvimaniaService(
                 .First())
             .OrderBy(x => x.Time)
             .ThenBy(x => x.DrivenAt)
-            .Take(20) // why not load all records afterall lol
+            //.Take(20) // why not load all records afterall lol
             .ToList();
 
         foreach (var rec in filteredRecords)
