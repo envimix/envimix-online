@@ -20,7 +20,7 @@ internal static class TurboEndpoints
 
     private static Results<PhysicalFileHttpResult, NotFound> DownloadPreviewTurboFile(IWebHostEnvironment env)
     {
-        var fileInfo = env.ContentRootFileProvider.GetFileInfo(Path.Combine("EnvimixTurboPreview", "Envimix_Turbo@bigbang1112.Title.Pack.gbx"));
+        var fileInfo = env.ContentRootFileProvider.GetFileInfo(Path.Combine("EnvimixTurboPreview", "Envimix_Turbo@bigbang1112.Title.Pack.Gbx"));
 
         if (!fileInfo.Exists || fileInfo.IsDirectory || fileInfo.PhysicalPath is null)
         {
