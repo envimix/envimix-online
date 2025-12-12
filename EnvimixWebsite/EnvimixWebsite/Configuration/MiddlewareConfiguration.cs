@@ -41,7 +41,7 @@ public static class MiddlewareConfiguration
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         }).RequireAuthorization();
 
-        DownloadEndpoints.Map(app);
+        TurboEndpoints.Map(app);
         ConnectEndpoints.Map(app);
 
         app.UseAntiforgery();
