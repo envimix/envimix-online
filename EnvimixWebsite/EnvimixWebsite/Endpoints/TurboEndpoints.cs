@@ -18,9 +18,16 @@ internal static class TurboEndpoints
         return TypedResults.Redirect(StableDownloadUrl, permanent: false);
     }
 
-    private static NotFound DownloadPreviewTurboFile()
+    private static Results<PhysicalFileHttpResult, NotFound> DownloadPreviewTurboFile(IWebHostEnvironment env)
     {
-        return TypedResults.NotFound();
+        var fileInfo = env.ContentRootFileProvider.GetFileInfo(Path.Combine("EnvimixTurboPreview", "Envimix_Turbo@bigbang1112.Title.Pack.gbx"));
+
+        if (!fileInfo.Exists || fileInfo.IsDirectory || fileInfo.PhysicalPath is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.PhysicalFile(fileInfo.PhysicalPath, "application/octet-stream", fileInfo.Name, lastModified: fileInfo.LastModified, enableRangeProcessing: true);
     }
 
     private static ContentHttpResult GetManiaCode()
