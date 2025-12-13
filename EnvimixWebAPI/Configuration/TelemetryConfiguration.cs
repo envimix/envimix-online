@@ -53,6 +53,7 @@ public static class TelemetryConfiguration
                 options
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation()
                     .AddOtlpExporter();
             });
     }
