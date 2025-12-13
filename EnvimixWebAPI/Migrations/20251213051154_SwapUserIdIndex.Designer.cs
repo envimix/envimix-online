@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251213051154_SwapUserIdIndex")]
+    partial class SwapUserIdIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,7 +33,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Cars", (string)null);
+                    b.ToTable("Cars");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.CheckpointEntity", b =>
@@ -63,7 +66,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("RecordId");
 
-                    b.ToTable("Checkpoints", (string)null);
+                    b.ToTable("Checkpoints");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.DiscordUserEntity", b =>
@@ -86,7 +89,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DiscordUsers", (string)null);
+                    b.ToTable("DiscordUsers");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.EnvimaniaSessionEntity", b =>
@@ -116,7 +119,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("ServerId");
 
-                    b.ToTable("EnvimaniaSessions", (string)null);
+                    b.ToTable("EnvimaniaSessions");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.GhostEntity", b =>
@@ -134,7 +137,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Ghosts", (string)null);
+                    b.ToTable("Ghosts");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapEntity", b =>
@@ -171,7 +174,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("TitlePackId");
 
-                    b.ToTable("Maps", (string)null);
+                    b.ToTable("Maps");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapVisitEntity", b =>
@@ -198,7 +201,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("MapVisits", (string)null);
+                    b.ToTable("MapVisits");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.RatingEntity", b =>
@@ -248,7 +251,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Ratings", (string)null);
+                    b.ToTable("Ratings");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.RecordEntity", b =>
@@ -319,9 +322,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("MapId", "UserId", "CarId", "Gravity", "Laps", "Time", "DrivenAt");
 
-                    b.HasIndex("UserId", "MapId", "CarId", "Gravity", "Laps", "Time", "DrivenAt");
-
-                    b.ToTable("Records", (string)null);
+                    b.ToTable("Records");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.ServerEntity", b =>
@@ -336,7 +337,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Servers", (string)null);
+                    b.ToTable("Servers");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.StarEntity", b =>
@@ -372,7 +373,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Stars", (string)null);
+                    b.ToTable("Stars");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.TitleEntity", b =>
@@ -398,7 +399,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Titles", (string)null);
+                    b.ToTable("Titles");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.UserEntity", b =>
@@ -470,7 +471,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("ZoneId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.ValidationDiscordMessageEntity", b =>
@@ -488,7 +489,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("RecordId");
 
-                    b.ToTable("ValidationDiscordMessages", (string)null);
+                    b.ToTable("ValidationDiscordMessages");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.ZoneEntity", b =>
@@ -506,7 +507,7 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Zones", (string)null);
+                    b.ToTable("Zones");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.CheckpointEntity", b =>
