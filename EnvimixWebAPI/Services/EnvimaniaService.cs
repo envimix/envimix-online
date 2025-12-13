@@ -1354,7 +1354,6 @@ public sealed class EnvimaniaService(
 
         var records = await db.Records
             .AsNoTracking()
-            .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
