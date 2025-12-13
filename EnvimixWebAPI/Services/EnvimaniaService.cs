@@ -1353,6 +1353,7 @@ public sealed class EnvimaniaService(
         var startTimestamp = Stopwatch.GetTimestamp();
 
         var records = await db.Records
+            .AsNoTracking()
             .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
@@ -1361,7 +1362,6 @@ public sealed class EnvimaniaService(
                 .ThenBy(x => x.DrivenAt)
                 .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
                 .First())
-            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
         logger.LogInformation("Title player records retrieved in {ElapsedMilliseconds} ms", Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
