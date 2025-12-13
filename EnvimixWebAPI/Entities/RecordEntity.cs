@@ -2,8 +2,7 @@
 
 namespace EnvimixWebAPI.Entities;
 
-[Index(nameof(Gravity))]
-[Index(nameof(Laps))]
+[Index(nameof(MapId), nameof(UserId), nameof(CarId), nameof(Gravity), nameof(Laps), nameof(Time), nameof(DrivenAt))]
 public sealed class RecordEntity
 {
     public int Id { get; set; }
