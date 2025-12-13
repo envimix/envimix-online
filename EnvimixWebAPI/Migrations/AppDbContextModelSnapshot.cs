@@ -307,11 +307,17 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("GhostId");
 
+                    b.HasIndex("Gravity");
+
+                    b.HasIndex("Laps");
+
+                    b.HasIndex("MapId");
+
                     b.HasIndex("SessionId");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("MapId", "UserId", "CarId", "Gravity", "Laps", "Time", "DrivenAt");
+                    b.HasIndex("MapId", "CarId", "Gravity", "Laps", "UserId", "Time", "DrivenAt");
 
                     b.ToTable("Records");
                 });

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251213044630_AddRecordIndex")]
+    [Migration("20251213045755_AddRecordIndex")]
     partial class AddRecordIndex
     {
         /// <inheritdoc />
@@ -310,11 +310,17 @@ namespace EnvimixWebAPI.Migrations
 
                     b.HasIndex("GhostId");
 
+                    b.HasIndex("Gravity");
+
+                    b.HasIndex("Laps");
+
+                    b.HasIndex("MapId");
+
                     b.HasIndex("SessionId");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("MapId", "UserId", "CarId", "Gravity", "Laps", "Time", "DrivenAt");
+                    b.HasIndex("MapId", "CarId", "Gravity", "Laps", "UserId", "Time", "DrivenAt");
 
                     b.ToTable("Records");
                 });
