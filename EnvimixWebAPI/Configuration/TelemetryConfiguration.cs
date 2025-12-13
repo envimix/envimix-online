@@ -54,6 +54,7 @@ public static class TelemetryConfiguration
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddEntityFrameworkCoreInstrumentation()
+                    .AddSource("EnvimixWebAPI.Services.EnvimaniaService")
                     .AddOtlpExporter();
             });
     }

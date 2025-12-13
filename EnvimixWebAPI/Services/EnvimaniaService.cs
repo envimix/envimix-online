@@ -101,6 +101,8 @@ public sealed class EnvimaniaService(
     HttpClient http,
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
+    private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
+
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
         ClaimsPrincipal principal,
@@ -1350,7 +1352,8 @@ public sealed class EnvimaniaService(
 
     public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken)
     {
-        var startTimestamp = Stopwatch.GetTimestamp();
+        using var activity = ActivitySource.StartActivity("GetPlayerRecordsByTitleId");
+        activity?.SetTag("titleId", titleId);
 
         var records = await db.Records
             .AsNoTracking()
@@ -1363,7 +1366,7 @@ public sealed class EnvimaniaService(
                 .First())
             .ToListAsync(cancellationToken);
 
-        logger.LogInformation("Title player records retrieved in {ElapsedMilliseconds} ms", Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
+        activity?.SetTag("recordCount", records.Count);
 
         return records.ToLookup(
             x => $"{x.MapId}_{x.CarId}_{x.Gravity}_{x.Laps}", 
