@@ -18,6 +18,7 @@ using OneOf;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
@@ -1355,22 +1356,31 @@ public sealed class EnvimaniaService(
         using var activity = ActivitySource.StartActivity("GetPlayerRecordsByTitleId");
         activity?.SetTag("titleId", titleId);
 
-        var records = await db.Records
+        var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
+
+        await foreach (var record in db.Records
             .AsNoTracking()
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
-            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
-            .Select(g => g
-                .OrderBy(x => x.Time)
-                .ThenBy(x => x.DrivenAt)
-                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
-                .First())
-            .ToListAsync(cancellationToken);
+            .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
+            .AsAsyncEnumerable())
+        {
+            var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
 
-        activity?.SetTag("recordCount", records.Count);
+            if (!bestRecords.TryGetValue(key, out var existing) ||
+                record.Time < existing.Time ||
+                (record.Time == existing.Time && record.DrivenAt < existing.DrivenAt))
+            {
+                bestRecords[key] = (record.Time, record.DrivenAt);
+            }
+        }
 
-        return records.ToLookup(
-            x => $"{x.MapId}_{x.CarId}_{x.Gravity}_{x.Laps}", 
-            x => new PlayerRecord(x.Time, x.UserId));
+        activity?.SetTag("recordCount", bestRecords.Count);
+
+        return bestRecords
+            .GroupBy(kvp => $"{kvp.Key.MapId}_{kvp.Key.CarId}_{kvp.Key.Gravity}_{kvp.Key.Laps}")
+            .ToLookup(
+                g => g.Key,
+                g => g.Select(kvp => new PlayerRecord(kvp.Value.Time, kvp.Key.UserId)).First());
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
