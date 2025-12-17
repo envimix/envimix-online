@@ -1377,10 +1377,9 @@ public sealed class EnvimaniaService(
         activity?.SetTag("recordCount", bestRecords.Count);
 
         return bestRecords
-            .GroupBy(kvp => $"{kvp.Key.MapId}_{kvp.Key.CarId}_{kvp.Key.Gravity}_{kvp.Key.Laps}")
             .ToLookup(
-                g => g.Key,
-                g => g.Select(kvp => new PlayerRecord(kvp.Value.Time, kvp.Key.UserId)).First());
+                x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
+                x => new PlayerRecord(x.Value.Time, x.Key.UserId));
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
