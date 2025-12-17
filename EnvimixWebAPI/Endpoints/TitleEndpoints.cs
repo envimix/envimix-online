@@ -57,7 +57,7 @@ public static class TitleEndpoints
         var ratings = await ratingService.GetAveragesByTitleIdAsync(titleId, cancellationToken);
         var stars = await starService.GetStarsByTitleIdAsync(titleId, cancellationToken);
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
-        var playerRecords = await envimaniaService.GetPlayerRecordsByTitleId(titleId, cancellationToken);
+        var playerRecords = await envimaniaService.GetPlayerRecordsByTitleIdAsync(titleId, cancellationToken);
         var totalCombinations = await envimaniaService.GetTotalCombinationsAsync(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
 

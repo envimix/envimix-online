@@ -3,6 +3,7 @@ using EnvimixWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace EnvimixWebAPI.Services;
@@ -29,6 +30,8 @@ public sealed class StarService(
     HybridCache cache,
     ILogger<StarService> logger) : IStarService
 {
+    private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.StarService");
+
     public async Task<bool> HasStarAsync(string mapUid, string car, int gravity, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         if (principal.Identity?.Name is null)
@@ -155,6 +158,9 @@ public sealed class StarService(
 
     public async Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetStarsByTitleIdAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await cache.GetOrCreateAsync($"StarsByTitleId_{titleId}", async entry =>
         {
             var starsFromDb = await db.Stars

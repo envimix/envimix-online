@@ -81,7 +81,7 @@ public interface IEnvimaniaService
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetGlobalTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetEnvimixTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
 
-    Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken);
+    Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -1279,6 +1279,9 @@ public sealed class EnvimaniaService(
 
     public async Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetValidationsByTitleIdAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await hybridCache.GetOrCreateAsync($"ValidationsByTitleId_{titleId}", async token =>
         {
             return await db.Records
@@ -1351,9 +1354,9 @@ public sealed class EnvimaniaService(
                             .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray()));
     }
 
-    public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken)
+    public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
-        using var activity = ActivitySource.StartActivity("GetPlayerRecordsByTitleId");
+        using var activity = ActivitySource.StartActivity(nameof(GetPlayerRecordsByTitleIdAsync));
         activity?.SetTag("titleId", titleId);
 
         var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
@@ -1562,6 +1565,9 @@ public sealed class EnvimaniaService(
 
     public async Task<TotalCombinations> GetTotalCombinationsAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetTotalCombinationsAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await hybridCache.GetOrCreateAsync($"TotalCombinations_{titleId}", async token =>
         {
             var mapCount = await db.Maps
