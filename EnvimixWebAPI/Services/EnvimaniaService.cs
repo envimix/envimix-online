@@ -1358,12 +1358,16 @@ public sealed class EnvimaniaService(
 
         var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
 
+        using var foreachActivity = ActivitySource.StartActivity("ProcessRecords");
+        var recordCount = 0;
+
         await foreach (var record in db.Records
             .AsNoTracking()
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
             .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
             .AsAsyncEnumerable())
         {
+            recordCount++;
             var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
 
             if (!bestRecords.TryGetValue(key, out var existing) ||
@@ -1374,8 +1378,12 @@ public sealed class EnvimaniaService(
             }
         }
 
-        activity?.SetTag("recordCount", bestRecords.Count);
+        foreachActivity?.SetTag("processedRecords", recordCount);
+        foreachActivity?.SetTag("bestRecordsCount", bestRecords.Count);
 
+        activity?.SetTag("recordCount", bestRecords.Count);
+        
+        using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
         return bestRecords
             .ToLookup(
                 x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
