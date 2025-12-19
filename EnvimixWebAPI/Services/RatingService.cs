@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using OneOf;
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace EnvimixWebAPI.Services;
@@ -35,6 +36,8 @@ public sealed class RatingService(
     HybridCache cache,
     ILogger<RatingService> logger) : IRatingService
 {
+    private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.RatingService");
+
     private static ValidationFailureResponse? Validate(Rating rating)
     {
         var difficulty = rating.Difficulty;
@@ -352,6 +355,9 @@ public sealed class RatingService(
 
     public async Task<Dictionary<string, Dictionary<string, Rating>>> GetAveragesByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetAveragesByTitleIdAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await cache.GetOrCreateAsync($"RatingsByTitleId_{titleId}", async token =>
         {
             var cars = envimaniaOptions.Value.Car;

@@ -18,6 +18,7 @@ using OneOf;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
@@ -81,7 +82,7 @@ public interface IEnvimaniaService
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetGlobalTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, (int Time, string Login)[]>>> GetEnvimixTimeLoginPairsByTitleId(string titleId, CancellationToken cancellationToken);
 
-    Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken);
+    Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class EnvimaniaService(
@@ -1297,6 +1298,9 @@ public sealed class EnvimaniaService(
 
     public async Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetValidationsByTitleIdAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await hybridCache.GetOrCreateAsync($"ValidationsByTitleId_{titleId}", async token =>
         {
             return await db.Records
@@ -1369,27 +1373,43 @@ public sealed class EnvimaniaService(
                             .SelectMany(grp => new[] { grp.Key, grp.Count() }).ToArray()));
     }
 
-    public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleId(string titleId, CancellationToken cancellationToken)
+    public async Task<ILookup<string, PlayerRecord>> GetPlayerRecordsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
     {
-        using var activity = ActivitySource.StartActivity("GetPlayerRecordsByTitleId");
+        using var activity = ActivitySource.StartActivity(nameof(GetPlayerRecordsByTitleIdAsync));
         activity?.SetTag("titleId", titleId);
 
-        var records = await db.Records
+        var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
+
+        using var foreachActivity = ActivitySource.StartActivity("ProcessRecords");
+        var recordCount = 0;
+
+        await foreach (var record in db.Records
             .AsNoTracking()
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
-            .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
-            .Select(g => g
-                .OrderBy(x => x.Time)
-                .ThenBy(x => x.DrivenAt)
-                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId })
-                .First())
-            .ToListAsync(cancellationToken);
+            .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
+            .AsAsyncEnumerable())
+        {
+            recordCount++;
+            var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
 
-        activity?.SetTag("recordCount", records.Count);
+            if (!bestRecords.TryGetValue(key, out var existing) ||
+                record.Time < existing.Time ||
+                (record.Time == existing.Time && record.DrivenAt < existing.DrivenAt))
+            {
+                bestRecords[key] = (record.Time, record.DrivenAt);
+            }
+        }
 
-        return records.ToLookup(
-            x => $"{x.MapId}_{x.CarId}_{x.Gravity}_{x.Laps}", 
-            x => new PlayerRecord(x.Time, x.UserId));
+        foreachActivity?.SetTag("processedRecords", recordCount);
+        foreachActivity?.SetTag("bestRecordsCount", bestRecords.Count);
+
+        activity?.SetTag("recordCount", bestRecords.Count);
+        
+        using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
+        return bestRecords
+            .ToLookup(
+                x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
+                x => new PlayerRecord(x.Value.Time, x.Key.UserId));
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
@@ -1564,6 +1584,9 @@ public sealed class EnvimaniaService(
 
     public async Task<TotalCombinations> GetTotalCombinationsAsync(string titleId, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity(nameof(GetTotalCombinationsAsync));
+        activity?.SetTag("titleId", titleId);
+
         return await hybridCache.GetOrCreateAsync($"TotalCombinations_{titleId}", async token =>
         {
             var mapCount = await db.Maps
