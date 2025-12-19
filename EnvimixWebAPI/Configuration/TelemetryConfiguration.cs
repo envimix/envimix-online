@@ -39,6 +39,7 @@ public static class TelemetryConfiguration
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddProcessInstrumentation()
+                    .AddMeter("EnvimixWebAPI.Services.EnvimaniaService")
                     .AddOtlpExporter();
 
                 options.AddMeter("System.Net.Http");

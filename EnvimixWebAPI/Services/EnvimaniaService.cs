@@ -22,6 +22,7 @@ using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
+using System.Diagnostics.Metrics;
 
 namespace EnvimixWebAPI.Services;
 
@@ -102,6 +103,8 @@ public sealed class EnvimaniaService(
     ILogger<EnvimaniaService> logger) : IEnvimaniaService
 {
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
+    private static readonly Meter Meter = new("EnvimixWebAPI.Services.EnvimaniaService");
+    private static readonly Counter<int> NewRecordsCounter = Meter.CreateCounter<int>("envimania_new_records_total", description: "Total number of new records submitted");
 
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
@@ -535,6 +538,9 @@ public sealed class EnvimaniaService(
 
     public async Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>> SetRecordAsync(HttpRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity("SetRecord");
+        activity?.SetTag("user.login", principal.GetName());
+
         logger.LogInformation("Attempt to set a record via {user} user...", principal.GetName());
 
         // VALIDATION START
@@ -574,12 +580,17 @@ public sealed class EnvimaniaService(
 
         if (!ValidateGhost(ghost, out var carName, out var laps, out var validationFailure))
         {
+            activity?.SetTag("validation_failure", validationFailure.Message);
             return validationFailure;
         }
 
         var ghostRawData = ms.ToArray();
 
         var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, CancellationToken.None);
+
+        activity?.SetTag("map.uid", map.Id);
+        activity?.SetTag("car.name", carName);
+        activity?.SetTag("title_pack.id", map.TitlePackId);
 
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
         {
@@ -659,6 +670,14 @@ public sealed class EnvimaniaService(
 
         if (hasChanges)
         {
+            // Track new record metric
+            NewRecordsCounter.Add(1, new KeyValuePair<string, object?>("car", carName),
+                                     new KeyValuePair<string, object?>("title_pack", map.TitlePackId ?? "unknown"),
+                                     new KeyValuePair<string, object?>("is_validation", isValidation));
+
+            activity?.SetTag("record_saved", true);
+            activity?.SetTag("is_validation", isValidation);
+
             await outputCache.EvictByTagAsync("title-stats", cancellationToken);
 
             // TODO: also loop around the user's zone later
