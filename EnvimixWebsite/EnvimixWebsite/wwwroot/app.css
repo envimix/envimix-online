@@ -2,6 +2,10 @@ body {
     background-color: #111;
 }
 
+.reu-button {
+    backdrop-filter: blur(5px);
+}
+
 .primary-buttons {
     display: flex;
     gap: 1rem;
@@ -13,7 +17,6 @@ body {
         font-size: 80%;
         margin-top: 0.2rem;
         padding: 0.5rem;
-        color: #ADF;
         font-weight: bold;
         text-shadow: 0 0 5px #111;
     }
@@ -46,13 +49,6 @@ body {
     background-size: cover;
     background-position: center;
     padding: 1rem;
-}
-
-footer {
-    margin: 20px 0;
-    color: gray;
-    text-align: center;
-    padding: 10px;
 }
 
 .logo-area img {
