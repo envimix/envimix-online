@@ -26,6 +26,7 @@ public static class EnvimaniaEndpoints
         MapSession(group.MapGroup("session"));
 
         group.MapPost("restore-validations", RestoreValidations).RequireAuthorization(Policies.SuperAdminPolicy);
+        group.MapPost("restore-records", RestoreRecords).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
     private static void MapSession(RouteGroupBuilder group)
@@ -294,6 +295,31 @@ public static class EnvimaniaEndpoints
             finally
             {
                 restoreValidationsTask = null;
+            }
+        }, cancellationToken);
+
+        return TypedResults.Ok();
+    }
+
+    private static Task? restoreRecordsTask;
+
+    private static async Task<Results<Ok, Conflict>> RestoreRecords(IServiceScopeFactory serviceScopeFactory, CancellationToken cancellationToken)
+    {
+        if (restoreRecordsTask is not null)
+        {
+            return TypedResults.Conflict();
+        }
+
+        restoreRecordsTask = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = serviceScopeFactory.CreateAsyncScope();
+                await scope.ServiceProvider.GetRequiredService<IEnvimaniaService>().RestoreRecordsAsync(CancellationToken.None);
+            }
+            finally
+            {
+                restoreRecordsTask = null;
             }
         }, cancellationToken);
 

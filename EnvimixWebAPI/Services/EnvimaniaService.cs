@@ -18,12 +18,12 @@ using OneOf;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
-using System.Diagnostics.Metrics;
 
 namespace EnvimixWebAPI.Services;
 
@@ -76,6 +76,7 @@ public interface IEnvimaniaService
     Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken);
 
     Task RestoreValidationsAsync(CancellationToken cancellationToken);
+    Task RestoreRecordsAsync(CancellationToken cancellationToken);
 
     Task<TotalCombinations> GetTotalCombinationsAsync(string titleId, CancellationToken cancellationToken);
     [Obsolete] Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken);
@@ -1577,6 +1578,199 @@ public sealed class EnvimaniaService(
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error while restoring validation for car {car} on map {mapUid}", car, mapUid);
+                }
+            }
+        }
+    }
+
+    public async Task RestoreRecordsAsync(CancellationToken cancellationToken)
+    {
+        var campaignMaps = await db.Maps
+            .Where(x => x.IsCampaignMap && x.Order != null)
+            .OrderBy(x => x.Order)
+            .ToListAsync(cancellationToken);
+
+        foreach (var map in campaignMaps)
+        {
+            var mapUid = map.Id;
+            var gravity = 0; // TODO should be configurable
+
+            logger.LogInformation("Restoring records for map {mapUid}...", mapUid);
+
+            foreach (var car in envimaniaOptions.Value.Car)
+            {
+                logger.LogInformation("Restoring records for car {car}...", car);
+
+                try
+                {
+                    var allRecords = await db.Records
+                        .Include(x => x.Map)
+                            .ThenInclude(x => x.TitlePack)
+                        .Include(x => x.User)
+                            .ThenInclude(x => x.Zone)
+                        .Include(x => x.Checkpoints.OrderByDescending(x => x.Time).Take(1))
+                        .Where(x => x.MapId == mapUid
+                            && x.CarId == car
+                            && x.Gravity == gravity
+                            //&& x.Laps == laps  // there should be a check for Laps == map.Laps but I didn't implment that into MapEntity fuck
+                            && x.Checkpoints.Any())
+                        .AsNoTracking()
+                        .ToListAsync(cancellationToken);
+
+                    var filteredRecords = allRecords
+                        .GroupBy(x => x.User.Id)
+                        .Select(g => g
+                            .OrderBy(x => x.Time)
+                            .ThenBy(x => x.DrivenAt)
+                            .First())
+                        .OrderBy(x => x.Time)
+                        .ThenBy(x => x.DrivenAt)
+                        .ToList();
+
+                    var oldestRecordDrivenAt = allRecords
+                        .OrderBy(x => x.DrivenAt)
+                        .FirstOrDefault()?.DrivenAt;
+                    var validation = default(RecordEntity);
+
+                    var officialLb = await masterServer.GetMapLeaderBoardAsync("Envimix_Turbo@bigbang1112", mapUid, count: 1000, offset: 0, "World", car, cancellationToken);
+
+                    var laps = -1;
+
+                    foreach (var lbEntry in officialLb)
+                    {
+                        var existingRecord = filteredRecords.FirstOrDefault(x => x.User.Id == lbEntry.Login);
+
+                        // check if user already has a better or equal record as lbEntry
+                        if (existingRecord is not null && existingRecord.Time <= lbEntry.Score.TotalMilliseconds)
+                        {
+                            continue;
+                        }
+
+                        if (string.IsNullOrEmpty(lbEntry.DownloadUrl))
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to missing download URL", lbEntry.Login);
+                            continue;
+                        }
+
+                        using var response = await http.GetAsync(lbEntry.DownloadUrl, cancellationToken);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to GET request failure with status code {statusCode}", lbEntry.Login, response.StatusCode);
+                            continue;
+                        }
+
+                        var lastModified = response.Content.Headers.LastModified;
+
+                        if (lastModified is null)
+                        {
+                            logger.LogWarning("Skipping leaderboard entry for {login} due to missing Last-Modified header", lbEntry.Login);
+                            continue;
+                        }
+
+                        var userModel = await userService.GetOrCreateFromLeaderboardEntryAsync(lbEntry, cancellationToken);
+                        if (userModel is null)
+                        {
+                            logger.LogWarning("User {login} not found in database. Skipping leaderboard entry.", lbEntry.Login);
+                            continue;
+                        }
+
+                        await using var ms = new MemoryStream(await response.Content.ReadAsByteArrayAsync(cancellationToken));
+                        var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: cancellationToken);
+
+                        if (!ValidateGhost(ghost, out var carName, out laps, out var validationFailure))
+                        {
+                            logger.LogWarning("Invalid ghost for leaderboard entry {login} on map {mapUid}: {reason}", lbEntry.Login, mapUid, validationFailure);
+                            continue;
+                        }
+
+                        if (car != carName)
+                        {
+                            logger.LogWarning("Car mismatch for leaderboard entry {login} on map {mapUid}: expected {expectedCar}, got {actualCar}", lbEntry.Login, mapUid, car, carName);
+                            continue;
+                        }
+
+                        // TODO: one more check is not considered: if the user on the official lb is the same as this new record with the same time, should be added
+
+                        var record = new RecordEntity
+                        {
+                            User = userModel,
+                            Map = map,
+                            Car = await modService.GetOrAddCarAsync(car, cancellationToken),
+                            Gravity = gravity,
+                            DrivenAt = lastModified.Value, // + request.PreferenceNumber
+                            ServersideDrivenAt = lastModified.Value,
+                            Laps = laps,
+                            Time = lbEntry.Score.TotalMilliseconds,
+                            Score = ghost.StuntScore ?? -1,
+                            NbRespawns = ghost.Respawns ?? -1,
+                            Ghost = new GhostEntity { Data = ms.ToArray() },
+                        };
+
+                        await db.Records.AddAsync(record, cancellationToken);
+
+                        foreach (var cp in ghost.Checkpoints ?? [])
+                        {
+                            record.Checkpoints.Add(new CheckpointEntity
+                            {
+                                Record = record,
+                                Time = cp.Time.GetValueOrDefault().TotalMilliseconds,
+                                Score = cp.StuntsScore ?? 0,
+                                NbRespawns = ghost.Respawns ?? -1, // weird stuff
+                                Distance = -1,
+                                Speed = -1
+                            });
+                        }
+
+                        if (oldestRecordDrivenAt is null || lastModified < oldestRecordDrivenAt)
+                        {
+                            oldestRecordDrivenAt = lastModified;
+                            validation = record;
+                        }
+
+                        using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+
+                        var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
+                        var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
+
+                        await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** has been restored");
+                    }
+
+                    if (laps == -1)
+                    {
+                        logger.LogInformation("No valid leaderboard records found for car {car} on map {mapUid}", car, mapUid);
+                        continue;
+                    }
+
+                    if (validation is not null)
+                    {
+                        using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
+
+                        var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
+                        var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
+
+                        var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}** has been restored");
+
+                        await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
+                        {
+                            Id = messageId,
+                            Record = validation,
+                        }, cancellationToken);
+                    }
+
+                    var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
+
+                    if (hasChanges)
+                    {
+                        await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+                        await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(map.Id, car, gravity, laps, "World"), cancellationToken);
+                    }
+
+                    logger.LogInformation("Restored records for car {car} on map {mapUid}", car, mapUid);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error while restoring records for car {car} on map {mapUid}", car, mapUid);
                 }
             }
         }

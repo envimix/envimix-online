@@ -2,9 +2,11 @@
 using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
 using ManiaAPI.ManiaPlanetAPI;
+using ManiaAPI.Xml.MP4;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
+using TmEssentials;
 
 namespace EnvimixWebAPI.Services;
 
@@ -18,6 +20,7 @@ public interface IUserService
     Task ResetTokenAsync(string login, CancellationToken cancellationToken);
     Task<Dictionary<string, string>> GetNicknamesAsync(IEnumerable<string> logins, CancellationToken cancellationToken);
     Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(IEnumerable<string> logins, CancellationToken cancellationToken);
+    Task<UserEntity> GetOrCreateFromLeaderboardEntryAsync(LeaderboardItem<TimeInt32> entry, CancellationToken cancellationToken);
 }
 
 public sealed class UserService(
@@ -192,5 +195,30 @@ public sealed class UserService(
             .Include(x => x.Zone)
             .Where(x => logins.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone?.Name ?? "" }, cancellationToken);
+    }
+
+    public async Task<UserEntity> GetOrCreateFromLeaderboardEntryAsync(LeaderboardItem<TimeInt32> entry, CancellationToken cancellationToken)
+    {
+        var userModel = await db.Users
+            .FirstOrDefaultAsync(x => x.Id == entry.Login, cancellationToken);
+
+        if (userModel is not null)
+        {
+            return userModel;
+        }
+
+        userModel = new UserEntity
+        {
+            Id = entry.Login,
+            Nickname = entry.Nickname,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+            ZoneId = await zoneService.GetZoneIdAsync("World", cancellationToken)
+        };
+
+        await db.Users.AddAsync(userModel, cancellationToken);
+        await cache.RemoveByTagAsync("user", CancellationToken.None); // in case of error during save, the cache is still cleared, but 99.9999% it should be fine
+
+        return userModel;
     }
 }
