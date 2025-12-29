@@ -1531,6 +1531,7 @@ public sealed class EnvimaniaService(
                         Score = ghost.StuntScore ?? -1,
                         NbRespawns = ghost.Respawns ?? -1,
                         Ghost = new GhostEntity { Data = ms.ToArray() },
+                        Restored = true
                     };
 
                     await db.Records.AddAsync(record, cancellationToken);
@@ -1638,7 +1639,8 @@ public sealed class EnvimaniaService(
 
                     foreach (var lbEntry in officialLb)
                     {
-                        var existingRecord = filteredRecords.FirstOrDefault(x => x.User.Id == lbEntry.Login);
+                        // case insensitive check because Nadeo
+                        var existingRecord = filteredRecords.FirstOrDefault(x => string.Equals(x.User.Id, lbEntry.Login, StringComparison.OrdinalIgnoreCase));
 
                         // check if user already has a better or equal record as lbEntry
                         if (existingRecord is not null && existingRecord.Time <= lbEntry.Score.TotalMilliseconds)
@@ -1669,11 +1671,6 @@ public sealed class EnvimaniaService(
                         }
 
                         var userModel = await userService.GetOrCreateFromLeaderboardEntryAsync(lbEntry, cancellationToken);
-                        if (userModel is null)
-                        {
-                            logger.LogWarning("User {login} not found in database. Skipping leaderboard entry.", lbEntry.Login);
-                            continue;
-                        }
 
                         await using var ms = new MemoryStream(await response.Content.ReadAsByteArrayAsync(cancellationToken));
                         var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: cancellationToken);
@@ -1705,6 +1702,7 @@ public sealed class EnvimaniaService(
                             Score = ghost.StuntScore ?? -1,
                             NbRespawns = ghost.Respawns ?? -1,
                             Ghost = new GhostEntity { Data = ms.ToArray() },
+                            Restored = true
                         };
 
                         await db.Records.AddAsync(record, cancellationToken);
