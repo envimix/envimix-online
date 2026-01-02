@@ -1,10 +1,6 @@
-﻿using EnvimixWebsite.Authentication;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.HttpOverrides;
+﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.Net;
-using System.Security.Claims;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -16,23 +12,16 @@ public static class WebConfiguration
             .AddInteractiveServerComponents()
             .AddInteractiveWebAssemblyComponents();
 
-        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
-            {
-                options.LoginPath = "/connect/discord";
-            })
-            .AddDiscord(options =>
-            {
-                options.ClientId = config["Discord:ClientId"] ?? throw new InvalidOperationException("Discord ClientId is missing");
-                options.ClientSecret = config["Discord:ClientSecret"] ?? throw new InvalidOperationException("Discord ClientSecret is missing");
-                options.ClaimActions.MapJsonKey(DiscordAdditionalClaims.GlobalName, "global_name");
-            });
-
         services.AddAuthorizationBuilder()
-            .AddPolicy(Policies.InsiderPolicy, policy =>
+            .AddDefaultPolicy(Policies.UserPolicy, policy =>
             {
                 policy.RequireAuthenticatedUser();
-                policy.RequireClaim(ClaimTypes.NameIdentifier, config.GetSection("Insiders").Get<string[]>() ?? []);
+                policy.RequireRole(Roles.User);
+            })
+            .AddPolicy(Policies.AdminPolicy, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireRole(Roles.Admin);
             });
 
         services.AddResponseCompression(options =>

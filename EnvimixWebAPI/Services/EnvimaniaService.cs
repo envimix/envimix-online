@@ -1636,7 +1636,8 @@ public sealed class EnvimaniaService(
                     var scoreContext = car;
 
                     // default car uses a different score context
-                    var isDefaultCar = (map.Collection == "Canyon" && car == "CanyonCar") ||
+                    var isDefaultCar =
+                        (map.Collection == "Canyon" && car == "CanyonCar") ||
                         (map.Collection == "Stadium" && car == "StadiumCar") ||
                         (map.Collection == "Valley" && car == "ValleyCar") ||
                         (map.Collection == "Lagoon" && car == "LagoonCar");

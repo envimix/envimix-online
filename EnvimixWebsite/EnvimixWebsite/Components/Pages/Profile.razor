@@ -1,0 +1,17 @@
+﻿@page "/profile"
+@using System.Security.Claims
+@attribute [Authorize]
+@attribute [StreamRendering]
+
+<PageTitle>Profile - ENVIMIX project</PageTitle>
+
+<ReuContainer>
+    <h2>Profile</h2>
+
+    <AuthorizeView>
+        <Authorized>
+            <p>Welcome, @(context.User.Identity?.Name ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value)!</p>
+            <p>This is your profile page. Here, you will be soon able to register your ENVIMIX dedicated servers to Envimania.</p>
+        </Authorized>
+    </AuthorizeView>
+</ReuContainer>

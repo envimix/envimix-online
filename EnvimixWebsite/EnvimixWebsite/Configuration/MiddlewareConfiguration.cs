@@ -1,6 +1,8 @@
 ﻿using EnvimixWebsite.Components;
 using EnvimixWebsite.Endpoints;
 using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -36,15 +38,40 @@ public static class MiddlewareConfiguration
 
         app.UseOutputCache();
 
+        app.UseAntiforgery();
+
         app.MapHealthChecks("/_health", new()
         {
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         }).RequireAuthorization();
 
         TurboEndpoints.Map(app);
-        ConnectEndpoints.Map(app);
+        //ConnectEndpoints.Map(app);
 
-        app.UseAntiforgery();
+        app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>
+        {
+            if (app.Environment.IsDevelopment())
+            {
+                var claims = new List<Claim>
+                {
+                    new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                    new(ClaimTypes.Role, Roles.User),
+                };
+
+                var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "GbxTools"));
+
+                await context.SignInAsync(principal, new() { RedirectUri = returnUrl });
+            }
+            else
+            {
+                context.Response.Redirect($"https://identity.gbx.tools/connect?returnUrl={Uri.EscapeDataString(returnUrl)}");
+            }
+        });
+
+        app.MapGet("logout", async (HttpContext context, string returnUrl = "/") =>
+        {
+            await context.SignOutAsync(new AuthenticationProperties() { RedirectUri = returnUrl });
+        });
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()

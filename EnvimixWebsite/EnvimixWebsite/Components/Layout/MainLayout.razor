@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavManager
 
 <ReuNavMenu Brand="envimix.gbx.tools">
     <ReuNavItem Name="Home" Href="" IconType="IconType.Home" NavLinkMatch="NavLinkMatch.All"></ReuNavItem>
@@ -6,6 +7,14 @@
     <ReuNavItem Name="About" Href="about" IconType="IconType.Info"></ReuNavItem>
     <ReuNavItem Name="GitHub" Href="https://github.com/envimix" IconType="IconType.GitHub" IsNavLink="false" IconOnly="true" IconWidth="28" IconHeight="28"></ReuNavItem>
     <ReuNavItem Name="Discord" Href="https://discord.envimix.gbx.tools" IconType="IconType.Discord" IsNavLink="false" IconOnly="true" Title="Join the Discord server"></ReuNavItem>
+    <AuthorizeView>
+        <Authorized>
+            <ReuNavItem Name="Profile" Href="profile" IconType="IconType.Person" IconOnly="true" Title="Profile"></ReuNavItem>
+        </Authorized>
+        <NotAuthorized>
+            <ReuNavItem Name="Login" Href="@($"login?returnUrl={Uri.EscapeDataString(NavManager.BaseUri)}")" IconType="IconType.Login" IsNavLink="false" IconOnly="true" Title="Login"></ReuNavItem>
+        </NotAuthorized>
+    </AuthorizeView>
 </ReuNavMenu>
 
 <ReuMain>
@@ -14,13 +23,18 @@
 
 <ReuFooter>
     <CopyrightContent>
-        © 2025 Petr '<a href="https://bigbang1112.cz">BigBang1112</a>' Pivoňka<br />
+        © 2025-2026 Petr '<a href="https://bigbang1112.cz">BigBang1112</a>' Pivoňka<br />
         <small>
             Not affiliated with or endorsed by Nadeo or Ubisoft.
             All relevant trademarks belong to their respective owners.
         </small>
     </CopyrightContent>
     <LinkContent>
+        <AuthorizeView>
+            <Authorized>
+                <a href="logout">Logout</a>
+            </Authorized>
+        </AuthorizeView>
     </LinkContent>
     <ExtraContent>
         <div class="footer-discover-more">
@@ -33,6 +47,7 @@
             <a href="https://revalidate.gbx.tools">revalidate.gbx.tools</a>
             <span>envimix.gbx.tools</span>
             <a href="https://uotd.gbx.tools">uotd.gbx.tools</a>
+            <a href="https://identity.gbx.tools">identity.gbx.tools</a>
             <a href="https://nuget.gbx.tools">nuget.gbx.tools</a>
         </div>
     </ExtraContent>
