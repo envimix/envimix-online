@@ -1634,12 +1634,13 @@ public sealed class EnvimaniaService(
                     var validation = default(RecordEntity);
 
                     var scoreContext = car;
-                    
+
                     // default car uses a different score context
-                    if ((map.Collection == "Canyon" && car == "CanyonCar") ||
+                    var isDefaultCar = (map.Collection == "Canyon" && car == "CanyonCar") ||
                         (map.Collection == "Stadium" && car == "StadiumCar") ||
                         (map.Collection == "Valley" && car == "ValleyCar") ||
-                        (map.Collection == "Lagoon" && car == "LagoonCar"))
+                        (map.Collection == "Lagoon" && car == "LagoonCar");
+                    if (isDefaultCar)
                     {
                         scoreContext = "";
                     }
@@ -1731,7 +1732,7 @@ public sealed class EnvimaniaService(
                             });
                         }
 
-                        if (oldestRecordDrivenAt is null || lastModified < oldestRecordDrivenAt)
+                        if (!isDefaultCar && (oldestRecordDrivenAt is null || lastModified < oldestRecordDrivenAt))
                         {
                             oldestRecordDrivenAt = lastModified;
                             validation = record;
