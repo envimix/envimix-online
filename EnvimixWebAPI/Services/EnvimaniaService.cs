@@ -1633,7 +1633,18 @@ public sealed class EnvimaniaService(
                         .FirstOrDefault()?.DrivenAt;
                     var validation = default(RecordEntity);
 
-                    var officialLb = await masterServer.GetMapLeaderBoardAsync("Envimix_Turbo@bigbang1112", mapUid, count: 1000, offset: 0, "World", car, cancellationToken);
+                    var scoreContext = car;
+                    
+                    // default car uses a different score context
+                    if ((map.Collection == "Canyon" && car == "CanyonCar") ||
+                        (map.Collection == "Stadium" && car == "StadiumCar") ||
+                        (map.Collection == "Valley" && car == "ValleyCar") ||
+                        (map.Collection == "Lagoon" && car == "LagoonCar"))
+                    {
+                        scoreContext = "";
+                    }
+
+                    var officialLb = await masterServer.GetMapLeaderBoardAsync("Envimix_Turbo@bigbang1112", mapUid, count: 1000, offset: 0, "World", scoreContext, cancellationToken);
 
                     var laps = -1;
 
