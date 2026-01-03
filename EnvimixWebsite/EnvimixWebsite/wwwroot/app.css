@@ -2,6 +2,10 @@ body {
     background-color: #111;
 }
 
+h1:focus {
+    outline: none;
+}
+
 .reu-button {
     backdrop-filter: blur(5px);
 }
@@ -32,6 +36,12 @@ body {
         text-shadow: 0 0 5px #111;
     }
 
+@media (max-width: 500px) {
+    .primary-buttons {
+        flex-direction: column;
+    }
+}
+
 .install-btn {
     font-size: 150%;
     font-weight: bold;
@@ -55,8 +65,31 @@ body {
     filter: drop-shadow(0 0 1rem #fc16);
 }
 
-@media (max-width: 500px) {
-    .primary-buttons {
-        flex-direction: column;
-    }
+
+.legal-document {
+    max-width: 800px;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.last-updated {
+    font-style: italic;
+    font-size: 0.9em;
+    margin-bottom: 2rem;
+    border-left: 3px solid #ddd;
+    padding-left: 1rem;
+}
+
+.legal-document h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.legal-document ul {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.legal-document li {
+    margin-bottom: 0.5rem;
 }
