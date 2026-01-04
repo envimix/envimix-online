@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.Net;
+using EnvimixWebsite.Services;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -39,6 +40,10 @@ public static class WebConfiguration
         services.AddHealthChecks();
 
         services.AddSingleton(TimeProvider.System);
+
+        services.AddHttpContextAccessor();
+        services.AddHttpClient<IIdentityService, IdentityService>();
+        services.AddScoped<IIdentityService, IdentityService>();
 
         // Figures out HTTPS behind proxies
         services.Configure<ForwardedHeadersOptions>(options =>

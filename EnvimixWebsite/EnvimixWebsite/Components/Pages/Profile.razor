@@ -1,5 +1,9 @@
 ﻿@page "/profile"
 @using System.Security.Claims
+@using EnvimixWebsite.Services
+@inject IIdentityService IdentityService
+@inject NavigationManager NavManager
+@inject IConfiguration Config
 @attribute [Authorize]
 @attribute [StreamRendering]
 
@@ -11,7 +15,83 @@
     <AuthorizeView>
         <Authorized>
             <p>Welcome, @(context.User.Identity?.Name ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value)!</p>
-            <p>This is your profile page. Here, you will be soon able to register your ENVIMIX dedicated servers to Envimania.</p>
+
+            @if (userInfo is not null)
+            {
+                var servers = userInfo.Data?.ManiaPlanet?.DedicatedAccounts ?? [];
+
+                @if (userInfo.Providers.TryGetValue("ManiaPlanet", out var mpUser))
+                {
+                    <ul>
+                        <li>Your ManiaPlanet login: @mpUser.Id</li>
+                        <li>Your ManiaPlanet nickname: <TmEssentials.Razor.FormattedText Text="@mpUser.Name"></TmEssentials.Razor.FormattedText></li>
+                    </ul>
+                    <h3>Register dedicated server to Envimania</h3>
+                    @if (servers.Count == 0)
+                    {
+                        <p>You don't have any dedicated server accounts associated with your ManiaPlanet account.</p>
+                        <p>Visit <a href="https://maniaplanet.com/account/dedicated-servers">ManiaPlanet Dedicated Server accounts</a> to create one.</p>
+                    }
+                    else
+                    {
+                        <p>Soon, you will be able to register one of these servers:</p>
+                        <ul>
+                            @foreach (var server in userInfo.Data?.ManiaPlanet?.DedicatedAccounts ?? [])
+                            {
+                                <li>
+                                    <span>@server.Login</span>
+
+                                    @if (server.LastUsedAt is not null)
+                                    {
+                                        <span style="color: #888"> (last used: @(DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("g")))</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                }
+                else
+                {
+                    <p>You don't have a ManiaPlanet account associated with your account. Here is <a href="@(Config["IdentityManager"])/connect/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">a quick link to associate it</a>.</p>
+                }
+            }
+            else if (isLoading)
+            {
+                <p>Loading more information...</p>
+            }
+            else
+            {
+                <p>Unable to load detailed user information at this time.</p>                
+            }
         </Authorized>
     </AuthorizeView>
 </ReuContainer>
+
+@code {
+    private UserDto? userInfo;
+    private bool isLoading = true;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var authState = await AuthenticationStateTask;
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                try
+                {
+                    userInfo = await IdentityService.GetCurrentUserAsync(authState.User);
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception if you have logging configured
+                }
+            }
+        }
+        
+        isLoading = false;
+    }
+}

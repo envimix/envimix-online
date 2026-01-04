@@ -50,22 +50,7 @@ public static class MiddlewareConfiguration
 
         app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>
         {
-            if (app.Environment.IsDevelopment())
-            {
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                    new(ClaimTypes.Role, Roles.User),
-                };
-
-                var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "GbxTools"));
-
-                await context.SignInAsync(principal, new() { RedirectUri = returnUrl });
-            }
-            else
-            {
-                context.Response.Redirect($"https://identity.gbx.tools/connect?returnUrl={Uri.EscapeDataString(returnUrl)}");
-            }
+            return TypedResults.Redirect($"{app.Configuration["IdentityManager"]}/connect?returnUrl={Uri.EscapeDataString(returnUrl)}");
         });
 
         app.MapGet("logout", async (HttpContext context, string returnUrl = "/") =>
