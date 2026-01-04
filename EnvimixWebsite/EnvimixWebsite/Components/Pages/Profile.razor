@@ -3,7 +3,6 @@
 @using EnvimixWebsite.Services
 @inject IIdentityService IdentityService
 @inject NavigationManager NavManager
-@inject IConfiguration Config
 @attribute [Authorize]
 @attribute [StreamRendering]
 
@@ -48,12 +47,12 @@
                                 </li>
                             }
                         </ul>
-                        <p>Don't see your server? Try <a href="@(Config["IdentityManager"])/connect/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
+                        <p>Don't see your server? Try <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                     }
                 }
                 else
                 {
-                    <p>You don't have a ManiaPlanet account associated with your account. Here is <a href="@(Config["IdentityManager"])/connect/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">a quick link to associate it</a>.</p>
+                    <p>You don't have a ManiaPlanet account associated with your account. Here is <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">a quick link to associate it</a>.</p>
                 }
             }
             else if (isLoading)

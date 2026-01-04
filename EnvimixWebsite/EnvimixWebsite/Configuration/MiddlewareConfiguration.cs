@@ -2,6 +2,7 @@
 using EnvimixWebsite.Endpoints;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Caching.Hybrid;
 using System.Security.Claims;
 
 namespace EnvimixWebsite.Configuration;
@@ -51,6 +52,12 @@ public static class MiddlewareConfiguration
         app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>
         {
             return TypedResults.Redirect($"{app.Configuration["IdentityManager"]}/connect?returnUrl={Uri.EscapeDataString(returnUrl)}");
+        });
+
+        app.MapGet("login/maniaplanet", async (HttpContext context, HybridCache cache, CancellationToken cancellationToken, string returnUrl = "/") =>
+        {
+            await cache.RemoveAsync($"identity_user_{context.User.FindFirstValue(ClaimTypes.NameIdentifier)}", cancellationToken);
+            return TypedResults.Redirect($"{app.Configuration["IdentityManager"]}/connect/maniaplanet?returnUrl={Uri.EscapeDataString(returnUrl)}");
         });
 
         app.MapGet("logout", async (HttpContext context, string returnUrl = "/") =>
