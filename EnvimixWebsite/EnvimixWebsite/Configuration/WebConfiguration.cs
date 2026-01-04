@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.ResponseCompression;
 using System.Net;
 using EnvimixWebsite.Services;
+using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -36,6 +37,8 @@ public static class WebConfiguration
         {
             options.RejectionStatusCode = 429;
         });
+
+        services.AddManiaPlanetIngameAPI();
 
         services.AddHealthChecks();
 

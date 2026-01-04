@@ -17,6 +17,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\EnvimixWebsite.Client\EnvimixWebsite.Client.csproj" />
+		<PackageReference Include="ManiaAPI.ManiaPlanetAPI.Extensions.Hosting" Version="2.5.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.1" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
 		<PackageReference Include="Reuniverse.Razor" Version="0.3.0" />

@@ -65,6 +65,28 @@ h1:focus {
     filter: drop-shadow(0 0 1rem #fc16);
 }
 
+.counts {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+    font-size: 80%;
+    color: #888;
+    font-weight: bold;
+    text-shadow: 0 0 5px #111;
+}
+
+@media (max-width: 500px) {
+    .counts {
+        flex-wrap: wrap;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+.count {
+    color: #ccc;
+}
+
 
 .legal-document {
     max-width: 800px;

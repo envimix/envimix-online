@@ -43,11 +43,12 @@
 
                                     @if (server.LastUsedAt is not null)
                                     {
-                                        <span style="color: #888"> (last used: @(DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("g")))</span>
+                                        <span style="color: #888"> (spotted online at: @(DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")))</span>
                                     }
                                 </li>
                             }
                         </ul>
+                        <p>Don't see your server? Try <a href="@(Config["IdentityManager"])/connect/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                     }
                 }
                 else
