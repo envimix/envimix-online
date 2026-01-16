@@ -7,6 +7,7 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
 		<UserSecretsId>c279b5ef-180a-4e09-8cd2-2eeefd41664b</UserSecretsId>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>

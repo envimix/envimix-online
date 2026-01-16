@@ -1,4 +1,5 @@
 ﻿using EnvimixWebAPI.Endpoints;
+using SimplestGitSourceGenerator;
 
 namespace EnvimixWebAPI.Configuration;
 
@@ -11,7 +12,10 @@ public static class EndpointConfiguration
             await context.Response.WriteAsJsonAsync(new
             {
                 message = "Welcome to Envimix Web API!",
-                alpha = true
+                alpha = false,
+                gitCommitHash = SimplestGit.CommitHash,
+                gitCommitDate = SimplestGit.CommitDate,
+                gitBranch = SimplestGit.Branch,
             });
         });
 
