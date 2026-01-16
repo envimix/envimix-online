@@ -1,6 +1,7 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 RUN apk add --no-cache git
+COPY .git .
 
 COPY EnvimixWebAPI/. /src
 
