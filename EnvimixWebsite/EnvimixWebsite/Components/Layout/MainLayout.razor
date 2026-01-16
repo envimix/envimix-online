@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager NavManager
 
+@using SimplestGitSourceGenerator
+
 <ReuNavMenu Brand="envimix.gbx.tools">
     <ReuNavItem Name="Home" Href="" IconType="IconType.Home" NavLinkMatch="NavLinkMatch.All"></ReuNavItem>
     <ReuNavItem Name="Turbo" Href="turbo"></ReuNavItem>
@@ -51,6 +53,13 @@
             <a href="https://uotd.gbx.tools">uotd.gbx.tools</a>
             <a href="https://identity.gbx.tools">identity.gbx.tools</a>
             <a href="https://nuget.gbx.tools">nuget.gbx.tools</a>
+            <code>
+                <span title="@DateTimeOffset.Parse(SimplestGit.CommitDate)" target="_blank">
+                    @SimplestGit.CommitHash.Substring(0, 7)
+                </span>
+                -
+                <span>@SimplestGit.Branch</span>
+            </code>
         </div>
     </ExtraContent>
 </ReuFooter>

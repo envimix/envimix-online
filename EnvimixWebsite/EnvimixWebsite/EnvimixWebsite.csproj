@@ -18,9 +18,9 @@
 	<ItemGroup>
 		<ProjectReference Include="..\EnvimixWebsite.Client\EnvimixWebsite.Client.csproj" />
 		<PackageReference Include="ManiaAPI.ManiaPlanetAPI.Extensions.Hosting" Version="2.5.2" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.2" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
-		<PackageReference Include="Reuniverse.Razor" Version="0.3.0" />
+		<PackageReference Include="Reuniverse.Razor" Version="0.6.0" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
@@ -33,7 +33,11 @@
 		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
 		<PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.2.0" />
+        <PackageReference Include="SimplestGitSourceGenerator" Version="1.0.3">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
