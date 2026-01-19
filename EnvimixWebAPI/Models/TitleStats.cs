@@ -19,4 +19,5 @@ public sealed class TitleStats
     [JsonPropertyName(nameof(GlobalMostSkillpoints))] public required List<PlayerScore> GlobalMostSkillpoints { get; set; }
     [JsonPropertyName(nameof(GlobalMostActivityPoints))] public required List<PlayerScore> GlobalMostActivityPoints { get; set; }
     [JsonPropertyName(nameof(GlobalCompletion))] public required List<PlayerCompletion> GlobalCompletion { get; set; }
+    [JsonPropertyName(nameof(CombinationRecordCount))] public required Dictionary<string, CombinationRecordCount> CombinationRecordCount { get; set; }
 }

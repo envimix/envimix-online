@@ -74,6 +74,9 @@ public static class TitleEndpoints
         var defaultCarValidationCount = 0;
 
         var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
+
+        var combinationRecordCount = new Dictionary<string, CombinationRecordCount>();
+
         foreach (var validation in validations)
         {
             var timeLoginPairs = playerRecords[$"{validation.MapId}_{validation.CarId}_{validation.Gravity}_{validation.Laps}"]
@@ -114,6 +117,22 @@ public static class TitleEndpoints
             };
 
             var totalRecordCount = timeLoginPairs.Length;
+
+            var combinationKey = $"{validation.CarId}_{validation.Gravity}";
+            if (!combinationRecordCount.TryGetValue(combinationKey, out var recCount))
+            {
+                combinationRecordCount[combinationKey] = recCount = new CombinationRecordCount();
+            }
+
+            if (isDefaultCar)
+            {
+                recCount.DefaultCar += totalRecordCount;
+            }
+            else
+            {
+                recCount.Envimix += totalRecordCount;
+            }
+            recCount.Global += totalRecordCount;
 
             var worstRanks = timeLoginPairs
                 .Select((x, idx) => new { x.Time, Rank = idx + 1 })
@@ -304,7 +323,8 @@ public static class TitleEndpoints
             DefaultCarCompletion = defaultCarCompletion,
             GlobalMostSkillpoints = globalMostSkillpoints,
             GlobalMostActivityPoints = globalMostActivityPoints,
-            GlobalCompletion = globalCompletion
+            GlobalCompletion = globalCompletion,
+            CombinationRecordCount = combinationRecordCount
         });
     }
 }
