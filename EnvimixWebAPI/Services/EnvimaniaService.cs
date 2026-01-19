@@ -1798,9 +1798,14 @@ public sealed class EnvimaniaService(
                 .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
                 .CountAsync(cancellationToken);
 
+            var environmentEnvimixMapCount = await db.Maps
+                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+                .GroupBy(x => x.Collection)
+                .ToDictionaryAsync(g => g.Key, g => g.Count(), cancellationToken);
+
             var envimixCarCount = envimaniaOptions.Value.Car.Count - 1;
 
-            return new TotalCombinations(mapCount * envimixCarCount, mapCount);
+            return new TotalCombinations(EnvimixCount: mapCount * envimixCarCount, DefaultCarCount: mapCount, environmentEnvimixMapCount);
         }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 

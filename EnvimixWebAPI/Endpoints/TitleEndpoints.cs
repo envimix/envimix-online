@@ -403,7 +403,7 @@ public static class TitleEndpoints
                     .Select(x => new PlayerCompletion
                     {
                         Login = x.Key,
-                        Score = (float)x.Value / totalCombinations.EnvimixCount
+                        Score = (float)x.Value / totalCombinations.GetCountForCombination(kvp.Key)
                     })
                     .ToList()
             );
@@ -445,7 +445,7 @@ public static class TitleEndpoints
                     .Select(x => new PlayerCompletion
                     {
                         Login = x.Key,
-                        Score = (float)x.Value / totalCombinations.DefaultCarCount
+                        Score = (float)x.Value / totalCombinations.GetCountForCombination(kvp.Key)
                     })
                     .ToList()
             );
@@ -492,7 +492,7 @@ public static class TitleEndpoints
                     .Select(gg => new PlayerCompletion
                     {
                         Login = gg.Key,
-                        Score = (float)gg.Sum(x => x.Value) / totalCombinations.TotalCount
+                        Score = (float)gg.Sum(x => x.Value) / totalCombinations.GetCountForCombination(g.Key)
                     })
                     .OrderByDescending(x => x.Score)
                     .ToList()
