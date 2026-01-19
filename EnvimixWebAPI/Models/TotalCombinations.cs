@@ -17,7 +17,7 @@ public sealed record TotalCombinations(int EnvimixCount, int DefaultCarCount, Di
 
         if (environment is not null && EnvironmentEnvimixMapCount.TryGetValue(environment, out var count))
         {
-            return count;
+            return DefaultCarCount - count;
         }
 
         return DefaultCarCount;
