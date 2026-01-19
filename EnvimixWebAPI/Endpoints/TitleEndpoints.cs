@@ -366,7 +366,7 @@ public static class TitleEndpoints
             .OrderByDescending(x => x.Score)
             .ToList();
 
-        var envimixCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
+        var envimixCombinationMostSkillpoints = playerEnvimixCombinationSkillpoints
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
@@ -380,7 +380,7 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var envimixCombinationMostActivityPoints = playerDefaultCarCombinationActivityPoints
+        var envimixCombinationMostActivityPoints = playerEnvimixCombinationActivityPoints
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
@@ -394,7 +394,7 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var envimixCombinationCompletion = playerDefaultCarCombinationCompleted
+        var envimixCombinationCompletion = playerEnvimixCombinationCompleted
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
@@ -408,7 +408,7 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var defaultCarCombinationMostSkillpoints = playerEnvimixCombinationSkillpoints
+        var defaultCarCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
@@ -422,7 +422,7 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var defaultCarCombinationMostActivityPoints = playerEnvimixCombinationActivityPoints
+        var defaultCarCombinationMostActivityPoints = playerDefaultCarCombinationActivityPoints
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
@@ -436,7 +436,7 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var defaultCarCombinationCompletion = playerEnvimixCombinationCompleted
+        var defaultCarCombinationCompletion = playerDefaultCarCombinationCompleted
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value
