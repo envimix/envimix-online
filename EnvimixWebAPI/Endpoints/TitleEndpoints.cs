@@ -76,6 +76,12 @@ public static class TitleEndpoints
         var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
 
         var combinationRecordCount = new Dictionary<string, CombinationRecordCount>();
+        var playerEnvimixCombinationSkillpoints = new Dictionary<string, Dictionary<string, int>>();
+        var playerEnvimixCombinationActivityPoints = new Dictionary<string, Dictionary<string, int>>();
+        var playerEnvimixCombinationCompleted = new Dictionary<string, Dictionary<string, int>>();
+        var playerDefaultCarCombinationSkillpoints = new Dictionary<string, Dictionary<string, int>>();
+        var playerDefaultCarCombinationActivityPoints = new Dictionary<string, Dictionary<string, int>>();
+        var playerDefaultCarCombinationCompleted = new Dictionary<string, Dictionary<string, int>>();
 
         foreach (var validation in validations)
         {
@@ -134,6 +140,31 @@ public static class TitleEndpoints
             }
             recCount.Global += totalRecordCount;
 
+            if (!playerDefaultCarCombinationSkillpoints.TryGetValue(combinationKey, out var combSkillpoints))
+            {
+                playerDefaultCarCombinationSkillpoints[combinationKey] = combSkillpoints = [];
+            }
+            if (!playerDefaultCarCombinationActivityPoints.TryGetValue(combinationKey, out var combActivityPoints))
+            {
+                playerDefaultCarCombinationActivityPoints[combinationKey] = combActivityPoints = [];
+            }
+            if (!playerDefaultCarCombinationCompleted.TryGetValue(combinationKey, out var combCompleted))
+            {
+                playerDefaultCarCombinationCompleted[combinationKey] = combCompleted = [];
+            }
+            if (!playerEnvimixCombinationSkillpoints.TryGetValue(combinationKey, out var ecombSkillpoints))
+            {
+                playerEnvimixCombinationSkillpoints[combinationKey] = ecombSkillpoints = [];
+            }
+            if (!playerEnvimixCombinationActivityPoints.TryGetValue(combinationKey, out var ecombActivityPoints))
+            {
+                playerEnvimixCombinationActivityPoints[combinationKey] = ecombActivityPoints = [];
+            }
+            if (!playerEnvimixCombinationCompleted.TryGetValue(combinationKey, out var ecombCompleted))
+            {
+                playerEnvimixCombinationCompleted[combinationKey] = ecombCompleted = [];
+            }
+
             var worstRanks = timeLoginPairs
                 .Select((x, idx) => new { x.Time, Rank = idx + 1 })
                 .GroupBy(x => x.Time)
@@ -180,6 +211,24 @@ public static class TitleEndpoints
                         playerDefaultCarCompleted[login] = 0;
                     }
                     playerDefaultCarCompleted[login] += 1;
+
+                    if (!combSkillpoints.ContainsKey(login))
+                    {
+                        combSkillpoints[login] = 0;
+                    }
+                    combSkillpoints[login] += loginSkillpoints;
+
+                    if (!combActivityPoints.ContainsKey(login))
+                    {
+                        combActivityPoints[login] = 0;
+                    }
+                    combActivityPoints[login] += activityPoints;
+
+                    if (!combCompleted.ContainsKey(login))
+                    {
+                        combCompleted[login] = 0;
+                    }
+                    combCompleted[login] += 1;
                 }
                 else
                 {
@@ -200,6 +249,24 @@ public static class TitleEndpoints
                         playerEnvimixCompleted[login] = 0;
                     }
                     playerEnvimixCompleted[login] += 1;
+
+                    if (!ecombSkillpoints.ContainsKey(login))
+                    {
+                        ecombSkillpoints[login] = 0;
+                    }
+                    ecombSkillpoints[login] += loginSkillpoints;
+
+                    if (!ecombActivityPoints.ContainsKey(login))
+                    {
+                        ecombActivityPoints[login] = 0;
+                    }
+                    ecombActivityPoints[login] += activityPoints;
+
+                    if (!ecombCompleted.ContainsKey(login))
+                    {
+                        ecombCompleted[login] = 0;
+                    }
+                    ecombCompleted[login] += 1;
                 }
             }
         }
@@ -299,6 +366,138 @@ public static class TitleEndpoints
             .OrderByDescending(x => x.Score)
             .ToList();
 
+        var envimixCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var envimixCombinationMostActivityPoints = playerDefaultCarCombinationActivityPoints
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var envimixCombinationCompletion = playerDefaultCarCombinationCompleted
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var defaultCarCombinationMostSkillpoints = playerEnvimixCombinationSkillpoints
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var defaultCarCombinationMostActivityPoints = playerEnvimixCombinationActivityPoints
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var defaultCarCombinationCompletion = playerEnvimixCombinationCompleted
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key)
+                    .Select(x => new PlayerScore
+                    {
+                        Login = x.Key,
+                        Score = x.Value
+                    })
+                    .ToList()
+            );
+
+        var globalCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
+            .Concat(playerEnvimixCombinationSkillpoints)
+            .GroupBy(x => x.Key)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(x => x.Value)
+                    .GroupBy(x => x.Key)
+                    .Select(gg => new PlayerScore
+                    {
+                        Login = gg.Key,
+                        Score = gg.Sum(x => x.Value)
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ToList()
+            );
+
+        var globalCombinationMostActivityPoints = playerDefaultCarCombinationActivityPoints
+            .Concat(playerEnvimixCombinationActivityPoints)
+            .GroupBy(x => x.Key)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(x => x.Value)
+                    .GroupBy(x => x.Key)
+                    .Select(gg => new PlayerScore
+                    {
+                        Login = gg.Key,
+                        Score = gg.Sum(x => x.Value)
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ToList()
+            );
+
+        var globalCombinationCompletion = playerDefaultCarCombinationCompleted
+            .Concat(playerEnvimixCombinationCompleted)
+            .GroupBy(x => x.Key)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(x => x.Value)
+                    .GroupBy(x => x.Key)
+                    .Select(gg => new PlayerScore
+                    {
+                        Login = gg.Key,
+                        Score = gg.Sum(x => x.Value)
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ToList()
+            );
+
         var calculationElapsed = Stopwatch.GetElapsedTime(calculationStartTimestamp);
         logger.LogInformation("Title stats calculated in {ElapsedMilliseconds} ms", calculationElapsed.TotalMilliseconds);
 
@@ -324,7 +523,16 @@ public static class TitleEndpoints
             GlobalMostSkillpoints = globalMostSkillpoints,
             GlobalMostActivityPoints = globalMostActivityPoints,
             GlobalCompletion = globalCompletion,
-            CombinationRecordCount = combinationRecordCount
+            CombinationRecordCount = combinationRecordCount,
+            EnvimixCombinationMostSkillpoints = envimixCombinationMostSkillpoints,
+            EnvimixCombinationMostActivityPoints = envimixCombinationMostActivityPoints,
+            EnvimixCombinationCompletion = envimixCombinationCompletion,
+            DefaultCarCombinationMostSkillpoints = defaultCarCombinationMostSkillpoints,
+            DefaultCarCombinationMostActivityPoints = defaultCarCombinationMostActivityPoints,
+            DefaultCarCombinationCompletion = defaultCarCombinationCompletion,
+            GlobalCombinationMostSkillpoints = globalCombinationMostSkillpoints,
+            GlobalCombinationMostActivityPoints = globalCombinationMostActivityPoints,
+            GlobalCombinationCompletion = globalCombinationCompletion
         });
     }
 }

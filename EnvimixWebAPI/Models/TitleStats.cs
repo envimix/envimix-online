@@ -20,4 +20,13 @@ public sealed class TitleStats
     [JsonPropertyName(nameof(GlobalMostActivityPoints))] public required List<PlayerScore> GlobalMostActivityPoints { get; set; }
     [JsonPropertyName(nameof(GlobalCompletion))] public required List<PlayerCompletion> GlobalCompletion { get; set; }
     [JsonPropertyName(nameof(CombinationRecordCount))] public required Dictionary<string, CombinationRecordCount> CombinationRecordCount { get; set; }
+    [JsonPropertyName(nameof(EnvimixCombinationMostSkillpoints))] public required Dictionary<string, List<PlayerScore>> EnvimixCombinationMostSkillpoints { get; set; }
+    [JsonPropertyName(nameof(EnvimixCombinationMostActivityPoints))] public required Dictionary<string, List<PlayerScore>> EnvimixCombinationMostActivityPoints { get; set; }
+    [JsonPropertyName(nameof(EnvimixCombinationCompletion))] public required Dictionary<string, List<PlayerScore>> EnvimixCombinationCompletion { get; set; }
+    [JsonPropertyName(nameof(DefaultCarCombinationMostSkillpoints))] public required Dictionary<string, List<PlayerScore>> DefaultCarCombinationMostSkillpoints { get; set; }
+    [JsonPropertyName(nameof(DefaultCarCombinationMostActivityPoints))] public required Dictionary<string, List<PlayerScore>> DefaultCarCombinationMostActivityPoints { get; set; }
+    [JsonPropertyName(nameof(DefaultCarCombinationCompletion))] public required Dictionary<string, List<PlayerScore>> DefaultCarCombinationCompletion { get; set; }
+    [JsonPropertyName(nameof(GlobalCombinationMostSkillpoints))] public required Dictionary<string, List<PlayerScore>> GlobalCombinationMostSkillpoints { get; set; }
+    [JsonPropertyName(nameof(GlobalCombinationMostActivityPoints))] public required Dictionary<string, List<PlayerScore>> GlobalCombinationMostActivityPoints { get; set; }
+    [JsonPropertyName(nameof(GlobalCombinationCompletion))] public required Dictionary<string, List<PlayerScore>> GlobalCombinationCompletion { get; set; }
 }
