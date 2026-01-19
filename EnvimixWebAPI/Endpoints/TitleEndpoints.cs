@@ -400,7 +400,7 @@ public static class TitleEndpoints
                 kvp => kvp.Value
                     .OrderByDescending(x => x.Value)
                     .ThenBy(x => x.Key)
-                    .Select(x => new PlayerScore
+                    .Select(x => new PlayerCompletion
                     {
                         Login = x.Key,
                         Score = x.Value
@@ -442,7 +442,7 @@ public static class TitleEndpoints
                 kvp => kvp.Value
                     .OrderByDescending(x => x.Value)
                     .ThenBy(x => x.Key)
-                    .Select(x => new PlayerScore
+                    .Select(x => new PlayerCompletion
                     {
                         Login = x.Key,
                         Score = x.Value
@@ -489,7 +489,7 @@ public static class TitleEndpoints
                 g => g.Key,
                 g => g.SelectMany(x => x.Value)
                     .GroupBy(x => x.Key)
-                    .Select(gg => new PlayerScore
+                    .Select(gg => new PlayerCompletion
                     {
                         Login = gg.Key,
                         Score = gg.Sum(x => x.Value)
