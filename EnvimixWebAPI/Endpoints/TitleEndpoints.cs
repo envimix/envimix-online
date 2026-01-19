@@ -140,31 +140,6 @@ public static class TitleEndpoints
             }
             recCount.Global += totalRecordCount;
 
-            if (!playerDefaultCarCombinationSkillpoints.TryGetValue(combinationKey, out var combSkillpoints))
-            {
-                playerDefaultCarCombinationSkillpoints[combinationKey] = combSkillpoints = [];
-            }
-            if (!playerDefaultCarCombinationActivityPoints.TryGetValue(combinationKey, out var combActivityPoints))
-            {
-                playerDefaultCarCombinationActivityPoints[combinationKey] = combActivityPoints = [];
-            }
-            if (!playerDefaultCarCombinationCompleted.TryGetValue(combinationKey, out var combCompleted))
-            {
-                playerDefaultCarCombinationCompleted[combinationKey] = combCompleted = [];
-            }
-            if (!playerEnvimixCombinationSkillpoints.TryGetValue(combinationKey, out var ecombSkillpoints))
-            {
-                playerEnvimixCombinationSkillpoints[combinationKey] = ecombSkillpoints = [];
-            }
-            if (!playerEnvimixCombinationActivityPoints.TryGetValue(combinationKey, out var ecombActivityPoints))
-            {
-                playerEnvimixCombinationActivityPoints[combinationKey] = ecombActivityPoints = [];
-            }
-            if (!playerEnvimixCombinationCompleted.TryGetValue(combinationKey, out var ecombCompleted))
-            {
-                playerEnvimixCombinationCompleted[combinationKey] = ecombCompleted = [];
-            }
-
             var worstRanks = timeLoginPairs
                 .Select((x, idx) => new { x.Time, Rank = idx + 1 })
                 .GroupBy(x => x.Time)
@@ -212,18 +187,30 @@ public static class TitleEndpoints
                     }
                     playerDefaultCarCompleted[login] += 1;
 
+                    if (!playerDefaultCarCombinationSkillpoints.TryGetValue(combinationKey, out var combSkillpoints))
+                    {
+                        playerDefaultCarCombinationSkillpoints[combinationKey] = combSkillpoints = [];
+                    }
                     if (!combSkillpoints.ContainsKey(login))
                     {
                         combSkillpoints[login] = 0;
                     }
                     combSkillpoints[login] += loginSkillpoints;
 
+                    if (!playerDefaultCarCombinationActivityPoints.TryGetValue(combinationKey, out var combActivityPoints))
+                    {
+                        playerDefaultCarCombinationActivityPoints[combinationKey] = combActivityPoints = [];
+                    }
                     if (!combActivityPoints.ContainsKey(login))
                     {
                         combActivityPoints[login] = 0;
                     }
                     combActivityPoints[login] += activityPoints;
 
+                    if (!playerDefaultCarCombinationCompleted.TryGetValue(combinationKey, out var combCompleted))
+                    {
+                        playerDefaultCarCombinationCompleted[combinationKey] = combCompleted = [];
+                    }
                     if (!combCompleted.ContainsKey(login))
                     {
                         combCompleted[login] = 0;
@@ -250,18 +237,30 @@ public static class TitleEndpoints
                     }
                     playerEnvimixCompleted[login] += 1;
 
+                    if (!playerEnvimixCombinationSkillpoints.TryGetValue(combinationKey, out var ecombSkillpoints))
+                    {
+                        playerEnvimixCombinationSkillpoints[combinationKey] = ecombSkillpoints = [];
+                    }
                     if (!ecombSkillpoints.ContainsKey(login))
                     {
                         ecombSkillpoints[login] = 0;
                     }
                     ecombSkillpoints[login] += loginSkillpoints;
 
+                    if (!playerEnvimixCombinationActivityPoints.TryGetValue(combinationKey, out var ecombActivityPoints))
+                    {
+                        playerEnvimixCombinationActivityPoints[combinationKey] = ecombActivityPoints = [];
+                    }
                     if (!ecombActivityPoints.ContainsKey(login))
                     {
                         ecombActivityPoints[login] = 0;
                     }
                     ecombActivityPoints[login] += activityPoints;
 
+                    if (!playerEnvimixCombinationCompleted.TryGetValue(combinationKey, out var ecombCompleted))
+                    {
+                        playerEnvimixCombinationCompleted[combinationKey] = ecombCompleted = [];
+                    }
                     if (!ecombCompleted.ContainsKey(login))
                     {
                         ecombCompleted[login] = 0;
