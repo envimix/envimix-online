@@ -4,7 +4,7 @@ public sealed record TotalCombinations(int EnvimixCount, int DefaultCarCount, Di
 { 
     public int TotalCount => EnvimixCount + DefaultCarCount;
 
-    public int GetCountForCombination(string car)
+    public int GetTotalCountForCombination(string car)
     {
         var environment = car switch
         {
@@ -17,7 +17,7 @@ public sealed record TotalCombinations(int EnvimixCount, int DefaultCarCount, Di
 
         if (environment is not null && EnvironmentEnvimixMapCount.TryGetValue(environment, out var count))
         {
-            return DefaultCarCount - count;
+            return count;
         }
 
         return DefaultCarCount;
