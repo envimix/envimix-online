@@ -403,7 +403,7 @@ public static class TitleEndpoints
                     .Select(x => new PlayerCompletion
                     {
                         Login = x.Key,
-                        Score = (float)x.Value / (totalCombinations.DefaultCarCount - totalCombinations.GetTotalCountForCombination(kvp.Key))
+                        Score = (float)x.Value / totalCombinations.GetTotalCountForCombination(kvp.Key)
                     })
                     .ToList()
             );
