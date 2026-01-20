@@ -492,7 +492,7 @@ public static class TitleEndpoints
                     .Select(gg => new PlayerCompletion
                     {
                         Login = gg.Key,
-                        Score = (float)gg.Sum(x => x.Value) / totalCombinations.TotalCount
+                        Score = (float)gg.Sum(x => x.Value) / totalCombinations.DefaultCarCount
                     })
                     .OrderByDescending(x => x.Score)
                     .ToList()
