@@ -60,6 +60,7 @@ public static class TitleEndpoints
         var playerRecords = await envimaniaService.GetPlayerRecordsByTitleIdAsync(titleId, cancellationToken);
         var totalCombinations = await envimaniaService.GetTotalCombinationsAsync(titleId, cancellationToken);
         var titleRelease = await titleService.GetTitleReleaseDateAsync(titleId, cancellationToken);
+        var campaignReleases = await titleService.GetCampaignReleaseDatesAsync(titleId, cancellationToken);
 
         var calculationStartTimestamp = Stopwatch.GetTimestamp();
 
@@ -173,6 +174,18 @@ public static class TitleEndpoints
                     g => g.Max(x => x.Rank)
                 );
 
+            var campaignName = validation.Map.Campaign?.Name;
+
+            DateTimeOffset? campaignRelease;
+            if (campaignName is not null && campaignReleases.TryGetValue(campaignName, out var campaignReleaseDateTime))
+            {
+                campaignRelease = campaignReleaseDateTime;
+            }
+            else
+            {
+                campaignRelease = titleRelease;
+            }
+
             foreach (var (time, login) in timeLoginPairs)
             {
                 var rank = worstRanks[time];
@@ -183,10 +196,10 @@ public static class TitleEndpoints
                 var wrPb = wr * 1f / time;
                 var activityPoints = (int)Math.Round(1000 * Math.Exp(totalRecordCount * (wrPb - 1)));
 
-                if (!isDefaultCar && validation.UserId == login && titleRelease.HasValue)
+                if (!isDefaultCar && validation.UserId == login && campaignRelease.HasValue)
                 {
                     var validationTimestampInSeconds = validation.DrivenAt.ToUnixTimeSeconds();
-                    var titlePackReleaseTimestampInSeconds = titleRelease.Value.ToUnixTimeSeconds();
+                    var titlePackReleaseTimestampInSeconds = campaignRelease.Value.ToUnixTimeSeconds();
                     var validationAge = validationTimestampInSeconds - titlePackReleaseTimestampInSeconds;
                     var extraActivityPoints = (int)Math.Round(100 + validationAge / 86400f * 10);
                     activityPoints += extraActivityPoints;
@@ -299,7 +312,7 @@ public static class TitleEndpoints
             .Select(x => new PlayerCompletion
             {
                 Login = x.Key,
-                Score = (float)x.Value / totalCombinations.EnvimixCount
+                Score = totalCombinations.EnvimixCount == 0 ? 0 : (float)x.Value / totalCombinations.EnvimixCount
             })
             .ToList();
 
@@ -329,7 +342,7 @@ public static class TitleEndpoints
             .Select(x => new PlayerCompletion
             {
                 Login = x.Key,
-                Score = (float)x.Value / totalCombinations.DefaultCarCount
+                Score = totalCombinations.DefaultCarCount == 0 ? 0 : (float)x.Value / totalCombinations.DefaultCarCount
             })
             .ToList();
 
@@ -361,7 +374,7 @@ public static class TitleEndpoints
             .Select(g => new PlayerCompletion
             {
                 Login = g.Key,
-                Score = (float)g.Sum(x => x.Value) / totalCombinations.TotalCount
+                Score = totalCombinations.TotalCount == 0 ? 0 : (float)g.Sum(x => x.Value) / totalCombinations.TotalCount
             })
             .OrderByDescending(x => x.Score)
             .ToList();
@@ -397,15 +410,19 @@ public static class TitleEndpoints
         var envimixCombinationCompletion = playerEnvimixCombinationCompleted
             .ToDictionary(
                 kvp => kvp.Key,
-                kvp => kvp.Value
-                    .OrderByDescending(x => x.Value)
-                    .ThenBy(x => x.Key)
-                    .Select(x => new PlayerCompletion
-                    {
-                        Login = x.Key,
-                        Score = (float)x.Value / totalCombinations.GetEnvimixCarCountForCombination(kvp.Key)
-                    })
-                    .ToList()
+                kvp =>
+                {
+                    var count = totalCombinations.GetEnvimixCarCountForCombination(kvp.Key);
+                    return kvp.Value
+                        .OrderByDescending(x => x.Value)
+                        .ThenBy(x => x.Key)
+                        .Select(x => new PlayerCompletion
+                        {
+                            Login = x.Key,
+                            Score = count == 0 ? 0 : (float)x.Value / count
+                        })
+                        .ToList();
+                }
             );
 
         var defaultCarCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
@@ -439,15 +456,19 @@ public static class TitleEndpoints
         var defaultCarCombinationCompletion = playerDefaultCarCombinationCompleted
             .ToDictionary(
                 kvp => kvp.Key,
-                kvp => kvp.Value
-                    .OrderByDescending(x => x.Value)
-                    .ThenBy(x => x.Key)
-                    .Select(x => new PlayerCompletion
-                    {
-                        Login = x.Key,
-                        Score = (float)x.Value / totalCombinations.GetDefaultCarCountForCombination(kvp.Key)
-                    })
-                    .ToList()
+                kvp =>
+                {
+                    var count = totalCombinations.GetDefaultCarCountForCombination(kvp.Key);
+                    return kvp.Value
+                        .OrderByDescending(x => x.Value)
+                        .ThenBy(x => x.Key)
+                        .Select(x => new PlayerCompletion
+                        {
+                            Login = x.Key,
+                            Score = count == 0 ? 0 : (float)x.Value / count
+                        })
+                        .ToList();
+                }
             );
 
         var globalCombinationMostSkillpoints = playerDefaultCarCombinationSkillpoints
@@ -492,7 +513,7 @@ public static class TitleEndpoints
                     .Select(gg => new PlayerCompletion
                     {
                         Login = gg.Key,
-                        Score = (float)gg.Sum(x => x.Value) / totalCombinations.DefaultCarCount
+                        Score = totalCombinations.DefaultCarCount == 0 ? 0 : (float)gg.Sum(x => x.Value) / totalCombinations.DefaultCarCount
                     })
                     .OrderByDescending(x => x.Score)
                     .ToList()

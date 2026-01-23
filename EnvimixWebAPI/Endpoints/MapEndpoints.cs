@@ -34,6 +34,32 @@ public static class MapEndpoints
             .Where(x => mapUids.Contains(x.Id) || (x.TitlePackId == request.TitleId && x.IsCampaignMap))
             .ToListAsync(cancellationToken);
 
+        var campaigns = await db.Campaigns
+            .Where(x => x.TitlePackId == request.TitleId)
+            .ToDictionaryAsync(x => x.Name, cancellationToken);
+
+        var campaignsFromRequest = request.Maps
+            .Select(x => x.Campaign)
+            .OfType<string>()
+            .Distinct();
+
+        foreach (var campaignName in campaignsFromRequest)
+        {
+            if (campaigns.ContainsKey(campaignName))
+            {
+                continue;
+            }
+
+            var campaign = new CampaignEntity
+            {
+                Name = campaignName,
+                TitlePackId = request.TitleId
+            };
+
+            await db.Campaigns.AddAsync(campaign, cancellationToken);
+            campaigns[campaignName] = campaign;
+        }
+
         foreach (var mapInfo in request.Maps)
         {
             var map = maps.FirstOrDefault(x => x.Id == mapInfo.Uid);
@@ -52,6 +78,7 @@ public static class MapEndpoints
             map.TitlePackId = request.TitleId;
             map.IsCampaignMap = true;
             map.Order = mapInfo.Order;
+            map.Campaign = campaigns!.GetValueOrDefault(mapInfo.Campaign);
         }
 
         // unset campaign maps that are not in the submitted list
@@ -120,6 +147,7 @@ public static class MapEndpoints
 
         var map = await db.Maps
             .Include(x => x.TitlePack)
+            .Include(x => x.Campaign)
             .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken: cancellationToken);
 
         if (map is null)
@@ -131,9 +159,16 @@ public static class MapEndpoints
             await db.Maps.AddAsync(map, cancellationToken);
         }
 
+        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
+        {
+            userModel.BanReason = "AUTOMATED: Attempted to access an unreleased campaign map";
+            await db.SaveChangesAsync(CancellationToken.None);
+            return TypedResults.Forbid();
+        }
+
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
         {
-            userModel.BanReason = "AUTOMATED: Attempted to access unreleased title pack map";
+            userModel.BanReason = "AUTOMATED: Attempted to access an unreleased title pack map";
             await db.SaveChangesAsync(CancellationToken.None);
 
             return TypedResults.Forbid();

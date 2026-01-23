@@ -594,6 +594,14 @@ public sealed class EnvimaniaService(
         activity?.SetTag("car.name", carName);
         activity?.SetTag("title_pack.id", map.TitlePackId);
 
+        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
+        {
+            userModel.BanReason = "AUTOMATED: Attempted to access an unreleased campaign map";
+            await db.SaveChangesAsync(CancellationToken.None);
+
+            return new ActionForbiddenResponse("Campaign map not released yet");
+        }
+
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
         {
             userModel.BanReason = "AUTOMATED: Attempted record submission on unreleased title pack";
@@ -1028,6 +1036,8 @@ public sealed class EnvimaniaService(
         var allRecords = await db.Records
             .Include(x => x.Map)
                 .ThenInclude(x => x.TitlePack)
+            .Include(x => x.Map)
+                .ThenInclude(x => x.Campaign)
             .Include(x => x.User)
                 .ThenInclude(x => x.Zone)
             .Include(x => x.Checkpoints.OrderByDescending(x => x.Time).Take(1))
@@ -1119,8 +1129,10 @@ public sealed class EnvimaniaService(
             .SelectMany(g => new[] { g.Key, g.Count() })
             .ToArray();
 
-        var titlePack = filteredRecords.FirstOrDefault()?.Map.TitlePack;
-        var titlePackReleaseTimestamp = titlePack?.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "";
+        var map = filteredRecords.FirstOrDefault()?.Map;
+        var titlePack = map?.TitlePack;
+        var campaignRelease = map?.Campaign?.ReleasedAt ?? titlePack?.ReleasedAt;
+        var campaignReleaseTimestamp = campaignRelease?.ToUnixTimeSeconds().ToString() ?? "";
 
         if (filteredRecords.Count == 0 || titlePack?.Id != "Nadeo_Envimix@bigbang1112")
         {
@@ -1131,7 +1143,7 @@ public sealed class EnvimaniaService(
                 Records = envimaniaRecords,
                 Validation = mappedValidation,
                 Skillpoints = skillpoints,
-                TitlePackReleaseTimestamp = titlePackReleaseTimestamp
+                TitlePackReleaseTimestamp = campaignReleaseTimestamp
             };
         }
 
@@ -1195,7 +1207,7 @@ public sealed class EnvimaniaService(
             Records = envimaniaRecords,
             Validation = mappedValidation,
             Skillpoints = skillpoints,
-            TitlePackReleaseTimestamp = titlePackReleaseTimestamp
+            TitlePackReleaseTimestamp = campaignReleaseTimestamp
         };
     }
 
@@ -1306,6 +1318,7 @@ public sealed class EnvimaniaService(
         {
             return await db.Records
                 .Include(x => x.Map)
+                    .ThenInclude(x => x.Campaign)
                 .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
                 .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
                 .Select(g => g.OrderBy(x => x.DrivenAt).First())
@@ -1795,11 +1808,11 @@ public sealed class EnvimaniaService(
         return await hybridCache.GetOrCreateAsync($"TotalCombinations_{titleId}", async token =>
         {
             var mapCount = await db.Maps
-                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap && x.Campaign!.Name == "")
                 .CountAsync(cancellationToken);
 
             var environmentEnvimixMapCount = await db.Maps
-                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+                .Where(x => x.TitlePackId == titleId && x.IsCampaignMap && x.Campaign!.Name == "")
                 .GroupBy(x => x.Collection)
                 .ToDictionaryAsync(g => g.Key, g => g.Count(), cancellationToken);
 
