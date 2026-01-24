@@ -24,6 +24,9 @@ public sealed class MapEntity
     public CampaignEntity? Campaign { get; set; }
     public int? CampaignId { get; set; }
 
+    public MapDataEntity? Data { get; set; }
+    public int? DataId { get; set; }
+
     // cycle issues when caching
     //public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     //public ICollection<RecordEntity> Records { get; } = [];

@@ -21,4 +21,5 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<MapVisitEntity> MapVisits { get; set; }
     public DbSet<ValidationDiscordMessageEntity> ValidationDiscordMessages { get; set; }
     public DbSet<CampaignEntity> Campaigns { get; set; }
+    public DbSet<MapDataEntity> MapData { get; set; }
 }

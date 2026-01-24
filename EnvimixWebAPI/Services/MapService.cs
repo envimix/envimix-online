@@ -9,6 +9,7 @@ public interface IMapService
     Task<MapEntity?> GetAsync(string mapUid, CancellationToken cancellationToken = default);
     Task<MapEntity> GetAddOrUpdateAsync(string mapUid, string titleId, CancellationToken cancellationToken = default);
     Task<MapEntity> GetAddOrUpdateAsync(MapInfo mapInfo, ServerEntity? server, CancellationToken cancellationToken = default);
+    Task<MapEntity?> GetWithDownloadAsync(string mapUid, CancellationToken cancellationToken);
 }
 
 public sealed class MapService(AppDbContext db) : IMapService
@@ -65,5 +66,12 @@ public sealed class MapService(AppDbContext db) : IMapService
         await db.SaveChangesAsync(cancellationToken);
 
         return map;
+    }
+
+    public async Task<MapEntity?> GetWithDownloadAsync(string mapUid, CancellationToken cancellationToken)
+    {
+        return await db.Maps
+            .Include(x => x.Data)
+            .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
     }
 }

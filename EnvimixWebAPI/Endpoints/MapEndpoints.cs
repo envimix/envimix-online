@@ -4,11 +4,13 @@ using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Services;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using TmEssentials;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -20,6 +22,7 @@ public static class MapEndpoints
 
         group.MapPost("", SubmitMaps).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapGet("{mapUid}", GetMap);
+        group.MapGet("{mapUid}/download", DownloadMap);
         group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
     }
 
@@ -121,6 +124,30 @@ public static class MapEndpoints
 
         var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, principal, map, cancellationToken);
         return TypedResults.Ok(mapResponse);
+    }
+
+    private static async Task<Results<FileContentHttpResult, NotFound>> DownloadMap(
+        string mapUid,
+        IMapService mapService,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        var map = await mapService.GetWithDownloadAsync(mapUid, cancellationToken);
+
+        if (map?.Data is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // CORS middleware is ???
+        if (context.Request.Headers.ContainsKey(CorsConstants.Origin))
+        {
+            context.Response.Headers.AccessControlAllowOrigin = "https://3d.gbx.tools";
+            context.Response.Headers.AccessControlAllowMethods = "GET, OPTIONS";
+            context.Response.Headers.AccessControlAllowHeaders = "*";
+        }
+
+        return TypedResults.File(map.Data.Data, "application/gbx", $"{TextFormatter.Deformat(map.Name)}.Map.Gbx", lastModified: map.Data.LastModifiedAt);
     }
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> VisitMap(
