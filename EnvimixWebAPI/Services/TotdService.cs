@@ -16,7 +16,7 @@ public sealed class TotdService(AppDbContext db) : ITotdService
     {
         var mapCount = await db.Maps
             .Include(m => m.TitlePack)
-            .Where(m => m.TitlePack!.Id == titleId && m.IsCampaignMap)
+            .Where(m => m.TitlePack!.Id == titleId && m.IsCampaignMap && m.Campaign!.Name == "")
             .CountAsync(cancellationToken);
 
         if (mapCount == 0)
@@ -28,7 +28,7 @@ public sealed class TotdService(AppDbContext db) : ITotdService
         var randomMapPosition = random.Next(0, mapCount);
 
         var map = await db.Maps
-            .Where(m => m.TitlePackId == titleId && m.IsCampaignMap)
+            .Where(m => m.TitlePackId == titleId && m.IsCampaignMap && m.Campaign!.Name == "")
             .OrderBy(m => m.Order)
             .Skip(randomMapPosition)
             .AsNoTracking()
