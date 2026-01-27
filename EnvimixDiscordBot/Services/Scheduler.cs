@@ -64,11 +64,11 @@ internal sealed class Scheduler : BackgroundService
 
     private async ValueTask TickCampaignDayAsync(DateTimeOffset currentCestDateTime, CancellationToken cancellationToken)
     {
-        if (currentCestDateTime.TimeOfDay < new TimeSpan(17, 1, 0))
+        /*if (currentCestDateTime.TimeOfDay < new TimeSpan(17, 1, 0))
         {
             fired = false;
             return;
-        }
+        }*/
 
         if (fired)
         {
