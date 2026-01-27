@@ -255,6 +255,11 @@ public static class MapEndpoints
                 DisplayName = map.TitlePack.DisplayName ?? "",
                 ReleasedAt = map.TitlePack.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "",
             },
+            Campaign = map.Campaign is null ? null : new()
+            {
+                Name = map.Campaign.Name,
+                ReleasedAt = map.Campaign.ReleasedAt?.ToUnixTimeSeconds().ToString() ?? "",
+            },
             Ratings = ratings,
             UserRatings = userRatings,
             Validations = validations.ToDictionary(x => $"{x.Car.Id}_{x.Gravity}_{x.Laps}", rec => new EnvimaniaRecordInfo
