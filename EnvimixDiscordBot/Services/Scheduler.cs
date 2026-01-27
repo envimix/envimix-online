@@ -56,7 +56,7 @@ internal sealed class Scheduler : BackgroundService
 
         var currentCestDateTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(_timeProvider.GetUtcNow(), "Central European Standard Time");
 
-        if (currentCestDateTime.Day == 27 && currentCestDateTime.Month is 1 or 4 or 7 or 10)
+        if (currentCestDateTime.Day == 1 && currentCestDateTime.Month is 1 or 4 or 7 or 10)
         {
             await TickCampaignDayAsync(currentCestDateTime, cancellationToken);
         }
