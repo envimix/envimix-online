@@ -100,13 +100,16 @@ public static class TitleEndpoints
 
             var isDefaultCar = validation.IsDefaultCar();
 
-            if (isDefaultCar)
+            if (validation.Map.Campaign?.Name == "")
             {
-                defaultCarValidationCount++;
-            }
-            else
-            {
-                envimixValidationCount++;
+                if (isDefaultCar)
+                {
+                    defaultCarValidationCount++;
+                }
+                else
+                {
+                    envimixValidationCount++;
+                }
             }
 
             if (!mapCombinations.TryGetValue(validation.MapId, out var combinations))
