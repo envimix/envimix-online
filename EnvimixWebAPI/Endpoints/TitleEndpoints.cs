@@ -99,8 +99,9 @@ public static class TitleEndpoints
                 .GetValueOrDefault($"{validation.CarId}_{validation.Gravity}_Time");
 
             var isDefaultCar = validation.IsDefaultCar();
+            var isMainCampaign = validation.Map.Campaign?.Name == "";
 
-            if (validation.Map.Campaign?.Name == "")
+            if (isMainCampaign)
             {
                 if (isDefaultCar)
                 {
@@ -222,11 +223,14 @@ public static class TitleEndpoints
                     }
                     playerDefaultCarActivityPoints[login] += activityPoints;
 
-                    if (!playerDefaultCarCompleted.ContainsKey(login))
+                    if (isMainCampaign)
                     {
-                        playerDefaultCarCompleted[login] = 0;
+                        if (!playerDefaultCarCompleted.ContainsKey(login))
+                        {
+                            playerDefaultCarCompleted[login] = 0;
+                        }
+                        playerDefaultCarCompleted[login] += 1;
                     }
-                    playerDefaultCarCompleted[login] += 1;
 
                     if (!combSkillpoints.ContainsKey(login))
                     {
@@ -240,11 +244,14 @@ public static class TitleEndpoints
                     }
                     combActivityPoints[login] += activityPoints;
 
-                    if (!combCompleted.ContainsKey(login))
+                    if (isMainCampaign)
                     {
-                        combCompleted[login] = 0;
+                        if (!combCompleted.ContainsKey(login))
+                        {
+                            combCompleted[login] = 0;
+                        }
+                        combCompleted[login] += 1;
                     }
-                    combCompleted[login] += 1;
                 }
                 else
                 {
@@ -260,11 +267,14 @@ public static class TitleEndpoints
                     }
                     playerEnvimixActivityPoints[login] += activityPoints;
 
-                    if (!playerEnvimixCompleted.ContainsKey(login))
+                    if (isMainCampaign)
                     {
-                        playerEnvimixCompleted[login] = 0;
+                        if (!playerEnvimixCompleted.ContainsKey(login))
+                        {
+                            playerEnvimixCompleted[login] = 0;
+                        }
+                        playerEnvimixCompleted[login] += 1;
                     }
-                    playerEnvimixCompleted[login] += 1;
 
                     if (!ecombSkillpoints.ContainsKey(login))
                     {
@@ -278,11 +288,14 @@ public static class TitleEndpoints
                     }
                     ecombActivityPoints[login] += activityPoints;
 
-                    if (!ecombCompleted.ContainsKey(login))
+                    if (isMainCampaign)
                     {
-                        ecombCompleted[login] = 0;
+                        if (!ecombCompleted.ContainsKey(login))
+                        {
+                            ecombCompleted[login] = 0;
+                        }
+                        ecombCompleted[login] += 1;
                     }
-                    ecombCompleted[login] += 1;
                 }
             }
         }
