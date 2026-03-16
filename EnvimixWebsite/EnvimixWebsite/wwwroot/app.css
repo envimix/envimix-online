@@ -58,7 +58,7 @@ h1:focus {
     background: linear-gradient(to bottom, #FC13, #181818), url(img/turbo/bg.jpg);
     background-size: cover;
     background-position: center;
-    padding: 1rem;
+    padding-top: 1rem;
 }
 
 .logo-area img {
@@ -85,6 +85,11 @@ h1:focus {
 
 .count {
     color: #ccc;
+}
+
+.video-bg {
+    background: linear-gradient(to bottom, #181818, #181818EE), url(img/turbo/bg3.jpg);
+    background-size: cover;
 }
 
 
