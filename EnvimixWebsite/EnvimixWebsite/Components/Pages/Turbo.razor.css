@@ -69,6 +69,14 @@ code {
     max-width: 100%;
 }
 
+.youtube-player {
+    width: 100%;
+    max-width: 1000px;
+    aspect-ratio: 16/9;
+    margin: 2rem 0;
+    box-shadow: 0 0 20px #111;
+}
+
 @media (max-width: 700px) {
     #installation .options {
         flex-direction: column;
