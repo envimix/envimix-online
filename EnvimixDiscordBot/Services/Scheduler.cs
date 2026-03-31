@@ -1,4 +1,5 @@
 ﻿using EnvimixDiscordBot.Extensions;
+using EnvimixDiscordBot.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -91,6 +92,13 @@ internal sealed class Scheduler : BackgroundService
         
         if (campaign is null)
         {
+            var currentCestDateTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(_timeProvider.GetUtcNow(), "Central European Standard Time");
+
+            if (currentCestDateTime.Month == 4)
+            {
+                await AnnounceFakeCampaignAsync(discordReporter, cancellationToken);
+            }
+
             return false;
         }
         
@@ -100,5 +108,20 @@ internal sealed class Scheduler : BackgroundService
         _logger.LogInformation("Seasonal envimix campaign created and announced.");
 
         return true;
+    }
+
+    private async Task AnnounceFakeCampaignAsync(DiscordReporter discordReporter, CancellationToken cancellationToken)
+    {
+        var currentCestDateTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(_timeProvider.GetUtcNow(), "Central European Standard Time");
+
+        var campaign = new CampaignModel
+        {
+            Name = $"Spring {currentCestDateTime.Year}",
+            Submitter = null,
+            Id = 0,
+            ClubId = null,
+        };
+
+        await discordReporter.SendFakeNewsMessageAsync(campaign, cancellationToken);
     }
 }

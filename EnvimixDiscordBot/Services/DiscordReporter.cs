@@ -32,7 +32,7 @@ public sealed class DiscordReporter
     public async Task<Announcement> AnnounceCampaignAsync(CampaignModel campaign, CancellationToken cancellationToken = default)
     {
         var statusMessage = await SendCampaignStatusAsync(campaign, cancellationToken);
-        var newsMessage = await SendNewsMessage(campaign, cancellationToken);
+        var newsMessage = await SendNewsMessageAsync(campaign, cancellationToken);
 
         return new Announcement(newsMessage!, statusMessage!);
     }
@@ -50,11 +50,24 @@ public sealed class DiscordReporter
             .Build(), cancellationToken: default);
     }
 
-    private async Task<IUserMessage?> SendNewsMessage(CampaignModel campaign, CancellationToken cancellationToken)
+    private async Task<IUserMessage?> SendNewsMessageAsync(CampaignModel campaign, CancellationToken cancellationToken)
     {
         var newsChannelId = ulong.Parse(_config.GetRequiredValue("TM2020:NewsChannelId"));
 
         var attachments = await CreateNewsZipFilesAsync(campaign, cancellationToken);
+
+        _logger.LogInformation("Sending campaign announcement to Discord...");
+
+        return await _bot.SendMessageAsync(newsChannelId,
+            GetNewsCampaignMessage(campaign),
+            attachments: attachments, cancellationToken: default);
+    }
+
+    public async Task<IUserMessage?> SendFakeNewsMessageAsync(CampaignModel campaign, CancellationToken cancellationToken)
+    {
+        var newsChannelId = ulong.Parse(_config.GetRequiredValue("TM2020:NewsChannelId"));
+
+        var attachments = await CreateFakeNewsZipFilesAsync(campaign, cancellationToken);
 
         _logger.LogInformation("Sending campaign announcement to Discord...");
 
@@ -232,7 +245,7 @@ public sealed class DiscordReporter
         }
         else
         {
-            var newsMessage = await SendNewsMessage(campaign, cancellationToken);
+            var newsMessage = await SendNewsMessageAsync(campaign, cancellationToken);
             campaign.NewsChannelId = newsMessage!.Channel.Id;
             campaign.NewsMessageId = newsMessage.Id;
             await _db.SaveChangesAsync(cancellationToken);
@@ -289,7 +302,38 @@ public sealed class DiscordReporter
 		return zipDict.Select(pair => new FileAttachment(pair.Value.Item1, $"{campaign.Name} - {pair.Key}.zip"));
 	}
 
-	private string GetStatusDescription(CampaignModel campaign)
+    private static async Task<IEnumerable<FileAttachment>> CreateFakeNewsZipFilesAsync(CampaignModel campaign, CancellationToken cancellationToken)
+    {
+        var cars = new string[] { "CarSnow", "CarRally", "CarDesert" };
+        var attachments = new List<FileAttachment>();
+
+        foreach (var car in cars)
+        {
+            var ms = new MemoryStream();
+            var zip = new ZipArchive(ms, ZipArchiveMode.Create, true)
+            {
+                Comment = "HAPPY APRIL FOOLS! FOOL"
+            };
+
+            for (var i = 0; i < 25; i++)
+            {
+                var randomData = new byte[100_000];
+                Random.Shared.NextBytes(randomData);
+
+                var entry = zip.CreateEntry($"{campaign.Name}/{campaign.Name} - {i + 1:00} - {car}.Map.Gbx");
+                await using var entryStream = entry.Open();
+                await entryStream.WriteAsync(randomData, cancellationToken);
+            }
+
+            zip.Dispose();
+
+            attachments.Add(new FileAttachment(ms, $"{campaign.Name} - {car}.zip"));
+        }
+
+        return attachments;
+    }
+
+    private string GetStatusDescription(CampaignModel campaign)
     {
         var longestMapName = campaign.Maps.Max(x => x.OriginalName.Length);
 
