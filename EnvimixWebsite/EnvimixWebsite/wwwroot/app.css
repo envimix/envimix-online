@@ -58,7 +58,7 @@ h1:focus {
     background: linear-gradient(to bottom, #FC13, #181818), url(img/turbo/bg.jpg);
     background-size: cover;
     background-position: center;
-    padding-top: 1rem;
+    padding: 0 1rem;
 }
 
 .logo-area img {
