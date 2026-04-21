@@ -41,6 +41,8 @@ public sealed class RecordEntity
 
     public bool Restored { get; set; }
 
+    public bool Removed { get; set; }
+
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
 
     public bool IsDefaultCar()

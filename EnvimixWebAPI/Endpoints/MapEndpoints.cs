@@ -285,7 +285,8 @@ public static class MapEndpoints
                 Verified = true,
                 Projected = false,
                 GhostUrl = "", // TODO: read from DB
-                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString(),
+                Removed = rec.Removed,
             }),
             Stars = await starService.GetStarsByMapUidAsync(map.Id, cancellationToken),
             Skillpoints = await envimaniaService.GetSkillpointsByMapUidAsync(mapUid, cancellationToken)

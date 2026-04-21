@@ -27,6 +27,8 @@ public static class EnvimaniaEndpoints
 
         group.MapPost("restore-validations", RestoreValidations).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("restore-records", RestoreRecords).RequireAuthorization(Policies.SuperAdminPolicy);
+
+        //group.MapPost("record/remove", RemoveRecord).RequireAuthorization(Policies.AdminPolicy);
     }
 
     private static void MapSession(RouteGroupBuilder group)

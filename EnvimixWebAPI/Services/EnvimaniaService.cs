@@ -433,7 +433,8 @@ public sealed class EnvimaniaService(
                 Verified = true,
                 Projected = false,
                 GhostUrl = "", // TODO: read from DB
-                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString(),
+                Removed = rec.Removed
             })
         };
     }
@@ -643,7 +644,7 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid record");
         }
 
-        var isValidation = !await db.Records.AnyAsync(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps, cancellationToken);
+        var isValidation = !await db.Records.AnyAsync(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed, cancellationToken);
 
         var record = new RecordEntity
         {
@@ -894,7 +895,8 @@ public sealed class EnvimaniaService(
                 && x.Map == map
                 && x.Car == car
                 && x.Gravity == gravity
-                && x.Laps == laps)
+                && x.Laps == laps
+                && !x.Removed)
             .Select(x => x.Checkpoints.OrderBy(x => x.Time).Last());
 
         var isPb = await IsRecordPersonalBestAsync(bestLastCheckpointsQueryable, request.Record, cancellationToken);
@@ -1031,6 +1033,8 @@ public sealed class EnvimaniaService(
 
         var envimaniaRecords = new List<EnvimaniaRecordInfo>();
 
+        var isAdmin = httpRequest.HttpContext.User.IsInRole(Roles.Admin);
+
         // get records from category combinations
 
         var allRecords = await db.Records
@@ -1046,7 +1050,8 @@ public sealed class EnvimaniaService(
                 && x.Gravity == filter.Gravity
                 && x.Laps == filter.Laps
                 && x.User.Zone!.Name.StartsWith(zone)
-                && x.Checkpoints.Any())
+                && x.Checkpoints.Any()
+                && (!x.Removed || isAdmin))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -1086,7 +1091,8 @@ public sealed class EnvimaniaService(
                 Verified = true,
                 Projected = false,
                 GhostUrl = string.IsNullOrWhiteSpace(ghostBaseUrl) ? "" : $"{ghostBaseUrl}/ghosts/{rec.GhostId}/download",
-                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString()
+                DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString(),
+                Removed = rec.Removed
             });
         }
 
@@ -1114,7 +1120,8 @@ public sealed class EnvimaniaService(
             Verified = true,
             Projected = false,
             GhostUrl = "", // TODO: read from DB
-            DrivenAt = validation.DrivenAt.ToUnixTimeSeconds().ToString()
+            DrivenAt = validation.DrivenAt.ToUnixTimeSeconds().ToString(),
+            Removed = validation.Removed
         }];
 
         var skillpoints = allRecords
@@ -1188,7 +1195,8 @@ public sealed class EnvimaniaService(
                     Verified = true,
                     Projected = true,
                     GhostUrl = rec.DownloadUrl,
-                    DrivenAt = string.Empty
+                    DrivenAt = string.Empty,
+                    Removed = false
                 });
             }
 
@@ -1302,7 +1310,7 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid)
+            .Where(x => x.Map.Id == mapUid && !x.Removed)
             .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
             .Select(g => g.OrderBy(x => x.DrivenAt).First())
             .AsNoTracking()
@@ -1319,7 +1327,7 @@ public sealed class EnvimaniaService(
             return await db.Records
                 .Include(x => x.Map)
                     .ThenInclude(x => x.Campaign)
-                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
                 .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
                 .Select(g => g.OrderBy(x => x.DrivenAt).First())
                 .AsNoTracking()
@@ -1334,7 +1342,7 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Laps == filter.Laps)
+            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Laps == filter.Laps && !x.Removed)
             .OrderBy(x => x.DrivenAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -1342,7 +1350,7 @@ public sealed class EnvimaniaService(
     public async Task<Dictionary<string, int[]>> GetSkillpointsByMapUidAsync(string mapUid, CancellationToken cancellationToken)
     {
         var records = await db.Records
-            .Where(x => x.Map.Id == mapUid)
+            .Where(x => x.Map.Id == mapUid && !x.Removed)
             .GroupBy(x => new { x.UserId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)
@@ -1366,7 +1374,7 @@ public sealed class EnvimaniaService(
     {
         var records = await db.Records
             .Include(x => x.Map)
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)
@@ -1399,7 +1407,7 @@ public sealed class EnvimaniaService(
 
         await foreach (var record in db.Records
             .AsNoTracking()
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
             .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
             .AsAsyncEnumerable())
         {
@@ -1840,7 +1848,7 @@ public sealed class EnvimaniaService(
     {
         var records = await db.Records
             .Include(x => x.Map)
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)
@@ -1866,7 +1874,7 @@ public sealed class EnvimaniaService(
     {
         var records = await db.Records
             .Include(x => x.Map)
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap
+            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed
                 && ((x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
                     (x.Map.Collection == "Stadium" && x.CarId != "StadiumCar") ||
                     (x.Map.Collection == "Valley" && x.CarId != "ValleyCar") ||

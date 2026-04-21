@@ -20,4 +20,5 @@ public sealed class EnvimaniaRecordInfo
     [JsonPropertyName(nameof(GhostUrl))] public required string GhostUrl { get; set; }
 
     [JsonPropertyName(nameof(DrivenAt))] public required string DrivenAt { get; set; }
+    [JsonPropertyName(nameof(Removed))] public required bool Removed { get; set; }
 }
