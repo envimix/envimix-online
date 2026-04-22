@@ -68,6 +68,12 @@ public interface IEnvimaniaService
     Task<OneOf<List<EnvimaniaSessionUser>, ValidationFailureResponse, ActionForbiddenResponse>>
         GetSessionUsersAdditionalInfoAsync(IDictionary<string, UserInfo> userInfos, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
+    Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>>
+        RemoveRecordAsync(EnvimaniaRemoveRecordRequest removeRecordRequest, CancellationToken cancellationToken);
+
+    Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>>
+        RevertRecordAsync(EnvimaniaRemoveRecordRequest revertRecordRequest, CancellationToken cancellationToken);
+
     Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
     Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 
@@ -1301,6 +1307,88 @@ public sealed class EnvimaniaService(
         }
 
         return users;
+    }
+
+    public async Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>> RemoveRecordAsync(EnvimaniaRemoveRecordRequest removeRecordRequest, CancellationToken cancellationToken)
+    {
+        var userModel = await userService.GetAsync(removeRecordRequest.Login, cancellationToken);
+
+        if (userModel is null)
+        {
+            return new ValidationFailureResponse("User not found");
+        }
+
+        var record = await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Where(x => x.User.Id == removeRecordRequest.Login
+                && x.Map.Id == removeRecordRequest.MapUid
+                && x.Car.Id == removeRecordRequest.CarId
+                && x.Gravity == removeRecordRequest.Gravity
+                && x.Laps == removeRecordRequest.Laps
+                && x.Time == removeRecordRequest.Time
+                && !x.Removed)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+        {
+            return new ValidationFailureResponse("Record not found");
+        }
+
+        record.Removed = true;
+
+        var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
+
+        if (hasChanges)
+        {
+            await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+            await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(removeRecordRequest.MapUid, removeRecordRequest.CarId, removeRecordRequest.Gravity, removeRecordRequest.Laps, "World"), cancellationToken);
+            await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
+        }
+
+        return hasChanges;
+    }
+
+    public async Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>> RevertRecordAsync(EnvimaniaRemoveRecordRequest revertRecordRequest, CancellationToken cancellationToken)
+    {
+        var userModel = await userService.GetAsync(revertRecordRequest.Login, cancellationToken);
+
+        if (userModel is null)
+        {
+            return new ValidationFailureResponse("User not found");
+        }
+
+        var record = await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Where(x => x.User.Id == revertRecordRequest.Login
+                && x.Map.Id == revertRecordRequest.MapUid
+                && x.Car.Id == revertRecordRequest.CarId
+                && x.Gravity == revertRecordRequest.Gravity
+                && x.Laps == revertRecordRequest.Laps
+                && x.Time == revertRecordRequest.Time
+                && x.Removed)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+        {
+            return new ValidationFailureResponse("Record not found");
+        }
+
+        record.Removed = false;
+
+        var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
+
+        if (hasChanges)
+        {
+            await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+            await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(revertRecordRequest.MapUid, revertRecordRequest.CarId, revertRecordRequest.Gravity, revertRecordRequest.Laps, "World"), cancellationToken);
+            await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
+        }
+
+        return hasChanges;
     }
 
     public async Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken)

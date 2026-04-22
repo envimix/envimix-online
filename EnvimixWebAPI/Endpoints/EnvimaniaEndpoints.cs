@@ -28,7 +28,8 @@ public static class EnvimaniaEndpoints
         group.MapPost("restore-validations", RestoreValidations).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("restore-records", RestoreRecords).RequireAuthorization(Policies.SuperAdminPolicy);
 
-        //group.MapPost("record/remove", RemoveRecord).RequireAuthorization(Policies.AdminPolicy);
+        group.MapPost("record/remove", RemoveRecord).RequireAuthorization(Policies.AdminPolicy);
+        group.MapPost("record/revert", RevertRecord).RequireAuthorization(Policies.AdminPolicy);
     }
 
     private static void MapSession(RouteGroupBuilder group)
@@ -326,5 +327,32 @@ public static class EnvimaniaEndpoints
         }, cancellationToken);
 
         return TypedResults.Ok();
+    }
+
+    private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> RemoveRecord(
+        [FromBody] EnvimaniaRemoveRecordRequest removeRecordRequest,
+        IEnvimaniaService envimaniaService,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.RemoveRecordAsync(removeRecordRequest, cancellationToken);
+
+        return result.Match<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
+            validResponse => TypedResults.Ok(),
+            validationFailure => TypedResults.BadRequest(validationFailure),
+            actionForbidden => TypedResults.Forbid()
+        );
+    }
+
+    private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> RevertRecord(
+        [FromBody] EnvimaniaRemoveRecordRequest revertRecordRequest,
+        IEnvimaniaService envimaniaService,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.RevertRecordAsync(revertRecordRequest, cancellationToken);
+        return result.Match<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
+            validResponse => TypedResults.Ok(),
+            validationFailure => TypedResults.BadRequest(validationFailure),
+            actionForbidden => TypedResults.Forbid()
+        );
     }
 }
