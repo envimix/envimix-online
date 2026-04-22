@@ -19,7 +19,6 @@ using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Channels;
 using System.Xml.Linq;
@@ -105,6 +104,7 @@ public sealed class EnvimaniaService(
     ITokenService tokenService,
     IOutputCacheStore outputCache,
     Channel<ValidationWebhookDispatch> validationWebhookChannel,
+    Channel<WorldRecordWebhookDispatch> worldRecordWebhookChannel,
     IOptionsSnapshot<EnvimaniaOptions> envimaniaOptions,
     IConfiguration config,
     HttpClient http,
@@ -665,7 +665,8 @@ public sealed class EnvimaniaService(
             Ghost = new GhostEntity { Data = ghostRawData },
             Time = newRecord.Time,
             Score = newRecord.Score,
-            NbRespawns = newRecord.NbRespawns
+            NbRespawns = newRecord.NbRespawns,
+            IsWorldRecord = false
         };
 
         foreach (var cp in ghost.Checkpoints ?? [])
@@ -1102,6 +1103,22 @@ public sealed class EnvimaniaService(
             });
         }
 
+        var firstRecord = filteredRecords.FirstOrDefault();
+
+        // if the first record is not marked as world record, then mark and report it
+        // only if campaign is at least a month old though
+        if (firstRecord?.IsWorldRecord.HasValue == true
+            && !firstRecord.IsWorldRecord.Value
+            && firstRecord.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
+        {
+            var secondRecord = filteredRecords.Skip(1).FirstOrDefault();
+
+            await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, secondRecord), cancellationToken);
+            
+            firstRecord.IsWorldRecord = true;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         var validation = await GetValidationAsync(mapUid, filter, cancellationToken);
         EnvimaniaRecordInfo[] mappedValidation = validation is null ? [] : [new EnvimaniaRecordInfo
         {
@@ -1338,6 +1355,13 @@ public sealed class EnvimaniaService(
 
         record.Removed = true;
 
+        using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+
+        var envEmote = ValidationWebhookProcessor.GetEnvEmote(record.Map);
+        var carEmote = ValidationWebhookProcessor.GetCarEmote(record.Car.Id);
+
+        record.RemovedMessageDiscordSnowflake = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(record.Map.Name)}**.**{TextFormatter.Deformat(record.Car.Id)}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** was **removed**");
+
         var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
 
         if (hasChanges)
@@ -1378,6 +1402,22 @@ public sealed class EnvimaniaService(
         }
 
         record.Removed = false;
+
+        using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+
+        if (record.RemovedMessageDiscordSnowflake.HasValue)
+        {
+            try
+            {
+                await client.DeleteMessageAsync(record.RemovedMessageDiscordSnowflake.Value);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to delete Discord message for record removal with snowflake {snowflake}", record.RemovedMessageDiscordSnowflake.Value);
+            }
+
+            record.RemovedMessageDiscordSnowflake = null;
+        }
 
         var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
 

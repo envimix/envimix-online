@@ -42,6 +42,10 @@ public sealed class RecordEntity
     public bool Restored { get; set; }
 
     public bool Removed { get; set; }
+    public ulong? RemovedMessageDiscordSnowflake { get; set; }
+
+    public bool? IsWorldRecord { get; set; }
+    public ulong? WorldRecordMessageDiscordSnowflake { get; set; }
 
     public ICollection<CheckpointEntity> Checkpoints { get; } = [];
 

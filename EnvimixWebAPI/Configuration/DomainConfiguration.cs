@@ -10,6 +10,7 @@ public static class DomainConfiguration
     {
         services.AddHostedService<InitiateZonesBackgroundService>();
         services.AddHostedService<ValidationWebhookProcessor>();
+        services.AddHostedService<WorldRecordWebhookProcessor>();
 
         services.AddScoped<IEnvimaniaService, EnvimaniaService>();
         services.AddScoped<IUserService, UserService>();
@@ -24,5 +25,6 @@ public static class DomainConfiguration
         services.AddScoped<ITitleService, TitleService>();
 
         services.AddSingleton(_ => Channel.CreateUnbounded<ValidationWebhookDispatch>());
+        services.AddSingleton(_ => Channel.CreateUnbounded<WorldRecordWebhookDispatch>());
     }
 }
