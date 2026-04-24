@@ -113,6 +113,7 @@ public sealed class EnvimaniaService(
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Meter Meter = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Counter<int> NewRecordsCounter = Meter.CreateCounter<int>("envimania_new_records_total", description: "Total number of new records submitted");
+    private static readonly SemaphoreSlim worldRecordLock = new(1, 1);
 
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
@@ -1111,12 +1112,31 @@ public sealed class EnvimaniaService(
             && !firstRecord.IsWorldRecord.Value
             && firstRecord.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
         {
-            var secondRecord = filteredRecords.Skip(1).FirstOrDefault();
+            await worldRecordLock.WaitAsync(cancellationToken);
+            try
+            {
+                var currentIsWorldRecord = await db.Records
+                    .Where(x => x.Id == firstRecord.Id)
+                    .Select(x => x.IsWorldRecord)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, secondRecord), cancellationToken);
-            
-            firstRecord.IsWorldRecord = true;
-            await db.SaveChangesAsync(cancellationToken);
+                if (currentIsWorldRecord == false)
+                {
+                    var secondRecord = filteredRecords.Skip(1).FirstOrDefault();
+
+                    await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, secondRecord), cancellationToken);
+
+                    db.Attach(firstRecord);
+                    firstRecord.IsWorldRecord = true;
+                    db.Entry(firstRecord).Property(x => x.IsWorldRecord).IsModified = true;
+
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                worldRecordLock.Release();
+            }
         }
 
         var validation = await GetValidationAsync(mapUid, filter, cancellationToken);
