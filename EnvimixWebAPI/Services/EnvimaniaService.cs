@@ -1115,20 +1115,13 @@ public sealed class EnvimaniaService(
             await worldRecordLock.WaitAsync(cancellationToken);
             try
             {
-                var currentIsWorldRecord = await db.Records
-                    .Where(x => x.Id == firstRecord.Id)
-                    .Select(x => x.IsWorldRecord)
-                    .FirstOrDefaultAsync(cancellationToken);
+                firstRecord = await db.Records.FindAsync([firstRecord.Id], cancellationToken);
 
-                if (currentIsWorldRecord == false)
+                if (firstRecord?.IsWorldRecord == false)
                 {
-                    var secondRecord = filteredRecords.Skip(1).FirstOrDefault();
+                    await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, PrevRecord: null), cancellationToken);
 
-                    await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, secondRecord), cancellationToken);
-
-                    db.Attach(firstRecord);
                     firstRecord.IsWorldRecord = true;
-                    db.Entry(firstRecord).Property(x => x.IsWorldRecord).IsModified = true;
 
                     await db.SaveChangesAsync(cancellationToken);
                 }

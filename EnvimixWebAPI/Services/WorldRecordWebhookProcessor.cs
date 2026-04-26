@@ -28,12 +28,6 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
     {
         await foreach (var webhook in webhookChannel.Reader.ReadAllAsync(stoppingToken))
         {
-            if (webhook.PrevRecord is null)
-            {
-                logger.LogInformation("Skipping validation for world record webhook for map {MapName}", webhook.NewRecord.Map.Name);
-                continue;
-            }
-
             try
             {
                 using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
@@ -43,7 +37,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
-                var messageId = await client.SendMessageAsync($"**New world record!** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} **{new TimeInt32(webhook.NewRecord.Time)}** ({(webhook.NewRecord.Time - webhook.PrevRecord.Time) / 1000f}) by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**");
+                var messageId = await client.SendMessageAsync($"**New world record!** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} **{new TimeInt32(webhook.NewRecord.Time)}** by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**");
 
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
