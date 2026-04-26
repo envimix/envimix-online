@@ -1115,7 +1115,10 @@ public sealed class EnvimaniaService(
             await worldRecordLock.WaitAsync(cancellationToken);
             try
             {
-                firstRecord = await db.Records.FindAsync([firstRecord.Id], cancellationToken);
+                firstRecord = await db.Records
+                    .Include(x => x.Map)
+                    .Include(x => x.User)
+                    .FirstOrDefaultAsync(x => x.Id == firstRecord.Id, cancellationToken);
 
                 if (firstRecord?.IsWorldRecord == false)
                 {
