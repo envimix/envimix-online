@@ -37,7 +37,18 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
-                var messageId = await client.SendMessageAsync($"**New world record!** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} **{new TimeInt32(webhook.NewRecord.Time)}** by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
+                var embed = new EmbedBuilder()
+                    .WithTitle("New world record!")
+                    .WithFields(
+                        new EmbedFieldBuilder().WithName("Map & car").WithValue($"{envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("Time").WithValue($"`{new TimeInt32(webhook.NewRecord.Time)}`").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("By").WithValue($"**{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**").WithIsInline(true)
+                    )
+                    .WithFooter("ENVIMIX Turbo World Records")
+                    .WithTimestamp(webhook.NewRecord.DrivenAt)
+                    .Build();
+
+                var messageId = await client.SendMessageAsync(embeds: [embed]);
 
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 

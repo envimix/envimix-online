@@ -1,4 +1,5 @@
-﻿using Discord.Webhook;
+﻿using Discord;
+using Discord.Webhook;
 using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
@@ -1729,7 +1730,7 @@ public sealed class EnvimaniaService(
                     var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                     var carEmote = ValidationWebhookProcessor.GetCarEmote(carName);
 
-                    var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(userModel.Nickname ?? userModel.Id)}** has been restored");
+                    var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(userModel.Nickname ?? userModel.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)})");
 
                     await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
                     {
@@ -1909,7 +1910,7 @@ public sealed class EnvimaniaService(
                         var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                         var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
 
-                        await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** has been restored");
+                        await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)})");
                     }
 
                     if (laps == -1)
@@ -1925,7 +1926,7 @@ public sealed class EnvimaniaService(
                         var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                         var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
 
-                        var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}** has been restored");
+                        var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(validation.DrivenAt, TimestampTagStyles.ShortTime)})");
 
                         await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
                         {
