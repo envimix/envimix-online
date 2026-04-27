@@ -35,7 +35,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                 var envEmote = ValidationWebhookProcessor.GetEnvEmote(webhook.NewRecord.Map);
                 var carEmote = ValidationWebhookProcessor.GetCarEmote(webhook.NewRecord.CarId);
 
-                var delta = webhook.PrevRecord is null ? null : $" `{webhook.NewRecord.Time - webhook.PrevRecord.Time:+0.000;-0.000}`";
+                var delta = webhook.PrevRecord is null ? null : $" `{(webhook.NewRecord.Time - webhook.PrevRecord.Time) / 1000f:+0.000;-0.000}`";
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
