@@ -1109,7 +1109,8 @@ public sealed class EnvimaniaService(
 
         // if the first record is not marked as world record, then mark and report it
         // only if campaign is at least a month old though
-        if (firstRecord?.IsWorldRecord.HasValue == true
+        if (zone == "World"
+            && firstRecord?.IsWorldRecord.HasValue == true
             && !firstRecord.IsWorldRecord.Value
             && firstRecord.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
         {
