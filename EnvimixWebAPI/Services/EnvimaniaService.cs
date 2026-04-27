@@ -114,7 +114,6 @@ public sealed class EnvimaniaService(
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Meter Meter = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Counter<int> NewRecordsCounter = Meter.CreateCounter<int>("envimania_new_records_total", description: "Total number of new records submitted");
-    private static readonly SemaphoreSlim worldRecordLock = new(1, 1);
 
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
@@ -653,6 +652,13 @@ public sealed class EnvimaniaService(
         }
 
         var isValidation = !await db.Records.AnyAsync(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed, cancellationToken);
+        var currentWorldRecord = await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
+            .OrderBy(x => x.Checkpoints.OrderBy(x => x.Time).Last().Time)
+            .FirstOrDefaultAsync(cancellationToken);
 
         var record = new RecordEntity
         {
@@ -709,6 +715,10 @@ public sealed class EnvimaniaService(
                 await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(map, carName, gravity, laps), cancellationToken);
 
                 await hybridCache.RemoveAsync($"ValidationsByTitleId_{map.TitlePackId}", CancellationToken.None);
+            }
+            else if (record.Time < currentWorldRecord?.Time && map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
+            {
+                await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(record, PrevRecord: currentWorldRecord), cancellationToken);
             }
         }
 
@@ -1103,38 +1113,6 @@ public sealed class EnvimaniaService(
                 DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString(),
                 Removed = rec.Removed
             });
-        }
-
-        var firstRecord = filteredRecords.FirstOrDefault();
-
-        // if the first record is not marked as world record, then mark and report it
-        // only if campaign is at least a month old though
-        if (zone == "World"
-            && firstRecord?.IsWorldRecord.HasValue == true
-            && !firstRecord.IsWorldRecord.Value
-            && firstRecord.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
-        {
-            await worldRecordLock.WaitAsync(cancellationToken);
-            try
-            {
-                firstRecord = await db.Records
-                    .Include(x => x.Map)
-                    .Include(x => x.User)
-                    .FirstOrDefaultAsync(x => x.Id == firstRecord.Id, cancellationToken);
-
-                if (firstRecord?.IsWorldRecord == false)
-                {
-                    await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(firstRecord, PrevRecord: null), cancellationToken);
-
-                    firstRecord.IsWorldRecord = true;
-
-                    await db.SaveChangesAsync(cancellationToken);
-                }
-            }
-            finally
-            {
-                worldRecordLock.Release();
-            }
         }
 
         var validation = await GetValidationAsync(mapUid, filter, cancellationToken);

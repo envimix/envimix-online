@@ -35,13 +35,15 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                 var envEmote = ValidationWebhookProcessor.GetEnvEmote(webhook.NewRecord.Map);
                 var carEmote = ValidationWebhookProcessor.GetCarEmote(webhook.NewRecord.CarId);
 
+                var delta = webhook.PrevRecord is null ? null : $" `{webhook.NewRecord.Time - webhook.PrevRecord.Time:+0.000;-0.000}`";
+
                 await using var scope = scopeFactory.CreateAsyncScope();
 
                 var embed = new EmbedBuilder()
                     .WithTitle("New world record!")
                     .WithFields(
-                        new EmbedFieldBuilder().WithName("Map & car").WithValue($"{envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}").WithIsInline(true),
-                        new EmbedFieldBuilder().WithName("Time").WithValue($"`{new TimeInt32(webhook.NewRecord.Time)}`").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("Map & Car").WithValue($"{envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("Time").WithValue($"`{new TimeInt32(webhook.NewRecord.Time)}`{delta}").WithIsInline(true),
                         new EmbedFieldBuilder().WithName("By").WithValue($"**{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**").WithIsInline(true)
                     )
                     .WithFooter("ENVIMIX Turbo World Records")
