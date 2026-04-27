@@ -46,7 +46,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                     new EmbedFieldBuilder().WithName("By").WithValue($"**{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**").WithIsInline(true),
                 };
 
-                if (webhook.PrevRecord is not null)
+                if (webhook.PrevRecord is not null && webhook.PrevRecord.User.Id != webhook.NewRecord.User.Id)
                 {
                     fields.Add(new EmbedFieldBuilder().WithName("Prev WR by").WithValue($"**{TextFormatter.Deformat(webhook.PrevRecord.User.Nickname ?? webhook.PrevRecord.User.Id)}**").WithIsInline(true));
                 }
