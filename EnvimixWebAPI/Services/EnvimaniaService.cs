@@ -657,7 +657,7 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
-            .OrderBy(x => x.Checkpoints.OrderBy(x => x.Time).Last().Time)
+            .OrderBy(x => x.Time)
             .FirstOrDefaultAsync(cancellationToken);
 
         var record = new RecordEntity
@@ -696,6 +696,8 @@ public sealed class EnvimaniaService(
 
         if (hasChanges)
         {
+            logger.LogInformation("New record by {user} on map {mapName} with car {carName}: {time}ms (validation: {isValidation})", principal.GetName(), TextFormatter.Deformat(map.Name), carName, newRecord.Time, isValidation);
+
             // Track new record metric
             NewRecordsCounter.Add(1, new KeyValuePair<string, object?>("car", carName),
                                      new KeyValuePair<string, object?>("title_pack", map.TitlePackId ?? "unknown"),
@@ -712,14 +714,23 @@ public sealed class EnvimaniaService(
             // if is validation, enqueue validation notification
             if (isValidation)
             {
+                logger.LogInformation("New validation by {user} on map {mapName} with car {carName}: {time}ms", principal.GetName(), TextFormatter.Deformat(map.Name), carName, newRecord.Time);
+
                 await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(map, carName, gravity, laps), cancellationToken);
 
                 await hybridCache.RemoveAsync($"ValidationsByTitleId_{map.TitlePackId}", CancellationToken.None);
             }
             else if (record.Time < currentWorldRecord?.Time && map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
             {
+                logger.LogInformation("New world record by {user} on map {mapName} with car {carName}: {time}ms (previous WR: {prevTime}ms)", principal.GetName(), TextFormatter.Deformat(map.Name), carName, newRecord.Time, currentWorldRecord?.Time);
+
                 await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(record, PrevRecord: currentWorldRecord), cancellationToken);
             }
+        }
+        else
+        {
+            logger.LogWarning("Failed to save new record by {user} on map {mapName} with car {carName}: {time}ms", principal.GetName(), TextFormatter.Deformat(map.Name), carName, newRecord.Time);
+            activity?.SetTag("record_saved", false);
         }
 
         return hasChanges;
