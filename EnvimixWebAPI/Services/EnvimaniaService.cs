@@ -651,7 +651,6 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid record");
         }
 
-        var isValidation = !await db.Records.AnyAsync(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed, cancellationToken);
         var currentWorldRecord = await db.Records
             .Include(x => x.User)
             .Include(x => x.Car)
@@ -659,6 +658,7 @@ public sealed class EnvimaniaService(
             .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
             .OrderBy(x => x.Time)
             .FirstOrDefaultAsync(cancellationToken);
+        var isValidation = currentWorldRecord is null;
 
         var record = new RecordEntity
         {
