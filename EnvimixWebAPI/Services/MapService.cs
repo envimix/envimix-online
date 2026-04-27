@@ -18,6 +18,7 @@ public sealed class MapService(AppDbContext db) : IMapService
     {
         return await db.Maps
             .Include(x => x.TitlePack)
+            .Include(x => x.Campaign)
             .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
     }
 
