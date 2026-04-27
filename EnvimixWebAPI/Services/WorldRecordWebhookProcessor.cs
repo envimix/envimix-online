@@ -48,7 +48,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 if (webhook.PrevRecord is not null)
                 {
-                    fields.Add(new EmbedFieldBuilder().WithName("Previous WR age").WithValue($"{(webhook.NewRecord.DrivenAt - webhook.PrevRecord.DrivenAt).TotalDays:F1} days").WithIsInline(true));
+                    fields.Add(new EmbedFieldBuilder().WithName("Previous WR age").WithValue($"{(webhook.NewRecord.DrivenAt - webhook.PrevRecord.DrivenAt).TotalDays} days").WithIsInline(true));
 
                     if (webhook.PrevRecord.User.Id != webhook.NewRecord.User.Id)
                     {
