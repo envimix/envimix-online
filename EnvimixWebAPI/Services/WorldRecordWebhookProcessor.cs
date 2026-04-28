@@ -40,14 +40,14 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                var recordCount = await db.Records
+                /*var recordCount = await db.Records
                     .Where(x => x.MapId == webhook.NewRecord.Map.Id
                         && x.CarId == webhook.NewRecord.CarId
                         && x.Gravity == webhook.NewRecord.Gravity
                         && x.Laps == webhook.NewRecord.Laps
                         && !x.Removed)
                     .GroupBy(x => x.UserId)
-                    .CountAsync(stoppingToken);
+                    .CountAsync(stoppingToken);*/
 
                 var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
 
