@@ -4,8 +4,11 @@ using Discord.Webhook;
 using EnvimixWebAPI.Entities;
 using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
+using Microsoft.EntityFrameworkCore;
+using OneOf.Types;
 using System.Threading.Channels;
 using TmEssentials;
+using static GBX.NET.Engines.Game.CGameCtnChallenge;
 
 namespace EnvimixWebAPI.Services;
 
@@ -39,33 +42,51 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
-                var fields = new List<EmbedFieldBuilder>
-                {
-                    new EmbedFieldBuilder().WithName("Map & Car").WithValue($"{envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}").WithIsInline(true),
-                    new EmbedFieldBuilder().WithName("Time").WithValue($"`{new TimeInt32(webhook.NewRecord.Time)}`{delta}").WithIsInline(true),
-                    new EmbedFieldBuilder().WithName("By").WithValue($"**{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}**").WithIsInline(true),
-                };
-
-                if (webhook.PrevRecord is not null)
-                {
-                    fields.Add(new EmbedFieldBuilder().WithName("Previous WR age").WithValue($"{(webhook.NewRecord.DrivenAt - webhook.PrevRecord.DrivenAt).TotalDays} days").WithIsInline(true));
-
-                    if (webhook.PrevRecord.User.Id != webhook.NewRecord.User.Id)
-                    {
-                        fields.Add(new EmbedFieldBuilder().WithName("Previous WR by").WithValue($"**{TextFormatter.Deformat(webhook.PrevRecord.User.Nickname ?? webhook.PrevRecord.User.Id)}**").WithIsInline(true));
-                    }
-                }
-
-                var embed = new EmbedBuilder()
-                    .WithTitle("New world record!")
-                    .WithFields(fields)
-                    .WithFooter("ENVIMIX Turbo World Records")
-                    .WithTimestamp(webhook.NewRecord.DrivenAt)
-                    .Build();
-
-                var messageId = await client.SendMessageAsync(embeds: [embed]);
-
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var recordCount = await db.Records
+                    .Where(x => x.MapId == webhook.NewRecord.Map.Id
+                        && x.CarId == webhook.NewRecord.CarId
+                        && x.Gravity == webhook.NewRecord.Gravity
+                        && x.Laps == webhook.NewRecord.Laps
+                        && !x.Removed)
+                    .GroupBy(x => x.UserId)
+                    .CountAsync(stoppingToken);
+
+                ulong messageId;
+
+                if (recordCount > 20)
+                {
+                    var fields = new List<EmbedFieldBuilder>
+                    {
+                        new EmbedFieldBuilder().WithName("Map & Car").WithValue($"{envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote}").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("Time").WithValue($"`{new TimeInt32(webhook.NewRecord.Time)}`{delta}").WithIsInline(true),
+                        new EmbedFieldBuilder().WithName("By").WithValue($"{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}").WithIsInline(true),
+                    };
+
+                    /*if (webhook.PrevRecord is not null)
+                    {
+                        fields.Add(new EmbedFieldBuilder().WithName("Previous WR age").WithValue($"{(webhook.NewRecord.DrivenAt - webhook.PrevRecord.DrivenAt).TotalDays} days").WithIsInline(true));
+
+                        if (webhook.PrevRecord.User.Id != webhook.NewRecord.User.Id)
+                        {
+                            fields.Add(new EmbedFieldBuilder().WithName("Previous WR by").WithValue($"**{TextFormatter.Deformat(webhook.PrevRecord.User.Nickname ?? webhook.PrevRecord.User.Id)}**").WithIsInline(true));
+                        }
+                    }*/
+
+                    var embed = new EmbedBuilder()
+                        .WithTitle("New world record!")
+                        .WithFields(fields)
+                        .WithFooter("ENVIMIX Turbo World Records")
+                        .WithTimestamp(webhook.NewRecord.DrivenAt)
+                        .Build();
+
+                    messageId = await client.SendMessageAsync(embeds: [embed]);
+                }
+                else
+                {
+                    messageId = await client.SendMessageAsync($"New world record! {envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by {TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}");
+                }
 
                 var record = await db.Records.FindAsync([webhook.NewRecord.Id], cancellationToken: stoppingToken);
 
