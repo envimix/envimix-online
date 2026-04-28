@@ -81,7 +81,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                 }
                 else
                 {
-                    messageId = await client.SendMessageAsync($"**New world record!** {envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by {TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}");
+                    messageId = await client.SendMessageAsync($"**New world record!** {envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by {TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)} ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
                 }
 
                 var record = await db.Records.FindAsync([webhook.NewRecord.Id], cancellationToken: stoppingToken);
