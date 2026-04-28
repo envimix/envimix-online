@@ -49,9 +49,9 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                     .GroupBy(x => x.UserId)
                     .CountAsync(stoppingToken);
 
-                ulong messageId;
+                var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
 
-                if (recordCount > 20)
+                /*if (recordCount > 20)
                 {
                     var fields = new List<EmbedFieldBuilder>
                     {
@@ -60,7 +60,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                         new EmbedFieldBuilder().WithName("By").WithValue($"{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}").WithIsInline(true),
                     };
 
-                    /*if (webhook.PrevRecord is not null)
+                    if (webhook.PrevRecord is not null)
                     {
                         fields.Add(new EmbedFieldBuilder().WithName("Previous WR age").WithValue($"{(webhook.NewRecord.DrivenAt - webhook.PrevRecord.DrivenAt).TotalDays} days").WithIsInline(true));
 
@@ -68,7 +68,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                         {
                             fields.Add(new EmbedFieldBuilder().WithName("Previous WR by").WithValue($"**{TextFormatter.Deformat(webhook.PrevRecord.User.Nickname ?? webhook.PrevRecord.User.Id)}**").WithIsInline(true));
                         }
-                    }*/
+                    }
 
                     var embed = new EmbedBuilder()
                         .WithTitle("New world record!")
@@ -81,8 +81,8 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                 }
                 else
                 {
-                    messageId = await client.SendMessageAsync($"**New world record!** {envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by {TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)} ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
-                }
+                    messageId = await client.SendMessageAsync($"**(WR)** {envEmote} {TextFormatter.Deformat(webhook.NewRecord.Map.Name)}.{webhook.NewRecord.CarId} {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by {TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)} ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
+                }*/
 
                 var record = await db.Records.FindAsync([webhook.NewRecord.Id], cancellationToken: stoppingToken);
 
