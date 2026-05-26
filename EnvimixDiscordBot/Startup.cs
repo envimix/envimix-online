@@ -16,7 +16,6 @@ internal sealed class Startup : IHostedService
     private readonly IServiceProvider _provider;
     private readonly IDiscordBot _bot;
     private readonly ILzo _lzo;
-    private readonly ICrc32 _crc32;
     private readonly NadeoLiveServices _nls;
     private readonly IConfiguration _config;
     private readonly IHostEnvironment _environment;
@@ -26,7 +25,6 @@ internal sealed class Startup : IHostedService
         IServiceProvider provider,
         IDiscordBot bot,
         ILzo lzo,
-        ICrc32 crc32,
         NadeoLiveServices nls,
         IConfiguration config,
         IHostEnvironment environment,
@@ -35,7 +33,6 @@ internal sealed class Startup : IHostedService
         _provider = provider;
         _bot = bot;
         _lzo = lzo;
-        _crc32 = crc32;
         _nls = nls;
         _config = config;
         _environment = environment;
@@ -45,7 +42,6 @@ internal sealed class Startup : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         Gbx.LZO = _lzo;
-        Gbx.CRC32 = _crc32;
 
         _logger.LogInformation("Syncing database...");
 

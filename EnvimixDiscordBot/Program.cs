@@ -5,7 +5,6 @@ using EnvimixDiscordBot;
 using EnvimixDiscordBot.Modules;
 using EnvimixDiscordBot.Services;
 using GBX.NET.Extensions;
-using GBX.NET.Hashing;
 using GBX.NET.LZO;
 using ManiaAPI.NadeoAPI;
 using Microsoft.EntityFrameworkCore;
@@ -62,7 +61,6 @@ builder.ConfigureServices((context, services) =>
     // Add services
     services.AddSingleton<IDiscordBot, DiscordBot>();
     services.AddSingleton<ILzo, MiniLZO>();
-    services.AddSingleton<ICrc32, CRC32>();
     services.AddScoped<CampaignMaker>();
     services.AddScoped<DiscordReporter>();
 
