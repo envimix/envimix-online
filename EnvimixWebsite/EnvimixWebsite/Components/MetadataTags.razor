@@ -1,7 +1,8 @@
 ﻿<ReuMetadataTags Title="@Title"
                  SiteName="ENVIMIX Project"
                  Description="@Description"
-                 ImagePath="@ImagePath"></ReuMetadataTags>
+                 ImagePath="@ImagePath"
+                 ThemeColor="@ThemeColor"></ReuMetadataTags>
 
 @code {
     [Parameter, EditorRequired]
@@ -12,4 +13,7 @@
 
     [Parameter]
     public string? ImagePath { get; set; }
+
+    [Parameter]
+    public string? ThemeColor { get; set; }
 }
