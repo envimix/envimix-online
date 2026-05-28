@@ -1,0 +1,15 @@
+﻿<ReuMetadataTags Title="@Title"
+                 SiteName="ENVIMIX Project"
+                 Description="@Description"
+                 ImagePath="@ImagePath"></ReuMetadataTags>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string? Description { get; set; } = "Nadeo Envimix is a Trackmania challenge about driving the same Nadeo maps with different cars.";
+
+    [Parameter]
+    public string? ImagePath { get; set; }
+}

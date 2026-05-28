@@ -43,6 +43,7 @@
 
 	<ItemGroup>
 	  <Folder Include="wwwroot\img\cards\" />
+	  <Folder Include="wwwroot\img\embed\" />
 	</ItemGroup>
 
 </Project>
