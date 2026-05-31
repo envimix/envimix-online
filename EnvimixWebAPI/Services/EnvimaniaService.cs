@@ -1720,7 +1720,11 @@ public sealed class EnvimaniaService(
                     var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                     var carEmote = ValidationWebhookProcessor.GetCarEmote(carName);
 
-                    var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(userModel.Nickname ?? userModel.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)})");
+                    var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
+                        ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
+                        : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
+
+                    var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(userModel.Nickname ?? userModel.Id)}** has been restored ({dateTag})");
 
                     await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
                     {
@@ -1900,7 +1904,11 @@ public sealed class EnvimaniaService(
                         var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                         var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
 
-                        await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)})");
+                        var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
+                            ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
+                            : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
+
+                        await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** has been restored ({dateTag})");
                     }
 
                     if (laps == -1)
@@ -1916,7 +1924,11 @@ public sealed class EnvimaniaService(
                         var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
                         var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
 
-                        var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}** has been restored ({TimestampTag.FromDateTimeOffset(validation.DrivenAt, TimestampTagStyles.ShortTime)})");
+                        var dateTag = DateTimeOffset.UtcNow - validation.DrivenAt < TimeSpan.FromDays(1)
+                            ? TimestampTag.FromDateTimeOffset(validation.DrivenAt, TimestampTagStyles.Relative)
+                            : TimestampTag.FromDateTimeOffset(validation.DrivenAt, TimestampTagStyles.ShortDateTime);
+
+                        var messageId = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(map.Name)}**.**{car}** {carEmote} validation by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}** has been restored ({dateTag})");
 
                         await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
                         {
