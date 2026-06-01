@@ -7,6 +7,9 @@ public sealed class TitleStats
     [JsonPropertyName(nameof(EnvimixCompletionPercentage))] public required float EnvimixCompletionPercentage { get; set; }
     [JsonPropertyName(nameof(DefaultCarCompletionPercentage))] public required float DefaultCarCompletionPercentage { get; set; }
     [JsonPropertyName(nameof(GlobalCompletionPercentage))] public required float GlobalCompletionPercentage { get; set; }
+    [JsonPropertyName(nameof(EnvimixCompletionPercentages))] public required Dictionary<string, float> EnvimixCompletionPercentages { get; set; }
+    [JsonPropertyName(nameof(DefaultCarCompletionPercentages))] public required Dictionary<string, float> DefaultCarCompletionPercentages { get; set; }
+    [JsonPropertyName(nameof(GlobalCompletionPercentages))] public required Dictionary<string, float> GlobalCompletionPercentages { get; set; }
     [JsonPropertyName(nameof(Players))] public required Dictionary<string, TitleUserInfo> Players { get; set; }
     [JsonPropertyName(nameof(Combinations))] public required Dictionary<string, Dictionary<string, CombinationStat>> Combinations { get; set; }
     [JsonPropertyName(nameof(Stars))] public required Dictionary<string, Dictionary<string, Star>> Stars { get; set; }
