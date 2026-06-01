@@ -73,7 +73,6 @@ public static class TitleEndpoints
 
         var envimixValidationCount = 0;
         var defaultCarValidationCount = 0;
-
         var envimixCarValidationCounts = new Dictionary<string, int>();
         var defaultCarValidationCounts = new Dictionary<string, int>();
 
@@ -400,30 +399,36 @@ public static class TitleEndpoints
             .OrderByDescending(x => x.Score)
             .ToList();
 
-        var carTotalCounts = new Dictionary<string, int>
-        {
-            ["CanyonCar_0"] = totalCombinations.GetDefaultCarCountForCombination("CanyonCar_0"),
-            ["StadiumCar_0"] = totalCombinations.GetDefaultCarCountForCombination("StadiumCar_0"),
-            ["ValleyCar_0"] = totalCombinations.GetDefaultCarCountForCombination("ValleyCar_0"),
-            ["LagoonCar_0"] = totalCombinations.GetDefaultCarCountForCombination("LagoonCar_0")
-        };
-
         var envimixCompletionPercentages = envimixCarValidationCounts
             .ToDictionary(
                 kvp => kvp.Key,
-                kvp => carTotalCounts.GetValueOrDefault(kvp.Key) == 0 ? 0f : (float)kvp.Value / carTotalCounts[kvp.Key]);
+                kvp =>
+                {
+                    var count = totalCombinations.GetEnvimixCarCountForCombination(kvp.Key);
+                    return count == 0 ? 0f : (float)kvp.Value / count;
+                });
 
         var defaultCarCompletionPercentages = defaultCarValidationCounts
             .ToDictionary(
                 kvp => kvp.Key,
-                kvp => carTotalCounts.GetValueOrDefault(kvp.Key) == 0 ? 0f : (float)kvp.Value / carTotalCounts[kvp.Key]);
+                kvp =>
+                {
+                    var count = totalCombinations.GetDefaultCarCountForCombination(kvp.Key);
+                    return count == 0 ? 0f : (float)kvp.Value / count;
+                });
 
-        var globalCompletionPercentages = carTotalCounts
+        var globalCompletionPercentages = envimixCarValidationCounts
+            .Keys.Union(defaultCarValidationCounts.Keys)
             .ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value == 0
-                    ? 0f
-                    : (float)(envimixCarValidationCounts.GetValueOrDefault(kvp.Key) + defaultCarValidationCounts.GetValueOrDefault(kvp.Key)) / (kvp.Value * 2));
+                carId => carId,
+                carId =>
+                {
+                    var envimixCount = totalCombinations.GetEnvimixCarCountForCombination(carId);
+                    var defaultCarCount = totalCombinations.GetDefaultCarCountForCombination(carId);
+                    var totalCount = envimixCount + defaultCarCount;
+                    var completed = envimixCarValidationCounts.GetValueOrDefault(carId) + defaultCarValidationCounts.GetValueOrDefault(carId);
+                    return totalCount == 0 ? 0f : (float)completed / totalCount;
+                });
 
         var envimixCombinationMostSkillpoints = playerEnvimixCombinationSkillpoints
             .ToDictionary(
