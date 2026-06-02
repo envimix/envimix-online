@@ -12,7 +12,7 @@ public sealed record TotalCombinations(int EnvimixCount, int DefaultCarCount, Di
 
     public int GetDefaultCarCountForCombination(string car)
     {
-        return GetCountForCombinationOrDefault(car) ?? DefaultCarCount;
+        return GetCountForCombinationOrDefault(car) ?? 0;
     }
 
     private int? GetCountForCombinationOrDefault(string car)
