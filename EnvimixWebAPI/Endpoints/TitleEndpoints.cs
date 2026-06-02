@@ -108,12 +108,12 @@ public static class TitleEndpoints
                 if (isDefaultCar)
                 {
                     defaultCarValidationCount++;
-                    defaultCarValidationCounts[validation.CarId] = defaultCarValidationCounts.GetValueOrDefault(validation.CarId) + 1;
+                    defaultCarValidationCounts[$"{validation.CarId}_{validation.Gravity}"] = defaultCarValidationCounts.GetValueOrDefault($"{validation.CarId}_{validation.Gravity}") + 1;
                 }
                 else
                 {
                     envimixValidationCount++;
-                    envimixCarValidationCounts[validation.CarId] = envimixCarValidationCounts.GetValueOrDefault(validation.CarId) + 1;
+                    envimixCarValidationCounts[$"{validation.CarId}_{validation.Gravity}"] = envimixCarValidationCounts.GetValueOrDefault($"{validation.CarId}_{validation.Gravity}") + 1;
                 }
             }
 
