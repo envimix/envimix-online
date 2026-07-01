@@ -111,7 +111,7 @@ public class ListModule : InteractionModuleBase
 
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var campaigns = await db.Campaigns
-                    .Where(x => EF.Functions.Like(x.Name, $"%{campaignName}%"))
+                    .Where(x => EF.Functions.Like(x.Name, $"%{campaignName}%") && x.Maps.Any(x => !x.Validated && !x.Impossible))
                     .Take(25)
                     .ToListAsync();
 
