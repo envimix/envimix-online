@@ -96,7 +96,6 @@ public sealed class DiscordReporter
         }
 
         var campaignCarMaps = await _db.ConvertedMaps
-            .Include(x => x.Campaign)
             .Where(x => x.CampaignId == campaign.Id && x.CarId == car)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -124,7 +123,7 @@ public sealed class DiscordReporter
 
         var dumpChannelId = ulong.Parse(_config.GetRequiredValue("TM2020:DumpChannelId"));
 
-        var zipAttachments = await DumpCampaignAsync(campaignCarMaps.First().Campaign, cancellationToken);
+        var zipAttachments = await DumpCampaignAsync(campaign.Name, campaignCarMaps, cancellationToken);
 
         if (!zipAttachments.Any())
         {
@@ -141,21 +140,26 @@ public sealed class DiscordReporter
         }
     }
 
-    public async Task<IEnumerable<FileAttachment>> DumpCampaignAsync(int campaignId, string? specificCar = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<FileAttachment>> DumpCampaignAsync(int campaignId, CancellationToken cancellationToken = default)
     {
-        var allCampaignMaps = await _db.ConvertedMaps
-            .Include(x => x.Campaign)
-            .Where(x => x.CampaignId == campaignId)
-            .ToListAsync(cancellationToken);
+        var campaign = await _db.Campaigns
+            .Include(x => x.Maps)
+            .Where(x => x.Id == campaignId)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return await DumpCampaignAsync(allCampaignMaps.First().Campaign, cancellationToken);
+        if (campaign is null)
+        {
+            return [];
+        }
+
+        return await DumpCampaignAsync(campaign.Name, campaign.Maps, cancellationToken);
     }
 
-    private async Task<IEnumerable<FileAttachment>> DumpCampaignAsync(CampaignModel campaign, CancellationToken cancellationToken = default)
+    private async Task<IEnumerable<FileAttachment>> DumpCampaignAsync(string campaignName, IEnumerable<ConvertedMapModel> maps, CancellationToken cancellationToken = default)
     {
         var zipAttachments = new List<FileAttachment>();
 
-        foreach (var mapGrouping in campaign.Maps.GroupBy(x => x.CarId))
+        foreach (var mapGrouping in maps.GroupBy(x => x.CarId))
         {
             var ms = new MemoryStream();
             var zip = new ZipArchive(ms, ZipArchiveMode.Create, true);
@@ -169,7 +173,7 @@ public sealed class DiscordReporter
                 if (totalSize > 10_000_000)
                 {
                     zip.Dispose();
-                    zipAttachments.Add(new FileAttachment(ms, $"{campaign.Name} - {mapGrouping.Key} ({carCounter}).zip"));
+                    zipAttachments.Add(new FileAttachment(ms, $"{campaignName} - {mapGrouping.Key} ({carCounter}).zip"));
                     _logger.LogInformation("ZIP for car {CarId} size: {Size}", mapGrouping.Key, totalSize);
 
                     carCounter++;
@@ -180,13 +184,13 @@ public sealed class DiscordReporter
 
                 _logger.LogInformation("Adding map {MapName} to ZIP... (total size: {Size})", map.OriginalName, totalSize);
 
-                var entry = zip.CreateEntry($"{campaign.Name} - {mapGrouping.Key}/{map.OriginalName} - {map.CarId}.Map.Gbx");
+                var entry = zip.CreateEntry($"{campaignName} - {mapGrouping.Key}/{map.OriginalName} - {map.CarId}.Map.Gbx");
                 await using var entryStream = entry.Open();
                 await entryStream.WriteAsync(map.Data, cancellationToken);
             }
 
             zip.Dispose();
-            zipAttachments.Add(new FileAttachment(ms, $"{campaign.Name} - {mapGrouping.Key} ({carCounter}).zip"));
+            zipAttachments.Add(new FileAttachment(ms, $"{campaignName} - {mapGrouping.Key} ({carCounter}).zip"));
 
             _logger.LogInformation("ZIP for car {CarId} size: {Size}", mapGrouping.Key, totalSize);
         }
@@ -286,12 +290,6 @@ public sealed class DiscordReporter
 				await entryStream.WriteAsync(convertedMap.Data, cancellationToken);
 			}
 		}
-
-        // when nadeo includes custom items, this can exceed, otherwise its ok
-        if (zipDict.Sum(x => x.Value.Item1.Length) > 25_000_000)
-        {
-            return [];
-        }
 
 		foreach (var (car, (stream, zip)) in zipDict)
 		{
