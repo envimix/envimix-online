@@ -123,6 +123,9 @@ public static class TitleEndpoints
         var envimixCarValidationCounts = new Dictionary<string, int>();
         var defaultCarValidationCounts = new Dictionary<string, int>();
 
+        var defaultCarMedalsPossible = 0;
+        var defaultCarMedalsEarned = 0;
+
         var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
 
         var combinationRecordCount = new Dictionary<string, CombinationRecordCount>();
@@ -203,15 +206,41 @@ public static class TitleEndpoints
             var superSilver = stm.HasValue && authorTime > 0 ? stm.Value - (int)Math.Floor((stm.Value - authorTime) * 0.25) : (int?)null;
             var superBronze = stm.HasValue && authorTime > 0 ? stm.Value - (int)Math.Floor((stm.Value - authorTime) * 0.5) : (int?)null;
 
+            if (isDefaultCar && isMainCampaign && timeLoginPairs.Length > 0)
+            {
+                var bestTime = timeLoginPairs[0].Time;
+
+                if (duck.HasValue) defaultCarMedalsPossible++;
+                if (stm.HasValue) defaultCarMedalsPossible++;
+                if (superGold.HasValue) defaultCarMedalsPossible++;
+                if (superSilver.HasValue) defaultCarMedalsPossible++;
+                if (superBronze.HasValue) defaultCarMedalsPossible++;
+                if (authorTime > 0) defaultCarMedalsPossible++;
+                if (goldTime > 0) defaultCarMedalsPossible++;
+                if (silverTime > 0) defaultCarMedalsPossible++;
+                if (bronzeTime > 0) defaultCarMedalsPossible++;
+
+                if (bestTime <= duck) defaultCarMedalsEarned++;
+                if (bestTime <= stm) defaultCarMedalsEarned++;
+                if (bestTime <= superGold) defaultCarMedalsEarned++;
+                if (bestTime <= superSilver) defaultCarMedalsEarned++;
+                if (bestTime <= superBronze) defaultCarMedalsEarned++;
+                if (authorTime > 0 && bestTime <= authorTime) defaultCarMedalsEarned++;
+                if (goldTime > 0 && bestTime <= goldTime) defaultCarMedalsEarned++;
+                if (silverTime > 0 && bestTime <= silverTime) defaultCarMedalsEarned++;
+                if (bronzeTime > 0 && bestTime <= bronzeTime) defaultCarMedalsEarned++;
+            }
+
             foreach (var (time, login) in timeLoginPairs)
             {
                 if (isDefaultCar)
                 {
                     if (isMainCampaign)
                     {
-                        if (!playerDefaultCarCompleted.ContainsKey(login))
+                        if (!playerDefaultCarCompleted.TryGetValue(login, out CompletionMedals? medals))
                         {
-                            playerDefaultCarCompleted[login] = new CompletionMedals();
+                            medals = new CompletionMedals();
+                            playerDefaultCarCompleted[login] = medals;
                         }
                         if (!combMedals.TryGetValue(login, out var loginCombMedals))
                         {
@@ -220,47 +249,47 @@ public static class TitleEndpoints
 
                         if (time <= duck)
                         {
-                            playerDefaultCarCompleted[login].Ducks += 1;
+                            medals.Ducks += 1;
                             loginCombMedals.Ducks += 1;
                         }
                         if (time <= stm)
                         {
-                            playerDefaultCarCompleted[login].STMs += 1;
+                            medals.STMs += 1;
                             loginCombMedals.STMs += 1;
                         }
                         if (time <= superGold)
                         {
-                            playerDefaultCarCompleted[login].SuperGolds += 1;
+                            medals.SuperGolds += 1;
                             loginCombMedals.SuperGolds += 1;
                         }
                         if (time <= superSilver)
                         {
-                            playerDefaultCarCompleted[login].SuperSilvers += 1;
+                            medals.SuperSilvers += 1;
                             loginCombMedals.SuperSilvers += 1;
                         }
                         if (time <= superBronze)
                         {
-                            playerDefaultCarCompleted[login].SuperBronzes += 1;
+                            medals.SuperBronzes += 1;
                             loginCombMedals.SuperBronzes += 1;
                         }
                         if (time <= authorTime)
                         {
-                            playerDefaultCarCompleted[login].AuthorMedals += 1;
+                            medals.AuthorMedals += 1;
                             loginCombMedals.AuthorMedals += 1;
                         }
                         if (time <= goldTime)
                         {
-                            playerDefaultCarCompleted[login].GoldMedals += 1;
+                            medals.GoldMedals += 1;
                             loginCombMedals.GoldMedals += 1;
                         }
                         if (time <= silverTime)
                         {
-                            playerDefaultCarCompleted[login].SilverMedals += 1;
+                            medals.SilverMedals += 1;
                             loginCombMedals.SilverMedals += 1;
                         }
                         if (time <= bronzeTime)
                         {
-                            playerDefaultCarCompleted[login].BronzeMedals += 1;
+                            medals.BronzeMedals += 1;
                             loginCombMedals.BronzeMedals += 1;
                         }
 
@@ -428,7 +457,7 @@ public static class TitleEndpoints
         return TypedResults.Ok(new CompletionStats
         {
             EnvimixCompletionPercentage = totalCombinations.EnvimixCount == 0 ? 0 : (float)envimixValidationCount / totalCombinations.EnvimixCount,
-            DefaultCarCompletionPercentage = totalCombinations.DefaultCarCount == 0 ? 0 : (float)defaultCarValidationCount / totalCombinations.DefaultCarCount,
+            DefaultCarCompletionPercentage = defaultCarMedalsPossible == 0 ? 0 : (float)defaultCarMedalsEarned / defaultCarMedalsPossible,
             GlobalCompletionPercentage = totalCombinations.TotalCount == 0 ? 0 : (float)(envimixValidationCount + defaultCarValidationCount) / totalCombinations.TotalCount,
             EnvimixCompletionPercentages = envimixCompletionPercentages,
             DefaultCarCompletionPercentages = defaultCarCompletionPercentages,
