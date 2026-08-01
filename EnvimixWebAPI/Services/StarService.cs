@@ -20,6 +20,7 @@ public interface IStarService
 
     Task<Dictionary<string, Star>> GetStarsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
     Task<Dictionary<string, Dictionary<string, Star>>> GetStarsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
+    Task<Dictionary<string, Dictionary<string, string>>> GetStarLoginsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 }
 
 public sealed class StarService(
@@ -183,6 +184,34 @@ public sealed class StarService(
                     };
                 }
 
+                starsByMap[starGroup.Key] = stars;
+            }
+
+            return starsByMap;
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, string>>> GetStarLoginsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
+    {
+        using var activity = ActivitySource.StartActivity(nameof(GetStarLoginsByTitleIdAsync));
+        activity?.SetTag("titleId", titleId);
+
+        return await cache.GetOrCreateAsync($"StarLoginsByTitleId_{titleId}", async entry =>
+        {
+            var starsFromDb = await db.Stars
+                .Include(x => x.User)
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
+                .ToListAsync(entry);
+
+            var starsByMap = new Dictionary<string, Dictionary<string, string>>();
+
+            foreach (var starGroup in starsFromDb.GroupBy(x => x.MapId))
+            {
+                var stars = new Dictionary<string, string>();
+                foreach (var star in starGroup)
+                {
+                    stars[$"{star.CarId}_{star.Gravity}_Time"] = star.User.Id;
+                }
                 starsByMap[starGroup.Key] = stars;
             }
 

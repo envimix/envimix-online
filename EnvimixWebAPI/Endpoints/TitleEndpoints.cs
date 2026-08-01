@@ -54,7 +54,7 @@ public static class TitleEndpoints
         CancellationToken cancellationToken)
     {
         var ratings = await ratingService.GetAveragesByTitleIdAsync(titleId, cancellationToken);
-        var stars = await starService.GetStarsByTitleIdAsync(titleId, cancellationToken);
+        var stars = await starService.GetStarLoginsByTitleIdAsync(titleId, cancellationToken);
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
         var playerRecords = await envimaniaService.GetPlayerRecordsByTitleIdAsync(titleId, cancellationToken);
 
