@@ -125,6 +125,8 @@ public static class TitleEndpoints
 
         var defaultCarMedalsPossible = 0;
         var defaultCarMedalsEarned = 0;
+        var defaultCarMedalsPossibleByCar = new Dictionary<string, int>();
+        var defaultCarMedalsEarnedByCar = new Dictionary<string, int>();
 
         var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
 
@@ -210,25 +212,34 @@ public static class TitleEndpoints
             {
                 var bestTime = timeLoginPairs[0].Time;
 
-                if (duck.HasValue) defaultCarMedalsPossible++;
-                if (stm.HasValue) defaultCarMedalsPossible++;
-                if (superGold.HasValue) defaultCarMedalsPossible++;
-                if (superSilver.HasValue) defaultCarMedalsPossible++;
-                if (superBronze.HasValue) defaultCarMedalsPossible++;
-                if (authorTime > 0) defaultCarMedalsPossible++;
-                if (goldTime > 0) defaultCarMedalsPossible++;
-                if (silverTime > 0) defaultCarMedalsPossible++;
-                if (bronzeTime > 0) defaultCarMedalsPossible++;
+                var possible = 0;
+                var earned = 0;
 
-                if (bestTime <= duck) defaultCarMedalsEarned++;
-                if (bestTime <= stm) defaultCarMedalsEarned++;
-                if (bestTime <= superGold) defaultCarMedalsEarned++;
-                if (bestTime <= superSilver) defaultCarMedalsEarned++;
-                if (bestTime <= superBronze) defaultCarMedalsEarned++;
-                if (authorTime > 0 && bestTime <= authorTime) defaultCarMedalsEarned++;
-                if (goldTime > 0 && bestTime <= goldTime) defaultCarMedalsEarned++;
-                if (silverTime > 0 && bestTime <= silverTime) defaultCarMedalsEarned++;
-                if (bronzeTime > 0 && bestTime <= bronzeTime) defaultCarMedalsEarned++;
+                if (duck.HasValue) possible++;
+                if (stm.HasValue) possible++;
+                if (superGold.HasValue) possible++;
+                if (superSilver.HasValue) possible++;
+                if (superBronze.HasValue) possible++;
+                if (authorTime > 0) possible++;
+                if (goldTime > 0) possible++;
+                if (silverTime > 0) possible++;
+                if (bronzeTime > 0) possible++;
+
+                if (bestTime <= duck) earned++;
+                if (bestTime <= stm) earned++;
+                if (bestTime <= superGold) earned++;
+                if (bestTime <= superSilver) earned++;
+                if (bestTime <= superBronze) earned++;
+                if (authorTime > 0 && bestTime <= authorTime) earned++;
+                if (goldTime > 0 && bestTime <= goldTime) earned++;
+                if (silverTime > 0 && bestTime <= silverTime) earned++;
+                if (bronzeTime > 0 && bestTime <= bronzeTime) earned++;
+
+                defaultCarMedalsPossible += possible;
+                defaultCarMedalsEarned += earned;
+
+                defaultCarMedalsPossibleByCar[combinationKey] = defaultCarMedalsPossibleByCar.GetValueOrDefault(combinationKey) + possible;
+                defaultCarMedalsEarnedByCar[combinationKey] = defaultCarMedalsEarnedByCar.GetValueOrDefault(combinationKey) + earned;
             }
 
             foreach (var (time, login) in timeLoginPairs)
@@ -376,13 +387,14 @@ public static class TitleEndpoints
                     return count == 0 ? 0f : (float)kvp.Value / count;
                 });
 
-        var defaultCarCompletionPercentages = defaultCarValidationCounts
+        var defaultCarCompletionPercentages = defaultCarMedalsPossibleByCar
             .ToDictionary(
                 kvp => kvp.Key,
                 kvp =>
                 {
-                    var count = totalCombinations.GetDefaultCarCountForCombination(kvp.Key);
-                    return count == 0 ? 0f : (float)kvp.Value / count;
+                    var possible = kvp.Value;
+                    var earned = defaultCarMedalsEarnedByCar.GetValueOrDefault(kvp.Key);
+                    return possible == 0 ? 0f : (float)earned / possible;
                 });
 
         var globalCompletionPercentages = envimixCarValidationCounts
