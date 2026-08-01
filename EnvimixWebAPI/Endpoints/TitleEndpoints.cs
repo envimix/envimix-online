@@ -93,6 +93,7 @@ public static class TitleEndpoints
 
         return TypedResults.Ok(new GeneralStats
         {
+            Players = await userService.GetTitleUserInfosAsync(cancellationToken),
             Combinations = mapCombinations,
             Stars = stars
         });
