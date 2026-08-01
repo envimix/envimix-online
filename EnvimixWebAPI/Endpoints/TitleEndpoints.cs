@@ -311,7 +311,7 @@ public static class TitleEndpoints
             .ToList();
 
         var defaultCarCompletion = playerDefaultCarCompleted
-            .OrderByDescending(x => x.Value.AuthorMedals)
+            .OrderByDescending(x => x.Value.Total)
             .ThenBy(x => x.Key)
             .Select(x => new PlayerMedals
             {
