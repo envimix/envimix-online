@@ -13,6 +13,7 @@ public static class UserEndpoints
         group.WithTags("User");
 
         group.MapPost("", PostUser);
+        group.MapGet("", GetUsers).CacheOutput(x => x.Expire(TimeSpan.FromHours(1)));
         group.MapGet("{login}", GetUser).RequireAuthorization(Policies.SuperAdminPolicy);
     }
 
@@ -63,5 +64,12 @@ public static class UserEndpoints
         return dto is null
             ? TypedResults.NotFound()
             : TypedResults.Ok(dto);
+    }
+
+    private static async Task<List<TitleUserInfo>> GetUsers(
+        IUserService userService,
+        CancellationToken cancellationToken)
+    {
+        return await userService.GetTitleUserInfosAsync(cancellationToken);
     }
 }

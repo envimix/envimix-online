@@ -4,7 +4,6 @@ namespace EnvimixWebAPI.Models;
 
 public sealed class CompletionStats
 {
-    [JsonPropertyName(nameof(Players))] public required Dictionary<string, TitleUserInfo> Players { get; set; }
     [JsonPropertyName(nameof(EnvimixCompletionPercentage))] public required float EnvimixCompletionPercentage { get; set; }
     [JsonPropertyName(nameof(DefaultCarCompletionPercentage))] public required float DefaultCarCompletionPercentage { get; set; }
     [JsonPropertyName(nameof(GlobalCompletionPercentage))] public required float GlobalCompletionPercentage { get; set; }

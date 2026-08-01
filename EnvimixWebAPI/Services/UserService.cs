@@ -19,6 +19,7 @@ public interface IUserService
     Task<UserDto?> GetUserDtoByLoginAsync(string login, CancellationToken cancellationToken);
     Task ResetTokenAsync(string login, CancellationToken cancellationToken);
     Task<Dictionary<string, string>> GetNicknamesAsync(IEnumerable<string> logins, CancellationToken cancellationToken);
+    Task<List<TitleUserInfo>> GetTitleUserInfosAsync(CancellationToken cancellationToken);
     Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(IEnumerable<string> logins, CancellationToken cancellationToken);
     Task<UserEntity> GetOrCreateFromLeaderboardEntryAsync(LeaderboardItem<TimeInt32> entry, CancellationToken cancellationToken);
 }
@@ -188,6 +189,14 @@ public sealed class UserService(
         return await db.Users
             .Where(x => logins.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.Nickname ?? x.Id, cancellationToken);
+    }
+
+    public async Task<List<TitleUserInfo>> GetTitleUserInfosAsync(CancellationToken cancellationToken)
+    {
+        return await db.Users
+            .Include(x => x.Zone)
+            .Select(x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone!.Name ?? "" })
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(IEnumerable<string> logins, CancellationToken cancellationToken)

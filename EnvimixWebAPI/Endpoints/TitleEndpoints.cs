@@ -57,7 +57,6 @@ public static class TitleEndpoints
         var stars = await starService.GetStarsByTitleIdAsync(titleId, cancellationToken);
         var validations = await envimaniaService.GetValidationsByTitleIdAsync(titleId, cancellationToken);
         var playerRecords = await envimaniaService.GetPlayerRecordsByTitleIdAsync(titleId, cancellationToken);
-        var players = await userService.GetTitleUserInfosAsync(validations.Select(x => x.UserId), cancellationToken);
 
         var mapCombinations = new Dictionary<string, Dictionary<string, CombinationStat>>();
 
@@ -95,8 +94,7 @@ public static class TitleEndpoints
         return TypedResults.Ok(new GeneralStats
         {
             Combinations = mapCombinations,
-            Stars = stars,
-            Players = players
+            Stars = stars
         });
     }
 
@@ -426,11 +424,8 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var players = await userService.GetTitleUserInfosAsync(globalCompletion.Select(x => x.Login), cancellationToken);
-
         return TypedResults.Ok(new CompletionStats
         {
-            Players = players,
             EnvimixCompletionPercentage = totalCombinations.EnvimixCount == 0 ? 0 : (float)envimixValidationCount / totalCombinations.EnvimixCount,
             DefaultCarCompletionPercentage = totalCombinations.DefaultCarCount == 0 ? 0 : (float)defaultCarValidationCount / totalCombinations.DefaultCarCount,
             GlobalCompletionPercentage = totalCombinations.TotalCount == 0 ? 0 : (float)(envimixValidationCount + defaultCarValidationCount) / totalCombinations.TotalCount,
@@ -611,11 +606,8 @@ public static class TitleEndpoints
 
         var calculationElapsed = Stopwatch.GetElapsedTime(calculationStartTimestamp);
 
-        var players = await userService.GetTitleUserInfosAsync(globalMostSkillpoints.Select(x => x.Login), cancellationToken);
-
         return TypedResults.Ok(new SkillpointStats
         {
-            Players = players,
             EnvimixMostSkillpoints = envimixMostSkillpoints,
             DefaultCarMostSkillpoints = defaultCarMostSkillpoints,
             GlobalMostSkillpoints = globalMostSkillpoints,
@@ -803,13 +795,10 @@ public static class TitleEndpoints
                     .ToList()
             );
 
-        var players = await userService.GetTitleUserInfosAsync(globalMostActivityPoints.Select(x => x.Login), cancellationToken);
-
         var calculationElapsed = Stopwatch.GetElapsedTime(calculationStartTimestamp);
 
         return TypedResults.Ok(new ActivityPointStats
         {
-            Players = players,
             EnvimixMostActivityPoints = envimixMostActivityPoints,
             DefaultCarMostActivityPoints = defaultCarMostActivityPoints,
             GlobalMostActivityPoints = globalMostActivityPoints,

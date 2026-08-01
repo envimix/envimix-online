@@ -4,7 +4,6 @@ namespace EnvimixWebAPI.Models;
 
 public sealed class SkillpointStats
 {
-    [JsonPropertyName(nameof(Players))] public required Dictionary<string, TitleUserInfo> Players { get; set; }
     [JsonPropertyName(nameof(EnvimixMostSkillpoints))] public required List<PlayerScore> EnvimixMostSkillpoints { get; set; }
     [JsonPropertyName(nameof(DefaultCarMostSkillpoints))] public required List<PlayerScore> DefaultCarMostSkillpoints { get; set; }
     [JsonPropertyName(nameof(GlobalMostSkillpoints))] public required List<PlayerScore> GlobalMostSkillpoints { get; set; }
