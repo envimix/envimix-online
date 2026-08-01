@@ -66,7 +66,7 @@ public static class UserEndpoints
             : TypedResults.Ok(dto);
     }
 
-    private static async Task<List<TitleUserInfo>> GetUsers(
+    private static async Task<Dictionary<string, TitleUserInfo>> GetUsers(
         IUserService userService,
         CancellationToken cancellationToken)
     {
