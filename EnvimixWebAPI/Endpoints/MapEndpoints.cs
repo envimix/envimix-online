@@ -82,6 +82,10 @@ public static class MapEndpoints
             map.IsCampaignMap = true;
             map.Order = mapInfo.Order;
             map.Campaign = campaigns!.GetValueOrDefault(mapInfo.Campaign);
+            map.AuthorTime = mapInfo.AuthorTime;
+            map.GoldTime = mapInfo.GoldTime;
+            map.SilverTime = mapInfo.SilverTime;
+            map.BronzeTime = mapInfo.BronzeTime;
         }
 
         // unset campaign maps that are not in the submitted list

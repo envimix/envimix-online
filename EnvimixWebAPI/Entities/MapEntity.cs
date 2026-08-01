@@ -27,6 +27,11 @@ public sealed class MapEntity
     public MapDataEntity? Data { get; set; }
     public int? DataId { get; set; }
 
+    public int AuthorTime { get; set; }
+    public int GoldTime { get; set; }
+    public int SilverTime { get; set; }
+    public int BronzeTime { get; set; }
+
     // cycle issues when caching
     //public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     //public ICollection<RecordEntity> Records { get; } = [];
