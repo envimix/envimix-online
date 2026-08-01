@@ -195,7 +195,7 @@ public sealed class UserService(
     {
         return await db.Users
             .Include(x => x.Zone)
-            .ToDictionaryAsync(x => x.Id, x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone!.Name ?? "" }, cancellationToken);
+            .ToDictionaryAsync(x => x.Id, x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone?.Name ?? "" }, cancellationToken);
     }
 
     public async Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(IEnumerable<string> logins, CancellationToken cancellationToken)
