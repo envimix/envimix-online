@@ -1541,7 +1541,7 @@ public sealed class EnvimaniaService(
 
         var bestRecords = await hybridCache.GetOrCreateAsync($"PlayerRecordsByTitleId_{titleId}", async entry =>
         {
-            var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
+            var bestRecords = new Dictionary<string, (string UserId, string MapId, string CarId, int Gravity, int Laps, int Time, DateTimeOffset DrivenAt)>();
 
             using var foreachActivity = ActivitySource.StartActivity("ProcessRecords");
             var recordCount = 0;
@@ -1553,13 +1553,13 @@ public sealed class EnvimaniaService(
                 .AsAsyncEnumerable())
             {
                 recordCount++;
-                var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
+                var key = $"{record.UserId}_{record.MapId}_{record.CarId}_{record.Gravity}_{record.Laps}";
 
                 if (!bestRecords.TryGetValue(key, out var existing) ||
                     record.Time < existing.Time ||
                     (record.Time == existing.Time && record.DrivenAt < existing.DrivenAt))
                 {
-                    bestRecords[key] = (record.Time, record.DrivenAt);
+                    bestRecords[key] = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps, record.Time, record.DrivenAt);
                 }
             }
 
@@ -1575,8 +1575,8 @@ public sealed class EnvimaniaService(
 
         return bestRecords
             .ToLookup(
-                x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
-                x => new PlayerRecord(x.Value.Time, x.Key.UserId));
+                x => $"{x.Value.MapId}_{x.Value.CarId}_{x.Value.Gravity}_{x.Value.Laps}",
+                x => new PlayerRecord(x.Value.Time, x.Value.UserId));
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
