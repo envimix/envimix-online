@@ -7,7 +7,7 @@ public static class CacheConfiguration
         services.AddOutputCache();
         services.AddHybridCache(options =>
         {
-            options.MaximumPayloadBytes = 1024 * 1024 * 10; // 10 MB
+            options.MaximumPayloadBytes = 1024 * 1024 * 64; // 64 MB
         });
     }
 }
