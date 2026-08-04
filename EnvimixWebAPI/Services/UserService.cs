@@ -96,6 +96,11 @@ public sealed class UserService(
             userModel.ZoneId = zoneId;
         }
 
+        if (userModel.Nickname != user.Nickname)
+        {
+            await cache.RemoveAsync("TitleUserInfos", CancellationToken.None);
+        }
+
         userModel.Nickname = user.Nickname;
         userModel.AvatarUrl = user.AvatarUrl;
         userModel.Language = user.Language;
@@ -193,9 +198,12 @@ public sealed class UserService(
 
     public async Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(CancellationToken cancellationToken)
     {
-        return await db.Users
-            .Include(x => x.Zone)
-            .ToDictionaryAsync(x => x.Id, x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone?.Name ?? "" }, cancellationToken);
+        return await cache.GetOrCreateAsync("TitleUserInfos", async token =>
+        {
+            return await db.Users
+                .Include(x => x.Zone)
+                .ToDictionaryAsync(x => x.Id, x => new TitleUserInfo { Nickname = x.Nickname ?? "", Zone = x.Zone?.Name ?? "" }, token);
+        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<Dictionary<string, TitleUserInfo>> GetTitleUserInfosAsync(IEnumerable<string> logins, CancellationToken cancellationToken)

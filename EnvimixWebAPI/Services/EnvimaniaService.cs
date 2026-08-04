@@ -710,6 +710,7 @@ public sealed class EnvimaniaService(
 
             // TODO: also loop around the user's zone later
             await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(map.Id, carName, gravity, laps, "World"), cancellationToken);
+            await hybridCache.RemoveAsync($"PlayerRecordsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
 
             // if is validation, enqueue validation notification
             if (isValidation)
@@ -726,6 +727,7 @@ public sealed class EnvimaniaService(
 
                 await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(record, PrevRecord: currentWorldRecord), cancellationToken);
             }
+
         }
         else
         {
@@ -1376,6 +1378,7 @@ public sealed class EnvimaniaService(
             await outputCache.EvictByTagAsync("title-stats", cancellationToken);
             await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(removeRecordRequest.MapUid, removeRecordRequest.CarId, removeRecordRequest.Gravity, removeRecordRequest.Laps, "World"), cancellationToken);
             await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
+            await hybridCache.RemoveAsync($"PlayerRecordsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
         }
 
         return hasChanges;
@@ -1433,6 +1436,7 @@ public sealed class EnvimaniaService(
             await outputCache.EvictByTagAsync("title-stats", cancellationToken);
             await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(revertRecordRequest.MapUid, revertRecordRequest.CarId, revertRecordRequest.Gravity, revertRecordRequest.Laps, "World"), cancellationToken);
             await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
+            await hybridCache.RemoveAsync($"PlayerRecordsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
         }
 
         return hasChanges;
@@ -1467,7 +1471,7 @@ public sealed class EnvimaniaService(
                 .Select(g => g.OrderBy(x => x.DrivenAt).First())
                 .AsNoTracking()
                 .ToListAsync(token);
-        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+        }, new() { Expiration = TimeSpan.FromDays(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<RecordEntity?> GetValidationAsync(string mapUid, EnvimaniaRecordFilter filter, CancellationToken cancellationToken)
@@ -1535,38 +1539,41 @@ public sealed class EnvimaniaService(
         using var activity = ActivitySource.StartActivity(nameof(GetPlayerRecordsByTitleIdAsync));
         activity?.SetTag("titleId", titleId);
 
-        var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
-
-        using var foreachActivity = ActivitySource.StartActivity("ProcessRecords");
-        var recordCount = 0;
-
-        await foreach (var record in db.Records
-            .AsNoTracking()
-            .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
-            .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
-            .AsAsyncEnumerable())
+        return await hybridCache.GetOrCreateAsync($"PlayerRecordsByTitleId_{titleId}", async entry =>
         {
-            recordCount++;
-            var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
+            var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
 
-            if (!bestRecords.TryGetValue(key, out var existing) ||
-                record.Time < existing.Time ||
-                (record.Time == existing.Time && record.DrivenAt < existing.DrivenAt))
+            using var foreachActivity = ActivitySource.StartActivity("ProcessRecords");
+            var recordCount = 0;
+
+            await foreach (var record in db.Records
+                .AsNoTracking()
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
+                .Select(x => new { x.MapId, x.CarId, x.Gravity, x.Laps, x.Time, x.UserId, x.DrivenAt })
+                .AsAsyncEnumerable())
             {
-                bestRecords[key] = (record.Time, record.DrivenAt);
+                recordCount++;
+                var key = (record.UserId, record.MapId, record.CarId, record.Gravity, record.Laps);
+
+                if (!bestRecords.TryGetValue(key, out var existing) ||
+                    record.Time < existing.Time ||
+                    (record.Time == existing.Time && record.DrivenAt < existing.DrivenAt))
+                {
+                    bestRecords[key] = (record.Time, record.DrivenAt);
+                }
             }
-        }
 
-        foreachActivity?.SetTag("processedRecords", recordCount);
-        foreachActivity?.SetTag("bestRecordsCount", bestRecords.Count);
+            foreachActivity?.SetTag("processedRecords", recordCount);
+            foreachActivity?.SetTag("bestRecordsCount", bestRecords.Count);
 
-        activity?.SetTag("recordCount", bestRecords.Count);
-        
-        using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
-        return bestRecords
-            .ToLookup(
-                x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
-                x => new PlayerRecord(x.Value.Time, x.Key.UserId));
+            activity?.SetTag("recordCount", bestRecords.Count);
+
+            using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
+            return bestRecords
+                .ToLookup(
+                    x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
+                    x => new PlayerRecord(x.Value.Time, x.Key.UserId));
+        }, new() { Expiration = TimeSpan.FromMinutes(10) }, cancellationToken: cancellationToken);
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
@@ -1974,7 +1981,7 @@ public sealed class EnvimaniaService(
             var envimixCarCount = envimaniaOptions.Value.Car.Count - 1;
 
             return new TotalCombinations(EnvimixCount: mapCount * envimixCarCount, DefaultCarCount: mapCount, environmentEnvimixMapCount);
-        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+        }, new() { Expiration = TimeSpan.FromDays(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<int> GetPossibleEnvimixCombinationsAsync(string titleId, CancellationToken cancellationToken)

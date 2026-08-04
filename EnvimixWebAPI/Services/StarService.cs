@@ -93,6 +93,7 @@ public sealed class StarService(
             await db.SaveChangesAsync(cancellationToken);
 
             await cache.RemoveAsync($"StarsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
+            await cache.RemoveAsync($"StarLoginsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
         }
 
         logger.LogInformation("User {user} starred map {mapUid} with car {car} and gravity {gravity}.",
@@ -137,6 +138,7 @@ public sealed class StarService(
             await db.SaveChangesAsync(cancellationToken);
 
             await cache.RemoveAsync($"StarsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
+            await cache.RemoveAsync($"StarLoginsByTitleId_{star.Map.TitlePackId}", CancellationToken.None);
         }
 
         logger.LogInformation("User {user} unstarred map {mapUid} with car {car} and gravity {gravity}.",
@@ -162,12 +164,12 @@ public sealed class StarService(
         using var activity = ActivitySource.StartActivity(nameof(GetStarsByTitleIdAsync));
         activity?.SetTag("titleId", titleId);
 
-        return await cache.GetOrCreateAsync($"StarsByTitleId_{titleId}", async entry =>
+        return await cache.GetOrCreateAsync($"StarsByTitleId_{titleId}", async token =>
         {
             var starsFromDb = await db.Stars
                 .Include(x => x.User)
                 .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap)
-                .ToListAsync(entry);
+                .ToListAsync(token);
 
             var starsByMap = new Dictionary<string, Dictionary<string, Star>>();
 
@@ -188,7 +190,7 @@ public sealed class StarService(
             }
 
             return starsByMap;
-        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+        }, new() { Expiration = TimeSpan.FromDays(1) }, cancellationToken: cancellationToken);
     }
 
     public async Task<Dictionary<string, Dictionary<string, string>>> GetStarLoginsByTitleIdAsync(string titleId, CancellationToken cancellationToken)
@@ -216,6 +218,6 @@ public sealed class StarService(
             }
 
             return starsByMap;
-        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+        }, new() { Expiration = TimeSpan.FromDays(1) }, cancellationToken: cancellationToken);
     }
 }

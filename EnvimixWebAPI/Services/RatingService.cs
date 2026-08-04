@@ -410,7 +410,7 @@ public sealed class RatingService(
             }
 
             return ratingsByMap;
-        }, new() { Expiration = TimeSpan.FromHours(1) }, cancellationToken: cancellationToken);
+        }, new() { Expiration = TimeSpan.FromHours(3) }, cancellationToken: cancellationToken);
     }
 
     public async Task<List<FilteredRating>> GetByUserLoginAsync(string mapUid, string login, CancellationToken cancellationToken)
