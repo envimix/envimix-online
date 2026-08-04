@@ -1539,7 +1539,7 @@ public sealed class EnvimaniaService(
         using var activity = ActivitySource.StartActivity(nameof(GetPlayerRecordsByTitleIdAsync));
         activity?.SetTag("titleId", titleId);
 
-        return await hybridCache.GetOrCreateAsync($"PlayerRecordsByTitleId_{titleId}", async entry =>
+        var bestRecords = await hybridCache.GetOrCreateAsync($"PlayerRecordsByTitleId_{titleId}", async entry =>
         {
             var bestRecords = new Dictionary<(string UserId, string MapId, string CarId, int Gravity, int Laps), (int Time, DateTimeOffset DrivenAt)>();
 
@@ -1568,12 +1568,15 @@ public sealed class EnvimaniaService(
 
             activity?.SetTag("recordCount", bestRecords.Count);
 
-            using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
-            return bestRecords
-                .ToLookup(
-                    x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
-                    x => new PlayerRecord(x.Value.Time, x.Key.UserId));
+            return bestRecords;
         }, new() { Expiration = TimeSpan.FromMinutes(10) }, cancellationToken: cancellationToken);
+
+        using var toLookupActivity = ActivitySource.StartActivity("BuildLookup");
+
+        return bestRecords
+            .ToLookup(
+                x => $"{x.Key.MapId}_{x.Key.CarId}_{x.Key.Gravity}_{x.Key.Laps}",
+                x => new PlayerRecord(x.Value.Time, x.Key.UserId));
     }
 
     public async Task RestoreValidationsAsync(CancellationToken cancellationToken)
