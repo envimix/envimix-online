@@ -114,6 +114,7 @@ public static class MapEndpoints
     {
         var map = await db.Maps
             .Include(x => x.TitlePack)
+            .Include(x => x.Campaign)
             .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken: cancellationToken);
 
         if (map is null)
