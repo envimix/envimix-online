@@ -34,7 +34,7 @@ public static class EnvimaniaEndpoints
 
     private static void MapSession(RouteGroupBuilder group)
     {
-        group.MapPost("", Session).RequireRateLimiting("20PerHour");
+        group.MapPost("", Session).RequireRateLimiting("20Per10Minutes");
         group.MapGet("status", SessionStatus).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("record", SessionRecord).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("records", SessionRecordsPost).RequireAuthorization(Policies.EnvimaniaSessionPolicy);

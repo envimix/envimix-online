@@ -1,4 +1,5 @@
 ﻿using EnvimixWebAPI.Health;
+using EnvimixWebAPI.Security;
 using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 using ManiaAPI.Xml.Extensions.Hosting;
@@ -32,7 +33,9 @@ public static class WebConfiguration
             .AddPolicy(Policies.EnvimaniaSessionPolicy, policy =>
             {
                 policy.RequireAuthenticatedUser()
-                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.EnvimaniaSession);
+                    .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.EnvimaniaSession)
+                    .RequireClaim(EnvimaniaClaimTypes.SessionGuid)
+                    .RequireClaim(EnvimaniaClaimTypes.SessionMapUid);
             })
             .AddPolicy(Policies.ManiaPlanetUserPolicy, policy =>
              {
@@ -79,7 +82,7 @@ public static class WebConfiguration
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
-            options.AddPolicy("20PerHour", httpContext =>
+            options.AddPolicy("20Per10Minutes", httpContext =>
             {
                 var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
@@ -88,7 +91,7 @@ public static class WebConfiguration
                     partition => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 20,                   // Allow 20 requests
-                        Window = TimeSpan.FromHours(1),     // Per 1 hour window
+                        Window = TimeSpan.FromMinutes(10),  // Per 10 minute window
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                         QueueLimit = 0                      // No queuing, reject immediately
                     });
