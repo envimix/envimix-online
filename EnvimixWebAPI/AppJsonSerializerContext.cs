@@ -7,6 +7,7 @@ namespace EnvimixWebAPI;
 
 [JsonSerializable(typeof(EnvimaniaSessionRequest))]
 [JsonSerializable(typeof(EnvimaniaSessionResponse))]
+[JsonSerializable(typeof(EnvimaniaSessionTokenResponse))]
 [JsonSerializable(typeof(EnvimaniaRegistrationRequest))]
 [JsonSerializable(typeof(EnvimaniaBanRequest))]
 [JsonSerializable(typeof(EnvimaniaUnbanRequest))]

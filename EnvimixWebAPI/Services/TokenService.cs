@@ -21,7 +21,7 @@ public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITok
             new Claim(JwtRegisteredClaimNames.UniqueName, serverLogin),
             new Claim(EnvimaniaClaimTypes.SessionGuid, sessionGuid.ToString()),
             new Claim(EnvimaniaClaimTypes.SessionMapUid, mapUid)
-        ], validFor: TimeSpan.FromMinutes(30));
+        ], validFor: TimeSpan.FromMinutes(20));
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var securityToken = tokenHandler.CreateToken(tokenDescriptor);

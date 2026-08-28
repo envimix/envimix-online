@@ -36,6 +36,7 @@ public static class EnvimaniaEndpoints
     {
         group.MapPost("", Session).RequireRateLimiting("20Per10Minutes");
         group.MapGet("status", SessionStatus).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("extend", SessionExtend).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("record", SessionRecord).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("records", SessionRecordsPost).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapGet("records/{car}", SessionRecordsGet).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
@@ -124,6 +125,19 @@ public static class EnvimaniaEndpoints
         var result = await envimaniaService.CheckSessionStatusAsync(principal, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaSessionStatusResponse>, ForbidHttpResult>>(
+            validResponse => TypedResults.Ok(validResponse),
+            actionForbidden => TypedResults.Forbid()
+        );
+    }
+
+    private static async Task<Results<Ok<EnvimaniaSessionTokenResponse>, ForbidHttpResult>> SessionExtend(
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.ExtendSessionAsync(principal, cancellationToken);
+
+        return result.Match<Results<Ok<EnvimaniaSessionTokenResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse),
             actionForbidden => TypedResults.Forbid()
         );

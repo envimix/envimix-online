@@ -44,6 +44,9 @@ public interface IEnvimaniaService
     Task<OneOf<EnvimaniaSessionStatusResponse, ActionForbiddenResponse>>
         CheckSessionStatusAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
 
+    Task<OneOf<EnvimaniaSessionTokenResponse, ActionForbiddenResponse>>
+        ExtendSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
+
     Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>>
         SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken);
 
@@ -415,6 +418,7 @@ public sealed class EnvimaniaService(
         {
             ServerLogin = request.ServerLogin,
             SessionToken = token,
+            ExpiresAt = expiresAt.ToUnixTimeSeconds(),
             Ratings = ratings,
             UserRatings = userRatings,
             Validations = validations.ToDictionary(x => $"{x.Car.Id}_{x.Gravity}_{x.Laps}", rec => new EnvimaniaRecordInfo
@@ -494,6 +498,39 @@ public sealed class EnvimaniaService(
         logger.LogInformation("Session status checked");
 
         return new EnvimaniaSessionStatusResponse();
+    }
+
+    public async Task<OneOf<EnvimaniaSessionTokenResponse, ActionForbiddenResponse>> ExtendSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+    {
+        var banReason = principal.FindFirstValue("BanReason");
+
+        if (banReason is not null)
+        {
+            return ActionForbiddenResponse.ServerLoginBanned;
+        }
+
+        var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
+
+        var session = await db.EnvimaniaSessions
+            .Include(x => x.Map)
+            .Include(x => x.Server)
+            .FirstOrDefaultAsync(x => x.Id == sessionGuid, cancellationToken)
+            ?? throw new Exception("Session not found in database but should have been found");
+
+        if (session.FinishedGracefully)
+        {
+            return new ActionForbiddenResponse("Session is closed");
+        }
+
+        var token = tokenService.GenerateEnvimaniaSessionToken(session.Id, session.Map.Id, session.Server.Id, out _, out var expiresAt);
+
+        logger.LogInformation("Session token extended until {expiresAt}.", expiresAt);
+
+        return new EnvimaniaSessionTokenResponse
+        {
+            SessionToken = token,
+            ExpiresAt = expiresAt.ToUnixTimeSeconds()
+        };
     }
 
     public async Task<OneOf<EnvimaniaSessionRecordResponse, ValidationFailureResponse, ActionForbiddenResponse>> SetSessionRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, HttpRequest httpRequest, CancellationToken cancellationToken)
