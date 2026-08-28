@@ -555,7 +555,7 @@ public sealed class EnvimaniaService(
 
         // VALIDATION START
 
-        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
+        var userModel = await userService.GetAsync(principal.GetName(), cancellationToken);
 
         if (userModel is null)
         {
@@ -571,7 +571,7 @@ public sealed class EnvimaniaService(
         var timestamp = serverTimestamp;
 
         using var ms = new MemoryStream();
-        await request.Body.CopyToAsync(ms, CancellationToken.None);
+        await request.Body.CopyToAsync(ms, cancellationToken);
 
         var timestampSuggestedByUser = default(DateTimeOffset?);
         if (request.Headers.TryGetValue("X-Envimix-Timestamp", out var tsValues) && long.TryParse(tsValues.FirstOrDefault(), out var tsLong))
@@ -586,7 +586,7 @@ public sealed class EnvimaniaService(
 
         ms.Position = 0;
 
-        var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: CancellationToken.None);
+        var ghost = await Gbx.ParseNodeAsync<CGameCtnGhost>(ms, cancellationToken: cancellationToken);
 
         if (!ValidateGhost(ghost, out var carName, out var laps, out var validationFailure))
         {
@@ -596,7 +596,7 @@ public sealed class EnvimaniaService(
 
         var ghostRawData = ms.ToArray();
 
-        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, CancellationToken.None);
+        var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, cancellationToken);
 
         activity?.SetTag("map.uid", map.Id);
         activity?.SetTag("car.name", carName);

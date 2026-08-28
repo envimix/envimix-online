@@ -165,7 +165,7 @@ public static class MapEndpoints
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
-        var userModel = await userService.GetAsync(principal.GetName(), CancellationToken.None);
+        var userModel = await userService.GetAsync(principal.GetName(), cancellationToken);
 
         if (userModel is null)
         {
