@@ -3,6 +3,7 @@
 @using EnvimixWebsite.Services
 @inject IIdentityService IdentityService
 @inject NavigationManager NavManager
+@inject ILogger<Profile> Logger
 @attribute [Authorize]
 @attribute [StreamRendering]
 
@@ -87,7 +88,7 @@
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception if you have logging configured
+                    Logger.LogError(ex, "Unable to load profile information");
                 }
             }
         }
