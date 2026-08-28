@@ -826,17 +826,22 @@ public sealed class EnvimaniaService(
         // VALIDATION END
 
         var filters = new List<EnvimaniaRecordFilter>();
+        var acceptedRecordCount = 0;
 
-        foreach (var r in allowedRequests)
+        foreach (var r in allowedRequests.OrderBy(x => x.Record.Time))
         {
-            await AddRecordAsync(r, principal, cancellationToken);
+            if (await AddRecordAsync(r, principal, cancellationToken) is not null)
+            {
+                continue;
+            }
 
             filters.Add(new() { Car = r.Car, Gravity = r.Gravity });
+            acceptedRecordCount++;
         }
 
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("{recCount} records set successfully.", allowedRequests.Count);
+        logger.LogInformation("{recCount} records set successfully.", acceptedRecordCount);
 
         // Get updated record list
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
@@ -919,7 +924,7 @@ public sealed class EnvimaniaService(
         var gravity = request.Gravity;
         var laps = request.Laps;
 
-        var bestLastCheckpointsQueryable = db.Records
+        var playerRecordsQueryable = db.Records
             .Include(x => x.User)
             .Include(x => x.Car)
             .Include(x => x.Map)
@@ -928,7 +933,31 @@ public sealed class EnvimaniaService(
                 && x.Car == car
                 && x.Gravity == gravity
                 && x.Laps == laps
+                && !x.Removed);
+
+        var persistedBestTime = await playerRecordsQueryable
+            .MinAsync(x => (int?)x.Time, cancellationToken);
+
+        var pendingBestTime = db.Records.Local
+            .Where(x => x.User == userModel
+                && x.Map == map
+                && x.Car == car
+                && x.Gravity == gravity
+                && x.Laps == laps
                 && !x.Removed)
+            .Select(x => (int?)x.Time)
+            .Min();
+
+        var bestTime = new[] { persistedBestTime, pendingBestTime }
+            .Where(x => x.HasValue)
+            .Min();
+
+        if (bestTime.HasValue && request.Record.Time > bestTime.Value)
+        {
+            return "Invalid record";
+        }
+
+        var bestLastCheckpointsQueryable = playerRecordsQueryable
             .Select(x => x.Checkpoints.OrderBy(x => x.Time).Last());
 
         var isPb = await IsRecordPersonalBestAsync(bestLastCheckpointsQueryable, request.Record, cancellationToken);
