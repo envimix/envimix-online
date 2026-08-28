@@ -279,52 +279,60 @@ public static class EnvimaniaEndpoints
         );
     }
 
+    private static readonly object restoreValidationsLock = new();
     private static Task? restoreValidationsTask;
 
-    private static async Task<Results<Ok, Conflict>> RestoreValidations(IServiceScopeFactory serviceScopeFactory, CancellationToken cancellationToken)
+    private static Results<Ok, Conflict> RestoreValidations(IServiceScopeFactory serviceScopeFactory, ILoggerFactory loggerFactory)
     {
-        if (restoreValidationsTask is not null)
+        lock (restoreValidationsLock)
         {
-            return TypedResults.Conflict();
-        }
+            if (restoreValidationsTask is { IsCompleted: false })
+            {
+                return TypedResults.Conflict();
+            }
 
-        restoreValidationsTask = Task.Run(async () =>
-        {
-            try
+            restoreValidationsTask = Task.Run(async () =>
             {
-                await using var scope = serviceScopeFactory.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<IEnvimaniaService>().RestoreValidationsAsync(CancellationToken.None);
-            }
-            finally
-            {
-                restoreValidationsTask = null;
-            }
-        }, cancellationToken);
+                try
+                {
+                    await using var scope = serviceScopeFactory.CreateAsyncScope();
+                    await scope.ServiceProvider.GetRequiredService<IEnvimaniaService>().RestoreValidationsAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger(typeof(EnvimaniaEndpoints).FullName!).LogError(ex, "Restoring validations failed");
+                }
+            }, CancellationToken.None);
+        }
 
         return TypedResults.Ok();
     }
 
+    private static readonly object restoreRecordsLock = new();
     private static Task? restoreRecordsTask;
 
-    private static async Task<Results<Ok, Conflict>> RestoreRecords(IServiceScopeFactory serviceScopeFactory, CancellationToken cancellationToken)
+    private static Results<Ok, Conflict> RestoreRecords(IServiceScopeFactory serviceScopeFactory, ILoggerFactory loggerFactory)
     {
-        if (restoreRecordsTask is not null)
+        lock (restoreRecordsLock)
         {
-            return TypedResults.Conflict();
-        }
+            if (restoreRecordsTask is { IsCompleted: false })
+            {
+                return TypedResults.Conflict();
+            }
 
-        restoreRecordsTask = Task.Run(async () =>
-        {
-            try
+            restoreRecordsTask = Task.Run(async () =>
             {
-                await using var scope = serviceScopeFactory.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<IEnvimaniaService>().RestoreRecordsAsync(CancellationToken.None);
-            }
-            finally
-            {
-                restoreRecordsTask = null;
-            }
-        }, cancellationToken);
+                try
+                {
+                    await using var scope = serviceScopeFactory.CreateAsyncScope();
+                    await scope.ServiceProvider.GetRequiredService<IEnvimaniaService>().RestoreRecordsAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger(typeof(EnvimaniaEndpoints).FullName!).LogError(ex, "Restoring records failed");
+                }
+            }, CancellationToken.None);
+        }
 
         return TypedResults.Ok();
     }
