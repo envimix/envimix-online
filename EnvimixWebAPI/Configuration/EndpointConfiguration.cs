@@ -26,7 +26,6 @@ public static class EndpointConfiguration
         TotdEndpoints.Map(app.MapGroup("/totd"));
         ZoneEndpoints.Map(app.MapGroup("/zones"));
         UserEndpoints.Map(app.MapGroup("/users"));
-        ActivityEndpoints.Map(app.MapGroup("/activity"));
         TitleEndpoints.Map(app.MapGroup("/titles"));
         GhostEndpoints.Map(app.MapGroup("/ghosts"));
     }
