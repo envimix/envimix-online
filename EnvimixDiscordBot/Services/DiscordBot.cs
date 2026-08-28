@@ -175,7 +175,7 @@ internal sealed class DiscordBot : IDiscordBot
             LogSeverity.Info => LogLevel.Information,
             LogSeverity.Verbose => LogLevel.Debug,
             LogSeverity.Debug => LogLevel.Trace,
-            _ => throw new NotImplementedException()
+            _ => LogLevel.Debug
         },
             msg.Exception, "{message}", msg.Message ?? msg.Exception?.Message);
 
