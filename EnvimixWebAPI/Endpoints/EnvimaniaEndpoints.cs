@@ -3,6 +3,7 @@ using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace EnvimixWebAPI.Endpoints;
@@ -13,8 +14,8 @@ public static class EnvimaniaEndpoints
     {
         group.WithTags("Envimania");
 
-        group.MapPost("register", Register)
-            .RequireAuthorization(Policies.ManiaPlanetUserPolicy);
+        group.MapPost("register", Register);
+        group.MapGet("registered", GetRegistered);
 
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
@@ -48,11 +49,17 @@ public static class EnvimaniaEndpoints
 
     private static async Task<Results<Ok<EnvimaniaServer>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>, ForbidHttpResult>> Register(
         [FromBody] EnvimaniaRegistrationRequest registerRequest,
+        HttpRequest request,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
-        var result = await envimaniaService.RegisterAsync(registerRequest, principal, cancellationToken);
+        var authorization = request.Headers.Authorization.ToString();
+        var identityAccessToken = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? authorization["Bearer ".Length..].Trim()
+            : null;
+
+        var result = await envimaniaService.RegisterAsync(registerRequest, principal, identityAccessToken, cancellationToken);
 
         return result.Match<Results<Ok<EnvimaniaServer>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(validResponse), // TODO: use Created here instead
@@ -60,6 +67,19 @@ public static class EnvimaniaEndpoints
             actionUnprocessable => TypedResults.UnprocessableEntity(actionUnprocessable),
             actionForbidden => TypedResults.Forbid()
         );
+    }
+
+    private static async Task<Ok<string[]>> GetRegistered(
+        [FromQuery] string[] serverLogin,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var registered = await db.Servers
+            .Where(x => serverLogin.Contains(x.Id))
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(registered);
     }
 
     private static async Task<Results<Ok<EnvimaniaBanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>> Ban(

@@ -46,7 +46,7 @@ public static class WebConfiguration
 
         services.AddHttpContextAccessor();
         services.AddHttpClient<IIdentityService, IdentityService>();
-        services.AddScoped<IIdentityService, IdentityService>();
+        services.AddHttpClient<IEnvimixService, EnvimixService>();
 
         // Figures out HTTPS behind proxies
         services.Configure<ForwardedHeadersOptions>(options =>

@@ -2,6 +2,7 @@
 @using System.Security.Claims
 @using EnvimixWebsite.Services
 @inject IIdentityService IdentityService
+@inject IEnvimixService EnvimixService
 @inject NavigationManager NavManager
 @inject ILogger<Profile> Logger
 @attribute [Authorize]
@@ -34,20 +35,38 @@
                     }
                     else
                     {
-                        <p>Soon, you will be able to register one of these servers:</p>
-                        <ul>
+                        <table class="server-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Server login</th>
+                                    <th scope="col">Last seen online</th>
+                                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             @foreach (var server in userInfo.Data?.ManiaPlanet?.DedicatedAccounts ?? [])
                             {
-                                <li>
-                                    <span>@server.Login</span>
-
-                                    @if (server.LastUsedAt is not null)
-                                    {
-                                        <span style="color: #888"> (spotted online at: @(DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")))</span>
-                                    }
-                                </li>
+                                <tr>
+                                    <td>@server.Login</td>
+                                    <td>@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
+                                    <td class="server-action">
+                                        @if (registeredServers.Contains(server.Login))
+                                        {
+                                            <button type="button" disabled>Registered</button>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" action="/profile/servers/register">
+                                                <AntiforgeryToken />
+                                                <input type="hidden" name="serverLogin" value="@server.Login" />
+                                                <button type="submit">Register</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
                             }
-                        </ul>
+                            </tbody>
+                        </table>
                         <p>Don't see your server? Try <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                     }
                 }
@@ -71,6 +90,7 @@
 @code {
     private UserDto? userInfo;
     private bool isLoading = true;
+    private HashSet<string> registeredServers = new(StringComparer.OrdinalIgnoreCase);
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -85,6 +105,8 @@
                 try
                 {
                     userInfo = await IdentityService.GetCurrentUserAsync(authState.User);
+                    var serverLogins = userInfo?.Data?.ManiaPlanet?.DedicatedAccounts.Select(x => x.Login) ?? [];
+                    registeredServers = await EnvimixService.GetRegisteredServersAsync(serverLogins);
                 }
                 catch (Exception ex)
                 {

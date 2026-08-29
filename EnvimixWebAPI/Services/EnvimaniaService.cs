@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
 using OneOf;
 using System.Data;
 using System.Diagnostics;
@@ -30,7 +31,7 @@ namespace EnvimixWebAPI.Services;
 public interface IEnvimaniaService
 {
     Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>>
-        RegisterAsync(EnvimaniaRegistrationRequest registerRequest, ClaimsPrincipal principal, CancellationToken cancellationToken);
+        RegisterAsync(EnvimaniaRegistrationRequest registerRequest, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>>
         BanAsync(EnvimaniaBanRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
@@ -121,6 +122,7 @@ public sealed class EnvimaniaService(
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
         ClaimsPrincipal principal,
+        string? identityAccessToken,
         CancellationToken cancellationToken)
     {
         // VALIDATION START
@@ -143,29 +145,40 @@ public sealed class EnvimaniaService(
             return new ActionUnprocessableResponse("Server login already registered");
         }
 
-        // Check for server ownership (skipped for super admins)
-        if (!principal.IsInRole(Roles.SuperAdmin))
+        if (principal.Identity?.IsAuthenticated == true)
         {
-            if (string.IsNullOrWhiteSpace(request.ServerToken))
+            if (!principal.IsInRole(Roles.Admin) && !principal.IsInRole(Roles.SuperAdmin))
             {
-                return new ActionForbiddenResponse("Server registering from principals is not yet supported");
-
-                /*var userOwnsServerLogin = await UserOwnsServerLoginAsync(request.ServerLogin, principal, cancellationToken);
-
-                if (!userOwnsServerLogin)
+                if (string.IsNullOrWhiteSpace(request.ServerToken))
                 {
-                    return new ActionForbiddenResponse("Server login not owned by user");
-                }*/
+                    return new ActionForbiddenResponse("Server token is required");
+                }
+
+                var ingameAuthResult = await mpIngameApi.AuthenticateAsync(request.ServerLogin, request.ServerToken, cancellationToken);
+
+                if (ingameAuthResult.Login != request.ServerLogin)
+                {
+                    return new ActionForbiddenResponse("Invalid server token");
+                }
+
+                logger.LogDebug("Server ownership of {serverLogin} verified.", request.ServerLogin);
             }
-
-            var ingameAuthResult = await mpIngameApi.AuthenticateAsync(request.ServerLogin, request.ServerToken, cancellationToken);
-
-            if (ingameAuthResult.Login != request.ServerLogin)
+        }
+        else
+        {
+            var identityUser = await GetIdentityUserAsync(identityAccessToken, cancellationToken);
+            if (identityUser is null)
             {
-                return new ActionForbiddenResponse("Invalid server token");
+                return new ActionForbiddenResponse("Unable to verify identity");
             }
 
-            logger.LogDebug("Server ownership of {serverLogin} verified.", request.ServerLogin);
+            var ownsServer = identityUser.Data?.ManiaPlanet?.DedicatedAccounts
+                .Any(x => string.Equals(x.Login, request.ServerLogin, StringComparison.OrdinalIgnoreCase)) == true;
+
+            if (!ownsServer)
+            {
+                return new ActionForbiddenResponse("Server login not owned by user");
+            }
         }
 
         // VALIDATION END
@@ -184,6 +197,26 @@ public sealed class EnvimaniaService(
         {
             ServerLogin = server.Id
         };
+    }
+
+    private async Task<IdentityUser?> GetIdentityUserAsync(string? identityAccessToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(identityAccessToken))
+        {
+            return null;
+        }
+
+        using var identityRequest = new HttpRequestMessage(HttpMethod.Get, $"{config["IdentityManager"]}/api/me");
+        identityRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", identityAccessToken);
+        using var identityResponse = await http.SendAsync(identityRequest, cancellationToken);
+
+        if (!identityResponse.IsSuccessStatusCode)
+        {
+            logger.LogWarning("Identity rejected server registration with status {StatusCode}", identityResponse.StatusCode);
+            return null;
+        }
+
+        return await identityResponse.Content.ReadFromJsonAsync<IdentityUser>(cancellationToken);
     }
 
     /*private async Task<bool> UserOwnsServerLoginAsync(string serverLogin, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -211,6 +244,11 @@ public sealed class EnvimaniaService(
 
         return serverIsOwned;
     }*/
+
+    private sealed record IdentityUser(IdentityUserData? Data);
+    private sealed record IdentityUserData(IdentityManiaPlanetData? ManiaPlanet);
+    private sealed record IdentityManiaPlanetData(IReadOnlyList<IdentityDedicatedAccount> DedicatedAccounts);
+    private sealed record IdentityDedicatedAccount(string Login);
 
     public async Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>> BanAsync(
         EnvimaniaBanRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
