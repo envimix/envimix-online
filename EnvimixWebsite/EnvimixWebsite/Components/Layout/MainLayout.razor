@@ -15,7 +15,7 @@
             <ReuNavItem Name="Profile" Href="profile" IconType="IconType.Person" IconOnly="true" Title="Profile"></ReuNavItem>
         </Authorized>
         <NotAuthorized>
-            <ReuNavItem Name="Login" Href="@($"login?returnUrl={Uri.EscapeDataString(NavManager.BaseUri)}")" IconType="IconType.Login" IsNavLink="false" IconOnly="true" Title="Login"></ReuNavItem>
+            <ReuNavItem Name="Login" Href="@($"login?returnUrl={Uri.EscapeDataString(NavManager.Uri)}")" IconType="IconType.Login" IsNavLink="false" IconOnly="true" Title="Login"></ReuNavItem>
         </NotAuthorized>
     </AuthorizeView>
 </ReuNavMenu>
