@@ -860,12 +860,16 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        if (await AddRecordAsync(request, principal, cancellationToken) is string msgAfter)
+        var addition = await AddRecordAsync(request, principal, cancellationToken);
+
+        if (addition.Error is string msgAfter)
         {
             return new ValidationFailureResponse(msgAfter);
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await ReportSessionRecordsAsync([addition.Record!], cancellationToken);
 
         logger.LogInformation("Record set successfully.");
 
@@ -1170,20 +1174,26 @@ public sealed class EnvimaniaService(
         // VALIDATION END
 
         var filters = new List<EnvimaniaRecordFilter>();
+        var additions = new List<SessionRecordAddition>();
         var acceptedRecordCount = 0;
 
         foreach (var r in allowedRequests.OrderBy(x => x.Record.Time))
         {
-            if (await AddRecordAsync(r, principal, cancellationToken) is not null)
+            var addition = await AddRecordAsync(r, principal, cancellationToken);
+
+            if (addition.Error is not null)
             {
                 continue;
             }
 
+            additions.Add(addition.Record!);
             filters.Add(new() { Car = r.Car, Gravity = r.Gravity });
             acceptedRecordCount++;
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await ReportSessionRecordsAsync(additions, cancellationToken);
 
         logger.LogInformation("{recCount} records set successfully.", acceptedRecordCount);
 
@@ -1253,7 +1263,7 @@ public sealed class EnvimaniaService(
         return null;
     }
 
-    private async Task<string?> AddRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
+    private async Task<(string? Error, SessionRecordAddition? Record)> AddRecordAsync(EnvimaniaSessionRecordRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var userModel = await userService.GetAddOrUpdateAsync(request.User, cancellationToken);
 
@@ -1298,7 +1308,7 @@ public sealed class EnvimaniaService(
 
         if (bestTime.HasValue && request.Record.Time > bestTime.Value)
         {
-            return "Invalid record";
+            return ("Invalid record", null);
         }
 
         var bestLastCheckpointsQueryable = playerRecordsQueryable
@@ -1308,8 +1318,26 @@ public sealed class EnvimaniaService(
 
         if (!isPb)
         {
-            return "Invalid record";
+            return ("Invalid record", null);
         }
+
+        var persistedWorldRecord = await db.Records
+            .Include(x => x.User)
+            .Include(x => x.Car)
+            .Include(x => x.Map)
+            .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
+            .OrderBy(x => x.Time)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var pendingWorldRecord = db.Records.Local
+            .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
+            .OrderBy(x => x.Time)
+            .FirstOrDefault();
+
+        var currentWorldRecord = new[] { persistedWorldRecord, pendingWorldRecord }
+            .Where(x => x is not null)
+            .OrderBy(x => x!.Time)
+            .FirstOrDefault();
 
         var record = new RecordEntity
         {
@@ -1340,8 +1368,32 @@ public sealed class EnvimaniaService(
 
         await db.Records.AddAsync(record, cancellationToken);
 
-        return null;
+        return (null, new SessionRecordAddition(record, currentWorldRecord, currentWorldRecord is null));
     }
+
+    private async Task ReportSessionRecordsAsync(IEnumerable<SessionRecordAddition> additions, CancellationToken cancellationToken)
+    {
+        foreach (var addition in additions)
+        {
+            var record = addition.Record;
+
+            if (addition.IsValidation)
+            {
+                logger.LogInformation("New validation by {user} on map {mapName} with car {carName}: {time}ms", record.User.Id, TextFormatter.Deformat(record.Map.Name), record.Car.Id, record.Time);
+
+                await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
+                await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(record.Map, record.Car.Id, record.Gravity, record.Laps), cancellationToken);
+            }
+            else if (record.Time < addition.PreviousWorldRecord?.Time && record.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
+            {
+                logger.LogInformation("New world record by {user} on map {mapName} with car {carName}: {time}ms (previous WR: {prevTime}ms)", record.User.Id, TextFormatter.Deformat(record.Map.Name), record.Car.Id, record.Time, addition.PreviousWorldRecord.Time);
+
+                await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(record, addition.PreviousWorldRecord), cancellationToken);
+            }
+        }
+    }
+
+    private sealed record SessionRecordAddition(RecordEntity Record, RecordEntity? PreviousWorldRecord, bool IsValidation);
 
     private static async Task<bool> IsRecordPersonalBestAsync(IQueryable<CheckpointEntity> bestLastCheckpointsQueryable, EnvimaniaRecord requestRecord, CancellationToken cancellationToken)
     {
