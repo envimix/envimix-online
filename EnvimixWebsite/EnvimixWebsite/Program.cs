@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDomainServices();
-builder.Services.AddAuthenticationServices(builder.Environment);
+builder.Services.AddAuthenticationServices(builder.Configuration, builder.Environment);
 builder.Services.AddWebServices(builder.Configuration);
 builder.Services.AddCacheServices();
 builder.Services.AddTelemetryServices(builder.Configuration, builder.Environment);
