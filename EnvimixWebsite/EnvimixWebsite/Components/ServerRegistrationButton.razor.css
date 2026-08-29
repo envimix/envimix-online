@@ -1,0 +1,7 @@
+.server-registration-button ::deep .reu-button {
+    padding-inline: 1rem;
+}
+
+form {
+    margin: 0;
+}

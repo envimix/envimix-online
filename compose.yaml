@@ -7,19 +7,60 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       CONNECTIONSTRINGS__DEFAULTCONNECTION: Server=mariadb;Port=3306;Database=envimix;User=root;
+      JWT__KEY: ${IDENTITY_JWT_KEY:-}
+      MANIAPLANET__CLIENTID: ${MANIAPLANET_CLIENT_ID:-}
+      MANIAPLANET__CLIENTSECRET: ${MANIAPLANET_CLIENT_SECRET:-}
+      IDENTITYMANAGER: http://identity:8080
     ports:
       - 8080:8080
     depends_on:
       mariadb:
         condition: service_healthy
+      identity:
+        condition: service_started
 
   envimix-website:
     build:
       context: .
       dockerfile: EnvimixWebsite/EnvimixWebsite/Dockerfile
       target: final
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ENVIMIXAPI: http://envimix-webapi:8080
+      IDENTITYMANAGER: http://identity:8080
+      IDENTITYMANAGERPUBLIC: http://localhost:8082
     ports:
       - 8081:8080
+    volumes:
+      - identity-data-protection:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      - envimix-webapi
+      - identity
+
+  identity:
+    build:
+      context: .
+      dockerfile: Identity.Dockerfile
+      target: final
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      CONNECTIONSTRINGS__DEFAULTCONNECTION: Server=mariadb;Port=3306;Database=gbx_tools_identity;User=root;
+      JWT__KEY: ${IDENTITY_JWT_KEY:-}
+      MANIAPLANET__CLIENTID: ${MANIAPLANET_CLIENT_ID:-}
+      MANIAPLANET__CLIENTSECRET: ${MANIAPLANET_CLIENT_SECRET:-}
+      TRACKMANIA__CLIENTID: ${TRACKMANIA_CLIENT_ID:-}
+      TRACKMANIA__CLIENTSECRET: ${TRACKMANIA_CLIENT_SECRET:-}
+      DISCORD__CLIENTID: ${DISCORD_CLIENT_ID:-}
+      DISCORD__CLIENTSECRET: ${DISCORD_CLIENT_SECRET:-}
+      GITHUB__CLIENTID: ${GITHUB_CLIENT_ID:-}
+      GITHUB__CLIENTSECRET: ${GITHUB_CLIENT_SECRET:-}
+    ports:
+      - 8082:8080
+    volumes:
+      - identity-data-protection:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      mariadb:
+        condition: service_healthy
 
 #  envimix-discord-bot:
 #    build:
@@ -51,11 +92,14 @@ services:
     image: beeyev/phpmyadmin-lightweight
     restart: unless-stopped
     ports:
-      - 9014:80
+      - 9015:80
     environment:
       PMA_HOST: mariadb
       PMA_USER: root
     depends_on:
       mariadb:
         condition: service_healthy
+
+volumes:
+  identity-data-protection:
 

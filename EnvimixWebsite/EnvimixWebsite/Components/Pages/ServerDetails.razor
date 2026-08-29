@@ -1,0 +1,176 @@
+@page "/envimania/servers/{ServerLogin}"
+@inject IEnvimixService EnvimixService
+@inject ILogger<ServerDetails> Logger
+@attribute [StreamRendering]
+
+<PageTitle>@(server?.ServerLogin ?? ServerLogin) - ENVIMIX server</PageTitle>
+
+<ReuContainer>
+    <p><a href="/envimania/servers">Registered servers</a></p>
+
+    @if (isLoading)
+    {
+        <p>Loading server information...</p>
+    }
+    else if (loadFailed)
+    {
+        <h2>@ServerLogin</h2>
+        <p>Unable to load server information at this time.</p>
+    }
+    else if (server is null)
+    {
+        <h2>Server not found</h2>
+        <p><strong>@ServerLogin</strong> is not registered with Envimania.</p>
+    }
+    else
+    {
+        <h2>@server.ServerLogin</h2>
+
+        <dl class="server-summary">
+            <div>
+                <dt>Status</dt>
+                <dd>@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</dd>
+            </div>
+            <div>
+                <dt>Sessions</dt>
+                <dd>@server.SessionCount</dd>
+            </div>
+            <div>
+                <dt>Last seen</dt>
+                <dd>@FormatDateTime(server.LastSeenAt)</dd>
+            </div>
+        </dl>
+
+        <h3>Recent sessions</h3>
+        @if (server.RecentSessions.Length == 0)
+        {
+            <p>This server has not started an Envimania session yet.</p>
+        }
+        else
+        {
+            <table class="session-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Map</th>
+                        <th scope="col">Started</th>
+                        <th scope="col">Ended</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var session in server.RecentSessions)
+                    {
+                        <tr>
+                            <td>
+                                <span class="map-name">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</span>
+                                @if (!string.IsNullOrWhiteSpace(session.MapName))
+                                {
+                                    <small>@session.MapUid</small>
+                                }
+                            </td>
+                            <td>@FormatDateTime(session.StartedAt)</td>
+                            <td>@FormatDateTime(session.EndedAt, "Not closed")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (server.CanDelete)
+        {
+            <section class="danger-zone">
+                <h2>Danger zone</h2>
+                <div class="danger-actions">
+                    @if (server.IsHidden && server.CanAdminister)
+                    {
+                        <form method="post" action="/profile/servers/register">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                            <input type="hidden" name="returnToServer" value="true" />
+                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Register</ReuButton>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" action="/profile/servers/delete" onsubmit="return confirm('Unregister this server from Envimania? Its data will be preserved and admins will continue seeing it.');">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Unregister</ReuButton>
+                        </form>
+                    }
+
+                    @if (server.CanAdminister)
+                    {
+                        @if (!server.IsBanned)
+                        {
+                            <form method="post" action="/profile/servers/ban" onsubmit="const reason = prompt('Enter the ban reason:'); if (reason === null || !reason.trim()) return false; this.elements.reason.value = reason.trim(); return true;">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                                <input type="hidden" name="reason" />
+                                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Ban</ReuButton>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post" action="/profile/servers/unban" onsubmit="return confirm('Unban this server?');">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Unban</ReuButton>
+                            </form>
+                        }
+
+                        <form method="post" action="/profile/servers/delete-records" onsubmit="return confirm('Permanently delete every record driven on this server?');">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Delete records</ReuButton>
+                        </form>
+
+                        <form method="post" action="/profile/servers/delete-ratings" onsubmit="return confirm('Permanently delete every rating submitted by this server?');">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Delete ratings</ReuButton>
+                        </form>
+
+                        <form method="post" action="/profile/servers/wipe" onsubmit="return confirm('Permanently wipe this server, including its registration, sessions, records, and ratings? This cannot be undone.');">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
+                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Full wipe</ReuButton>
+                        </form>
+                    }
+                </div>
+            </section>
+        }
+    }
+</ReuContainer>
+
+@code {
+    [Parameter]
+    public string ServerLogin { get; set; } = "";
+
+    private EnvimaniaServerInfo? server;
+    private bool isLoading = true;
+    private bool loadFailed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+
+        try
+        {
+            server = await EnvimixService.GetServerAsync(ServerLogin);
+        }
+        catch (Exception ex)
+        {
+            server = null;
+            loadFailed = true;
+            Logger.LogError(ex, "Unable to load server {ServerLogin}", ServerLogin);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
+        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;
+}

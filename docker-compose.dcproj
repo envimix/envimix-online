@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.Docker.Sdk">
+  <PropertyGroup>
+    <DockerTargetOS>Linux</DockerTargetOS>
+    <ProjectVersion>2.1</ProjectVersion>
+    <DockerComposeBaseFilePath>compose</DockerComposeBaseFilePath>
+    <DockerDevelopmentMode>Fast</DockerDevelopmentMode>
+    <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
+    <DockerServiceName>envimix-website</DockerServiceName>
+    <DockerServiceUrl>{Scheme}://localhost:{ServicePort}</DockerServiceUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include=".dockerignore" />
+    <None Include="compose.yaml" />
+  </ItemGroup>
+</Project>

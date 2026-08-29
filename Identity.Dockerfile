@@ -1,16 +1,19 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS base
-USER $APP_UID
 WORKDIR /app
+RUN mkdir -p /home/app/.aspnet/DataProtection-Keys && chown -R $APP_UID /home/app/.aspnet
+USER $APP_UID
 EXPOSE 8080
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 RUN apk add --no-cache git
-COPY .git .
-
-COPY EnvimixWebAPI/. /src
 
 WORKDIR /src
+COPY .git .git
+COPY identity/BigBang1112.GbxTools.Identity.Api/ BigBang1112.GbxTools.Identity.Api/
+COPY identity/BigBang1112.GbxTools.Identity/ BigBang1112.GbxTools.Identity/
+
+WORKDIR /src/BigBang1112.GbxTools.Identity
 
 ARG TARGETARCH
 ARG BUILD_CONFIGURATION=Release
@@ -28,4 +31,4 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
 FROM base AS final
 COPY --from=publish /app/publish .
 
-ENTRYPOINT ["dotnet", "EnvimixWebAPI.dll"]
+ENTRYPOINT ["dotnet", "BigBang1112.GbxTools.Identity.dll"]

@@ -32,8 +32,14 @@
                         <li>Your ManiaPlanet nickname: <TmEssentials.Razor.FormattedText Text="@mpUser.Name"></TmEssentials.Razor.FormattedText></li>
                     </ul>
                     <h3>Register your login as a server to Envimania</h3>
-                    <p>Registering your ManiaPlanet login as a server allows Envimania support for online server created by your ManiaPlanet client.</p>
-                    <ServerRegistrationButton ServerLogin="@mpUser.Id" IsRegistered="@registeredServers.Contains(mpUser.Id)" />
+                    <p>Registering your ManiaPlanet login as a server allows Envimania support for online servers created by your ManiaPlanet client.</p>
+                    <div class="own-server-registration">
+                        <ServerRegistrationButton ServerLogin="@mpUser.Id" IsRegistered="@registeredServers.Contains(mpUser.Id)" />
+                        @if (registeredServers.Contains(mpUser.Id))
+                        {
+                            <a href="@GetServerUrl(mpUser.Id)">View server</a>
+                        }
+                    </div>
 
                     <h3>Register dedicated server to Envimania</h3>
                     @if (dedicatedServers.Count == 0)
@@ -43,6 +49,7 @@
                     }
                     else
                     {
+                        <p>Don't see your server? Try <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                         <table class="server-table">
                             <thead>
                                 <tr>
@@ -55,7 +62,16 @@
                             @foreach (var server in dedicatedServers)
                             {
                                 <tr>
-                                    <td>@server.Login</td>
+                                    <td>
+                                        @if (registeredServers.Contains(server.Login))
+                                        {
+                                            <a href="@GetServerUrl(server.Login)">@server.Login</a>
+                                        }
+                                        else
+                                        {
+                                            @server.Login
+                                        }
+                                    </td>
                                     <td>@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
                                     <td class="server-action">
                                         <ServerRegistrationButton ServerLogin="@server.Login" IsRegistered="@registeredServers.Contains(server.Login)" />
@@ -64,12 +80,25 @@
                             }
                             </tbody>
                         </table>
-                        <p>Don't see your server? Try <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                     }
                 }
                 else
                 {
                     <p>You don't have a ManiaPlanet account associated with your account. Here is <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">a quick link to associate it</a>.</p>
+                }
+
+                @if (canAdminister)
+                {
+                    <h3>Register any server</h3>
+                    <form class="admin-registration" method="post" action="/profile/servers/register">
+                        <AntiforgeryToken />
+                        <label for="admin-server-login">Server login:</label>
+                        <div class="admin-registration-control">
+                            <input class="text" id="admin-server-login" name="serverLogin" required autocomplete="off" placeholder="Enter a server login" />
+                            <input type="hidden" name="returnToServer" value="true" />
+                            <ReuButton type="submit">Register</ReuButton>
+                        </div>
+                    </form>
                 }
             }
             else if (isLoading)
@@ -87,7 +116,11 @@
 @code {
     private UserDto? userInfo;
     private bool isLoading = true;
+    private bool canAdminister;
     private HashSet<string> registeredServers = new(StringComparer.OrdinalIgnoreCase);
+
+    private static string GetServerUrl(string serverLogin)
+        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -102,6 +135,7 @@
                 try
                 {
                     userInfo = await IdentityService.GetCurrentUserAsync(authState.User);
+                    canAdminister = authState.User.IsInRole(Roles.Admin);
                     var serverLogins = userInfo?.Data?.ManiaPlanet?.DedicatedAccounts.Select(x => x.Login).ToList() ?? [];
                     if (userInfo?.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser) == true)
                     {

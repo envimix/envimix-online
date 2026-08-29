@@ -15,7 +15,15 @@ public static class EnvimaniaEndpoints
         group.WithTags("Envimania");
 
         group.MapPost("register", Register);
+        group.MapDelete("servers/{serverLogin}", SoftDeleteServer);
+        group.MapDelete("servers/{serverLogin}/wipe", WipeServer);
+        group.MapDelete("servers/{serverLogin}/records", DeleteServerRecords);
+        group.MapDelete("servers/{serverLogin}/ratings", DeleteServerRatings);
+        group.MapPost("servers/{serverLogin}/ban", BanServer);
+        group.MapPost("servers/{serverLogin}/unban", UnbanServer);
         group.MapGet("registered", GetRegistered);
+        group.MapGet("servers", GetServers);
+        group.MapGet("servers/{serverLogin}", GetServer);
 
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
@@ -75,11 +83,199 @@ public static class EnvimaniaEndpoints
         CancellationToken cancellationToken)
     {
         var registered = await db.Servers
-            .Where(x => serverLogin.Contains(x.Id))
+            .Where(x => x.DeletedAt == null && serverLogin.Contains(x.Id))
             .Select(x => x.Id)
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(registered);
+    }
+
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> SoftDeleteServer(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.SoftDeleteServerAsync(
+            serverLogin,
+            principal,
+            GetBearerToken(request),
+            cancellationToken);
+
+        return result.Match<Results<NoContent, NotFound, ForbidHttpResult>>(
+            deleted => deleted ? TypedResults.NoContent() : TypedResults.NotFound(),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>> WipeServer(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.WipeServerAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>>(
+            response => TypedResults.Ok(response),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>> DeleteServerRecords(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.DeleteServerRecordsAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>>(
+            response => TypedResults.Ok(response),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>> DeleteServerRatings(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.DeleteServerRatingsAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<Ok<EnvimaniaServerOperationResponse>, ForbidHttpResult>>(
+            response => TypedResults.Ok(response),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult, BadRequest<string>>> BanServer(
+        string serverLogin,
+        [FromBody] EnvimaniaServerBanRequest banRequest,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var reason = banRequest.Reason.Trim();
+        if (reason.Length is 0 or > 255)
+        {
+            return TypedResults.BadRequest("Ban reason must be between 1 and 255 characters.");
+        }
+
+        var result = await envimaniaService.BanServerAsync(
+            serverLogin, reason, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<NoContent, NotFound, ForbidHttpResult, BadRequest<string>>>(
+            banned => banned ? TypedResults.NoContent() : TypedResults.NotFound(),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> UnbanServer(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.UnbanServerAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<NoContent, NotFound, ForbidHttpResult>>(
+            unbanned => unbanned ? TypedResults.NoContent() : TypedResults.NotFound(),
+            _ => TypedResults.Forbid());
+    }
+
+    private static async Task<Ok<EnvimaniaServerSummary[]>> GetServers(
+        HttpRequest request,
+        AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var access = await envimaniaService.GetServerAccessAsync(
+            "", principal, GetBearerToken(request), cancellationToken);
+
+        var servers = await db.Servers
+            .Where(x => access.CanAdminister || (x.BanReason == null && x.DeletedAt == null))
+            .OrderBy(x => x.Id)
+            .Select(x => new EnvimaniaServerSummary(
+                x.Id,
+                x.EnvimaniaSessions.Count,
+                x.EnvimaniaSessions
+                    .OrderByDescending(session => session.StartedAt)
+                    .Select(session => (DateTimeOffset?)session.StartedAt)
+                    .FirstOrDefault(),
+                x.DeletedAt != null,
+                x.BanReason != null))
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(servers);
+    }
+
+    private static async Task<Results<Ok<EnvimaniaServerInfo>, NotFound>> GetServer(
+        string serverLogin,
+        HttpRequest request,
+        AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var access = await envimaniaService.GetServerAccessAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        var server = await db.Servers
+            .Where(x => x.Id == serverLogin && (x.DeletedAt == null || access.CanAdminister))
+            .Select(x => new
+            {
+                ServerLogin = x.Id,
+                SessionCount = x.EnvimaniaSessions.Count,
+                LastSeenAt = x.EnvimaniaSessions
+                    .OrderByDescending(session => session.StartedAt)
+                    .Select(session => (DateTimeOffset?)session.StartedAt)
+                    .FirstOrDefault(),
+                IsHidden = x.DeletedAt != null,
+                IsBanned = x.BanReason != null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var recentSessions = await db.EnvimaniaSessions
+            .Where(x => x.Server.Id == serverLogin)
+            .OrderByDescending(x => x.StartedAt)
+            .Take(20)
+            .Select(x => new EnvimaniaServerSession(
+                x.Map.Id,
+                x.Map.Name,
+                x.StartedAt,
+                x.FinishedGracefully ? x.EndedAt : null))
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(new EnvimaniaServerInfo(
+            server.ServerLogin,
+            server.SessionCount,
+            server.LastSeenAt,
+            recentSessions,
+            server.IsHidden,
+            server.IsBanned,
+            access.CanDelete,
+            access.CanAdminister));
+    }
+
+    private static string? GetBearerToken(HttpRequest request)
+    {
+        var authorization = request.Headers.Authorization.ToString();
+        return authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? authorization["Bearer ".Length..].Trim()
+            : null;
     }
 
     private static async Task<Results<Ok<EnvimaniaBanResponse>, BadRequest<ValidationFailureResponse>, UnprocessableEntity<ActionUnprocessableResponse>>> Ban(

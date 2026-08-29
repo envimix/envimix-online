@@ -52,13 +52,15 @@ public static class MiddlewareConfiguration
 
         app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>
         {
-            return TypedResults.Redirect($"{app.Configuration["IdentityManager"]}/connect?returnUrl={Uri.EscapeDataString(returnUrl)}");
+            var absoluteReturnUrl = GetAbsoluteReturnUrl(context.Request, returnUrl);
+            return TypedResults.Redirect($"{app.Configuration["IdentityManagerPublic"] ?? app.Configuration["IdentityManager"]}/connect?returnUrl={Uri.EscapeDataString(absoluteReturnUrl)}");
         });
 
         app.MapGet("login/maniaplanet", async (HttpContext context, HybridCache cache, CancellationToken cancellationToken, string returnUrl = "/") =>
         {
             await cache.RemoveAsync($"identity_user_{context.User.FindFirstValue(ClaimTypes.NameIdentifier)}", cancellationToken);
-            return TypedResults.Redirect($"{app.Configuration["IdentityManager"]}/connect/maniaplanet?returnUrl={Uri.EscapeDataString(returnUrl)}");
+            var absoluteReturnUrl = GetAbsoluteReturnUrl(context.Request, returnUrl);
+            return TypedResults.Redirect($"{app.Configuration["IdentityManagerPublic"] ?? app.Configuration["IdentityManager"]}/connect/maniaplanet?returnUrl={Uri.EscapeDataString(absoluteReturnUrl)}");
         });
 
         app.MapGet("logout", async (HttpContext context, string returnUrl = "/") =>
@@ -71,5 +73,23 @@ public static class MiddlewareConfiguration
             .AddInteractiveServerRenderMode()
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
+    }
+
+    private static string GetAbsoluteReturnUrl(HttpRequest request, string returnUrl)
+    {
+        var websiteRoot = $"{request.Scheme}://{request.Host}{request.PathBase}";
+        if (returnUrl.StartsWith('/'))
+        {
+            return $"{websiteRoot}{returnUrl}";
+        }
+
+        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var absoluteUri))
+        {
+            return string.Equals(absoluteUri.Host, request.Host.Host, StringComparison.OrdinalIgnoreCase)
+                ? absoluteUri.ToString()
+                : websiteRoot;
+        }
+
+        return websiteRoot;
     }
 }

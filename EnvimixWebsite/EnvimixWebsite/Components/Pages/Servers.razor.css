@@ -1,0 +1,23 @@
+.server-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 1rem;
+}
+
+.server-table th,
+.server-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    text-align: left;
+}
+
+.server-table th {
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .server-table th,
+    .server-table td {
+        padding-inline: 0.4rem;
+    }
+}

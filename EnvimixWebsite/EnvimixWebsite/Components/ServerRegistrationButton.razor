@@ -1,15 +1,17 @@
-@if (IsRegistered)
-{
-    <ReuButton Enable="false">Registered</ReuButton>
-}
-else
-{
-    <form method="post" action="/profile/servers/register">
-        <AntiforgeryToken />
-        <input type="hidden" name="serverLogin" value="@ServerLogin" />
-        <ReuButton type="submit">Register</ReuButton>
-    </form>
-}
+<div class="server-registration-button">
+    @if (IsRegistered)
+    {
+        <ReuButton Enable="false">Registered</ReuButton>
+    }
+    else
+    {
+        <form method="post" action="/profile/servers/register">
+            <AntiforgeryToken />
+            <input type="hidden" name="serverLogin" value="@ServerLogin" />
+            <ReuButton type="submit">Register</ReuButton>
+        </form>
+    }
+</div>
 
 @code {
     [Parameter, EditorRequired]

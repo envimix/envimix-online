@@ -1,0 +1,71 @@
+.server-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 3rem;
+    margin-block: 1rem 2rem;
+}
+
+.server-summary div {
+    min-width: 8rem;
+}
+
+.server-summary dt {
+    font-weight: 600;
+}
+
+.server-summary dd {
+    margin: 0.25rem 0 0;
+}
+
+.session-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 1rem;
+}
+
+.session-table th,
+.session-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    text-align: left;
+}
+
+.session-table th {
+    font-weight: 600;
+}
+
+.map-name,
+.session-table small {
+    display: block;
+}
+
+.session-table small {
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
+.danger-zone {
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.danger-zone h2 {
+    color: var(--color-red);
+}
+
+.danger-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.danger-zone ::deep .reu-button {
+    padding: 0.5rem 1rem;
+}
+
+@media (max-width: 600px) {
+    .session-table th,
+    .session-table td {
+        padding-inline: 0.4rem;
+    }
+}

@@ -6,6 +6,7 @@ using ManiaAPI.Xml.MP4;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OneOf;
+using System.Data;
 using TmEssentials;
 
 namespace EnvimixWebAPI.Services;
@@ -49,17 +50,24 @@ public sealed class UserService(
             userRequest.User.Login = ingameAuthResult.Login.ToLower();
         }
 
-        var isAdmin = await IsAdminAsync(userRequest.User.Login, cancellationToken);
+        logger.LogInformation("Creating or updating user '{UserLogin}'...", userRequest.User.Login);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var isFirstRegisteredUser = !await db.Users.AnyAsync(x => x.Interested, cancellationToken);
+        var user = await GetAddOrUpdateModelAsync(userRequest.User, tokenId: null, interested: true, cancellationToken);
+        if (isFirstRegisteredUser)
+        {
+            user.IsAdmin = true;
+            logger.LogInformation("Promoted first registered user {UserLogin} to admin.", user.Id);
+        }
 
         logger.LogDebug("Generating new user token...");
 
-        var token = tokenService.GenerateManiaPlanetUserAccessToken(userRequest.User.Login, isAdmin, out var tokenId);
-
-        logger.LogInformation("Creating or updating user '{UserLogin}'...", userRequest.User.Login);
-
-        var user = await GetAddOrUpdateModelAsync(userRequest.User, tokenId, interested: true, cancellationToken);
+        var token = tokenService.GenerateManiaPlanetUserAccessToken(userRequest.User.Login, user.IsAdmin, out var tokenId);
+        user.TokenId = tokenId;
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         await cache.RemoveByTagAsync("user", CancellationToken.None);
 
         return new AuthenticateUserResponse
@@ -182,11 +190,6 @@ public sealed class UserService(
 
         userModel.TokenId = null;
         await db.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task<bool> IsAdminAsync(string login, CancellationToken cancellationToken)
-    {
-        return await db.Users.AnyAsync(x => x.Id == login && x.IsAdmin, cancellationToken);
     }
 
     public async Task<Dictionary<string, string>> GetNicknamesAsync(IEnumerable<string> logins, CancellationToken cancellationToken)

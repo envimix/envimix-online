@@ -14,6 +14,7 @@ public sealed class MapEntity
     public string? TitlePackId { get; set; }
 
     public ServerEntity? FirstAppearedOnServer { get; set; }
+    public string? FirstAppearedOnServerId { get; set; }
 
     public bool IsCampaignMap { get; set; }
     public int? Order { get; set; }

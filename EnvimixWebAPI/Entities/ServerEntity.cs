@@ -10,5 +10,7 @@ public sealed class ServerEntity
     [StringLength(255)]
     public string? BanReason { get; set; }
 
+    public DateTimeOffset? DeletedAt { get; set; }
+
     public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
 }

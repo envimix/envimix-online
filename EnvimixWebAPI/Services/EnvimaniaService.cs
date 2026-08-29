@@ -33,6 +33,27 @@ public interface IEnvimaniaService
     Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>>
         RegisterAsync(EnvimaniaRegistrationRequest registerRequest, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
+    Task<OneOf<bool, ActionForbiddenResponse>>
+        SoftDeleteServerAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>>
+        WipeServerAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>>
+        DeleteServerRecordsAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>>
+        DeleteServerRatingsAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<bool, ActionForbiddenResponse>>
+        BanServerAsync(string serverLogin, string reason, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<bool, ActionForbiddenResponse>>
+        UnbanServerAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<EnvimaniaServerAccess> GetServerAccessAsync(
+        string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
     Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>>
         BanAsync(EnvimaniaBanRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
@@ -140,7 +161,7 @@ public sealed class EnvimaniaService(
 
         var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
 
-        if (server is not null)
+        if (server is not null && server.DeletedAt is null)
         {
             return new ActionUnprocessableResponse("Server login already registered");
         }
@@ -172,12 +193,8 @@ public sealed class EnvimaniaService(
                 return new ActionForbiddenResponse("Unable to verify identity");
             }
 
-            var ownsServer = identityUser.Data?.ManiaPlanet?.DedicatedAccounts
-                .Any(x => string.Equals(x.Login, request.ServerLogin, StringComparison.OrdinalIgnoreCase)) == true;
-            var ownsLogin = identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser)
-                && string.Equals(maniaPlanetUser.Id, request.ServerLogin, StringComparison.OrdinalIgnoreCase);
-
-            if (!ownsServer && !ownsLogin)
+            var isAdmin = await IsEnvimixAdminAsync(identityUser, cancellationToken);
+            if (!isAdmin && !IdentityUserOwnsServer(identityUser, request.ServerLogin))
             {
                 return new ActionForbiddenResponse("Server login not owned by user");
             }
@@ -185,12 +202,18 @@ public sealed class EnvimaniaService(
 
         // VALIDATION END
 
-        server = new ServerEntity
+        if (server is not null)
         {
-            Id = request.ServerLogin
-        };
-
-        await db.Servers.AddAsync(server, cancellationToken);
+            server.DeletedAt = null;
+        }
+        else
+        {
+            server = new ServerEntity
+            {
+                Id = request.ServerLogin
+            };
+            await db.Servers.AddAsync(server, cancellationToken);
+        }
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Dedicated server {serverLogin} has been registered.", server.Id);
@@ -199,6 +222,207 @@ public sealed class EnvimaniaService(
         {
             ServerLogin = server.Id
         };
+    }
+
+    public async Task<OneOf<bool, ActionForbiddenResponse>> SoftDeleteServerAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == serverLogin && x.DeletedAt == null,
+            cancellationToken);
+        if (server is null)
+        {
+            return false;
+        }
+
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanDelete)
+        {
+            return new ActionForbiddenResponse("Server login not owned by user");
+        }
+
+        server.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Dedicated server {ServerLogin} has been soft deleted.", serverLogin);
+        return true;
+    }
+
+    public async Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>> WipeServerAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return new ActionForbiddenResponse("Envimix admin access required");
+        }
+
+        if (!await db.Servers.AnyAsync(x => x.Id == serverLogin, cancellationToken))
+        {
+            return new EnvimaniaServerOperationResponse(0);
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var sessionIds = db.EnvimaniaSessions
+            .Where(x => x.Server.Id == serverLogin)
+            .Select(x => x.Id);
+
+        var recordsDeleted = await db.Records
+            .Where(x => x.SessionId != null && sessionIds.Contains(x.SessionId.Value))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        var ratingsDeleted = await db.Ratings
+            .Where(x => x.ServerId == serverLogin)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await db.Maps
+            .Where(x => x.FirstAppearedOnServerId == serverLogin)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.FirstAppearedOnServerId, (string?)null), cancellationToken);
+
+        await db.EnvimaniaSessions
+            .Where(x => x.Server.Id == serverLogin)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        logger.LogInformation("Dedicated server data of {ServerLogin} have been fully wiped.", serverLogin);
+        return new EnvimaniaServerOperationResponse(recordsDeleted + ratingsDeleted);
+    }
+
+    public async Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>> DeleteServerRecordsAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return new ActionForbiddenResponse("Envimix admin access required");
+        }
+
+        var sessionIds = db.EnvimaniaSessions
+            .Where(x => x.Server.Id == serverLogin)
+            .Select(x => x.Id);
+        var deleted = await db.Records
+            .Where(x => x.SessionId != null && sessionIds.Contains(x.SessionId.Value))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        logger.LogInformation("Deleted {Count} records driven on server {ServerLogin}.", deleted, serverLogin);
+        return new EnvimaniaServerOperationResponse(deleted);
+    }
+
+    public async Task<OneOf<EnvimaniaServerOperationResponse, ActionForbiddenResponse>> DeleteServerRatingsAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return new ActionForbiddenResponse("Envimix admin access required");
+        }
+
+        var deleted = await db.Ratings
+            .Where(x => x.ServerId == serverLogin)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        logger.LogInformation("Deleted {Count} ratings submitted by server {ServerLogin}.", deleted, serverLogin);
+        return new EnvimaniaServerOperationResponse(deleted);
+    }
+
+    public async Task<OneOf<bool, ActionForbiddenResponse>> BanServerAsync(
+        string serverLogin,
+        string reason,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return new ActionForbiddenResponse("Envimix admin access required");
+        }
+
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == serverLogin && x.DeletedAt == null,
+            cancellationToken);
+        if (server is null)
+        {
+            return false;
+        }
+
+        server.BanReason = reason;
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Dedicated server {ServerLogin} has been banned.", serverLogin);
+        return true;
+    }
+
+    public async Task<OneOf<bool, ActionForbiddenResponse>> UnbanServerAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return new ActionForbiddenResponse("Envimix admin access required");
+        }
+
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == serverLogin && x.DeletedAt == null,
+            cancellationToken);
+        if (server is null)
+        {
+            return false;
+        }
+
+        server.BanReason = null;
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Dedicated server {ServerLogin} has been unbanned.", serverLogin);
+        return true;
+    }
+
+    public async Task<EnvimaniaServerAccess> GetServerAccessAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        if (principal.IsInRole(Roles.Admin) || principal.IsInRole(Roles.SuperAdmin))
+        {
+            return new EnvimaniaServerAccess(true, true);
+        }
+
+        var identityUser = await GetIdentityUserAsync(identityAccessToken, cancellationToken);
+        if (identityUser is null)
+        {
+            return new EnvimaniaServerAccess(false, false);
+        }
+
+        var ownsServer = IdentityUserOwnsServer(identityUser, serverLogin);
+        var isAdmin = await IsEnvimixAdminAsync(identityUser, cancellationToken);
+
+        return new EnvimaniaServerAccess(ownsServer || isAdmin, isAdmin);
+    }
+
+    private async Task<bool> IsEnvimixAdminAsync(IdentityUser identityUser, CancellationToken cancellationToken)
+    {
+        return identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser)
+            && await db.Users.AnyAsync(
+                x => x.Id == maniaPlanetUser.Id && x.IsAdmin,
+                cancellationToken);
     }
 
     private async Task<IdentityUser?> GetIdentityUserAsync(string? identityAccessToken, CancellationToken cancellationToken)
@@ -214,11 +438,46 @@ public sealed class EnvimaniaService(
 
         if (!identityResponse.IsSuccessStatusCode)
         {
-            logger.LogWarning("Identity rejected server registration with status {StatusCode}", identityResponse.StatusCode);
+            logger.LogWarning("Identity rejected server ownership verification with status {StatusCode}", identityResponse.StatusCode);
             return null;
         }
 
-        return await identityResponse.Content.ReadFromJsonAsync<IdentityUser>(cancellationToken);
+        var identityUser = await identityResponse.Content.ReadFromJsonAsync<IdentityUser>(cancellationToken);
+        if (identityUser?.IsAdmin == true
+            && identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser))
+        {
+            var envimixUser = await db.Users.FirstOrDefaultAsync(x => x.Id == maniaPlanetUser.Id, cancellationToken);
+            if (envimixUser is null)
+            {
+                envimixUser = new UserEntity
+                {
+                    Id = maniaPlanetUser.Id,
+                    IsAdmin = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                await db.Users.AddAsync(envimixUser, cancellationToken);
+            }
+            else if (!envimixUser.IsAdmin)
+            {
+                envimixUser.IsAdmin = true;
+                envimixUser.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return identityUser;
+    }
+
+    private static bool IdentityUserOwnsServer(IdentityUser identityUser, string serverLogin)
+    {
+        var ownsServer = identityUser.Data?.ManiaPlanet?.DedicatedAccounts
+            .Any(x => string.Equals(x.Login, serverLogin, StringComparison.OrdinalIgnoreCase)) == true;
+        var ownsLogin = identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser)
+            && string.Equals(maniaPlanetUser.Id, serverLogin, StringComparison.OrdinalIgnoreCase);
+
+        return ownsServer || ownsLogin;
     }
 
     /*private async Task<bool> UserOwnsServerLoginAsync(string serverLogin, ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -247,7 +506,10 @@ public sealed class EnvimaniaService(
         return serverIsOwned;
     }*/
 
-    private sealed record IdentityUser(IReadOnlyDictionary<string, IdentityProvider> Providers, IdentityUserData? Data);
+    private sealed record IdentityUser(
+        IReadOnlyDictionary<string, IdentityProvider> Providers,
+        IdentityUserData? Data,
+        bool IsAdmin);
     private sealed record IdentityProvider(string Id);
     private sealed record IdentityUserData(IdentityManiaPlanetData? ManiaPlanet);
     private sealed record IdentityManiaPlanetData(IReadOnlyList<IdentityDedicatedAccount> DedicatedAccounts);
@@ -266,7 +528,9 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid server login");
         }
 
-        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == request.ServerLogin && x.DeletedAt == null,
+            cancellationToken);
 
         if (server is null)
         {
@@ -307,7 +571,9 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid server login");
         }
 
-        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == request.ServerLogin && x.DeletedAt == null,
+            cancellationToken);
 
         if (server is null)
         {

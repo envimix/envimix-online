@@ -1,0 +1,72 @@
+@page "/envimania/servers"
+@inject IEnvimixService EnvimixService
+@inject ILogger<Servers> Logger
+@attribute [StreamRendering]
+
+<PageTitle>Registered servers - ENVIMIX project</PageTitle>
+
+<ReuContainer>
+    <h2>Registered servers</h2>
+
+    @if (servers is null)
+    {
+        <p>Loading registered servers...</p>
+    }
+    else if (loadFailed)
+    {
+        <p>Unable to load registered servers at this time.</p>
+    }
+    else if (servers.Length == 0)
+    {
+        <p>No servers have been registered yet.</p>
+    }
+    else
+    {
+        <table class="server-table">
+            <thead>
+                <tr>
+                    <th scope="col">Server login</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Sessions</th>
+                    <th scope="col">Last seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var server in servers)
+                {
+                    <tr>
+                        <td><a href="@GetServerUrl(server.ServerLogin)">@server.ServerLogin</a></td>
+                        <td>@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</td>
+                        <td>@server.SessionCount</td>
+                        <td>@FormatDateTime(server.LastSeenAt)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</ReuContainer>
+
+@code {
+    private EnvimaniaServerSummary[]? servers;
+    private bool loadFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            servers = await EnvimixService.GetServersAsync();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            servers = [];
+            Logger.LogError(ex, "Unable to load registered servers");
+        }
+    }
+
+    private static string GetServerUrl(string serverLogin)
+        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+
+    private static string FormatDateTime(DateTimeOffset? dateTime)
+        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Never";
+}
