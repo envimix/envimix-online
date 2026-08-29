@@ -23,12 +23,20 @@
 
                 @if (userInfo.Providers.TryGetValue("ManiaPlanet", out var mpUser))
                 {
+                    var dedicatedServers = servers
+                        .Where(x => !string.Equals(x.Login, mpUser.Id, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
                     <ul>
                         <li>Your ManiaPlanet login: @mpUser.Id</li>
                         <li>Your ManiaPlanet nickname: <TmEssentials.Razor.FormattedText Text="@mpUser.Name"></TmEssentials.Razor.FormattedText></li>
                     </ul>
+                    <h3>Register your login as a server to Envimania</h3>
+                    <p>Registering your ManiaPlanet login as a server allows Envimania support for online server created by your ManiaPlanet client.</p>
+                    <ServerRegistrationButton ServerLogin="@mpUser.Id" IsRegistered="@registeredServers.Contains(mpUser.Id)" />
+
                     <h3>Register dedicated server to Envimania</h3>
-                    @if (servers.Count == 0)
+                    @if (dedicatedServers.Count == 0)
                     {
                         <p>You don't have any dedicated server accounts associated with your ManiaPlanet account.</p>
                         <p>Visit <a href="https://maniaplanet.com/account/dedicated-servers">ManiaPlanet Dedicated Server accounts</a> to create one.</p>
@@ -44,24 +52,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var server in userInfo.Data?.ManiaPlanet?.DedicatedAccounts ?? [])
+                            @foreach (var server in dedicatedServers)
                             {
                                 <tr>
                                     <td>@server.Login</td>
                                     <td>@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
                                     <td class="server-action">
-                                        @if (registeredServers.Contains(server.Login))
-                                        {
-                                            <button type="button" disabled>Registered</button>
-                                        }
-                                        else
-                                        {
-                                            <form method="post" action="/profile/servers/register">
-                                                <AntiforgeryToken />
-                                                <input type="hidden" name="serverLogin" value="@server.Login" />
-                                                <button type="submit">Register</button>
-                                            </form>
-                                        }
+                                        <ServerRegistrationButton ServerLogin="@server.Login" IsRegistered="@registeredServers.Contains(server.Login)" />
                                     </td>
                                 </tr>
                             }
@@ -105,7 +102,11 @@
                 try
                 {
                     userInfo = await IdentityService.GetCurrentUserAsync(authState.User);
-                    var serverLogins = userInfo?.Data?.ManiaPlanet?.DedicatedAccounts.Select(x => x.Login) ?? [];
+                    var serverLogins = userInfo?.Data?.ManiaPlanet?.DedicatedAccounts.Select(x => x.Login).ToList() ?? [];
+                    if (userInfo?.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser) == true)
+                    {
+                        serverLogins.Add(maniaPlanetUser.Id);
+                    }
                     registeredServers = await EnvimixService.GetRegisteredServersAsync(serverLogins);
                 }
                 catch (Exception ex)

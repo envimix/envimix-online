@@ -174,8 +174,10 @@ public sealed class EnvimaniaService(
 
             var ownsServer = identityUser.Data?.ManiaPlanet?.DedicatedAccounts
                 .Any(x => string.Equals(x.Login, request.ServerLogin, StringComparison.OrdinalIgnoreCase)) == true;
+            var ownsLogin = identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser)
+                && string.Equals(maniaPlanetUser.Id, request.ServerLogin, StringComparison.OrdinalIgnoreCase);
 
-            if (!ownsServer)
+            if (!ownsServer && !ownsLogin)
             {
                 return new ActionForbiddenResponse("Server login not owned by user");
             }
@@ -245,7 +247,8 @@ public sealed class EnvimaniaService(
         return serverIsOwned;
     }*/
 
-    private sealed record IdentityUser(IdentityUserData? Data);
+    private sealed record IdentityUser(IReadOnlyDictionary<string, IdentityProvider> Providers, IdentityUserData? Data);
+    private sealed record IdentityProvider(string Id);
     private sealed record IdentityUserData(IdentityManiaPlanetData? ManiaPlanet);
     private sealed record IdentityManiaPlanetData(IReadOnlyList<IdentityDedicatedAccount> DedicatedAccounts);
     private sealed record IdentityDedicatedAccount(string Login);
