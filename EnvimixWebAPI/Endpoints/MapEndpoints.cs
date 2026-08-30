@@ -5,11 +5,13 @@ using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Options;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Text.Json;
 using TmEssentials;
 
 namespace EnvimixWebAPI.Endpoints;
@@ -260,9 +262,29 @@ public static class MapEndpoints
         IMapService mapService,
         IUserService userService,
         ClaimsPrincipal principal,
-        CancellationToken cancellationToken,
-        MapInfo? mapInfo = null)
+        HttpRequest request,
+        CancellationToken cancellationToken)
     {
+        MapInfo? mapInfo = null;
+        if (request.HttpContext.Features.Get<IHttpRequestBodyDetectionFeature>()?.CanHaveBody == true)
+        {
+            if (!request.HasJsonContentType())
+            {
+                return TypedResults.BadRequest(new ValidationFailureResponse("Map body must be JSON"));
+            }
+
+            try
+            {
+                mapInfo = await request.ReadFromJsonAsync(
+                    AppJsonSerializerContext.Default.MapInfo,
+                    cancellationToken);
+            }
+            catch (JsonException)
+            {
+                return TypedResults.BadRequest(new ValidationFailureResponse("Invalid map JSON"));
+            }
+        }
+
         if (mapInfo is not null && mapUid != mapInfo.Uid)
         {
             return TypedResults.BadRequest(new ValidationFailureResponse("Map UID does not match route"));
