@@ -38,8 +38,8 @@ public static class EnvimaniaEndpoints
         group.MapPost("restore-validations", RestoreValidations).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("restore-records", RestoreRecords).RequireAuthorization(Policies.SuperAdminPolicy);
 
-        group.MapPost("record/remove", RemoveRecord).RequireAuthorization(Policies.AdminPolicy);
-        group.MapPost("record/revert", RevertRecord).RequireAuthorization(Policies.AdminPolicy);
+        group.MapPost("record/remove", RemoveRecord);
+        group.MapPost("record/revert", RevertRecord);
     }
 
     private static void MapSession(RouteGroupBuilder group)
@@ -639,9 +639,18 @@ public static class EnvimaniaEndpoints
 
     private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> RemoveRecord(
         [FromBody] EnvimaniaRemoveRecordRequest removeRecordRequest,
+        HttpRequest request,
         IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
+        var access = await envimaniaService.GetServerAccessAsync(
+            "", principal, GetBearerToken(request), cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return TypedResults.Forbid();
+        }
+
         var result = await envimaniaService.RemoveRecordAsync(removeRecordRequest, cancellationToken);
 
         return result.Match<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
@@ -653,9 +662,18 @@ public static class EnvimaniaEndpoints
 
     private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> RevertRecord(
         [FromBody] EnvimaniaRemoveRecordRequest revertRecordRequest,
+        HttpRequest request,
         IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
+        var access = await envimaniaService.GetServerAccessAsync(
+            "", principal, GetBearerToken(request), cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return TypedResults.Forbid();
+        }
+
         var result = await envimaniaService.RevertRecordAsync(revertRecordRequest, cancellationToken);
         return result.Match<Results<Ok, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
             validResponse => TypedResults.Ok(),

@@ -8,9 +8,9 @@ internal static class RecordEndpoints
     public static void Map(WebApplication app)
     {
         app.MapPost("/records/remove", RemoveRecord)
-            .RequireAuthorization();
+            .RequireAuthorization(Policies.AdminPolicy);
         app.MapPost("/records/revert", RevertRecord)
-            .RequireAuthorization();
+            .RequireAuthorization(Policies.AdminPolicy);
     }
 
     private static async Task<IResult> RemoveRecord(
