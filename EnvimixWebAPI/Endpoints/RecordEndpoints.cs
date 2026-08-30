@@ -58,6 +58,8 @@ public static class RecordEndpoints
                 x.DrivenAt,
                 x.SessionId,
                 x.Session == null ? null : x.Session.Server.Id,
+                x.TitleId,
+                x.Title == null ? null : x.Title.DisplayName,
                 x.GhostId,
                 null,
                 x.Removed));
@@ -79,6 +81,8 @@ public static class RecordEndpoints
             x.DrivenAt,
             x.SessionId,
             x.Session == null ? null : x.Session.Server.Id,
+            x.TitleId,
+            x.Title == null ? null : x.Title.DisplayName,
             x.GhostId,
             x.Removed));
 
@@ -98,6 +102,8 @@ public static class RecordEndpoints
         DateTimeOffset DrivenAt,
         Guid? SessionId,
         string? ServerLogin,
+        string? TitleId,
+        string? TitleDisplayName,
         Guid? GhostId,
         bool Removed)
     {
@@ -117,6 +123,8 @@ public static class RecordEndpoints
                 DrivenAt,
                 SessionId,
                 ServerLogin,
+                TitleId,
+                TitleDisplayName,
                 GhostId,
                 rank,
                 Removed);

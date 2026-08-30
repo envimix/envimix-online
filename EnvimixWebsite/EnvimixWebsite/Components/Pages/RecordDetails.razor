@@ -54,6 +54,24 @@
                 <dt>Map</dt>
                 <dd class="technical-value"><a href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a></dd>
             </div>
+            @if (!string.IsNullOrWhiteSpace(record.TitleId))
+            {
+                <div>
+                    <dt>Title</dt>
+                    <dd>
+                        <a href="@GetTitleUrl(record.TitleId)">
+                            @if (string.IsNullOrWhiteSpace(record.TitleDisplayName))
+                            {
+                                @record.TitleId
+                            }
+                            else
+                            {
+                                <FormattedText Text="@record.TitleDisplayName"></FormattedText>
+                            }
+                        </a>
+                    </dd>
+                </div>
+            }
             @if (ShouldShowLaps(record.MapLaps))
             {
                 <div>
@@ -167,6 +185,9 @@
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private static string GetTitleUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}";
 
     private static string GetServerUrl(string serverLogin)
         => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";

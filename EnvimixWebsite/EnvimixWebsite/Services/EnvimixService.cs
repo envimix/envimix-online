@@ -446,6 +446,8 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
+    string? TitleId,
+    string? TitleDisplayName,
     Guid? GhostId,
     int? Rank,
     bool Removed);
@@ -460,7 +462,12 @@ public sealed record MapDetailsInfo(
     int AuthorTime,
     int GoldTime,
     int SilverTime,
-    int BronzeTime);
+    int BronzeTime,
+    MapTitleInfo? TitlePack);
+
+public sealed record MapTitleInfo(
+    string Id,
+    string? DisplayName);
 
 public sealed record MapRecordsPage(
     MapRecordCarInfo[] Cars,

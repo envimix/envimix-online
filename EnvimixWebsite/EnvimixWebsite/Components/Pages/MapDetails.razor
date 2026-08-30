@@ -40,6 +40,24 @@
                 <dt>Environment</dt>
                 <dd>@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</dd>
             </div>
+            @if (map.TitlePack is not null)
+            {
+                <div>
+                    <dt>Title</dt>
+                    <dd>
+                        <a href="@GetTitleUrl(map.TitlePack.Id)">
+                            @if (string.IsNullOrWhiteSpace(map.TitlePack.DisplayName))
+                            {
+                                @map.TitlePack.Id
+                            }
+                            else
+                            {
+                                <FormattedText Text="@map.TitlePack.DisplayName"></FormattedText>
+                            }
+                        </a>
+                    </dd>
+                </div>
+            }
             @if (ShouldShowLaps(map.Laps))
             {
                 <div>
@@ -401,6 +419,9 @@
 
     private static string GetUserUrl(string userLogin)
         => $"/users/{Uri.EscapeDataString(userLogin)}";
+
+    private static string GetTitleUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}";
 
     private static string GetRecordUrl(RecordInfo record)
         => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";
