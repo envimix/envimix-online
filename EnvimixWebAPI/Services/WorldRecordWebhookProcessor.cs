@@ -47,6 +47,10 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
 
                 var envEmote = ValidationWebhookProcessor.GetEnvEmote(webhook.NewRecord.Map);
                 var carEmote = ValidationWebhookProcessor.GetCarEmote(webhook.NewRecord.CarId);
+                var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(webhook.NewRecord.Map, webhook.NewRecord.CarId);
+                var recordUrl = $"https://envimix.gbx.tools/records/{Uri.EscapeDataString(webhook.NewRecord.Map.Id)}/{Uri.EscapeDataString(webhook.NewRecord.CarId)}/{Uri.EscapeDataString(webhook.NewRecord.User.Id)}/{webhook.NewRecord.Time}";
+                var recordTimeLink = $"[`{new TimeInt32(webhook.NewRecord.Time)}`]({recordUrl})";
+                var userLink = ValidationWebhookProcessor.GetUserLink(webhook.NewRecord.User);
 
                 var delta = webhook.PrevRecord is null ? null : $" `{(webhook.NewRecord.Time - webhook.PrevRecord.Time) / 1000f:+0.000;-0.000}`";
                 var lapCategory = hasDifferentLapCount
@@ -66,7 +70,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                     .GroupBy(x => x.UserId)
                     .CountAsync(stoppingToken);*/
 
-                var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}{lapCategory} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
+                var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} {mapCarLink} {carEmote}{lapCategory} {recordTimeLink}{delta} by {userLink} ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
 
                 /*if (recordCount > 20)
                 {

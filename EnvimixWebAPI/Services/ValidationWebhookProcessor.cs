@@ -62,9 +62,11 @@ public sealed class ValidationWebhookProcessor : BackgroundService
 
                 var validation = await envimaniaService.GetValidationAsync(webhook.Map.Id, new EnvimaniaRecordFilter { Car = webhook.Car, Gravity = webhook.Gravity, Laps = webhook.Laps }, CancellationToken.None);
 
+                var mapCarLink = GetMapCarLink(webhook.Map, webhook.Car);
+                var userLink = validation is null ? null : GetUserLink(validation.User);
                 var messageId = validation is null
-                    ? await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(webhook.Map.Name)}**.**{webhook.Car}** {carEmote} probably validated")
-                    : await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(webhook.Map.Name)}**.**{webhook.Car}** {carEmote} validated by **{TextFormatter.Deformat(validation.User.Nickname ?? validation.User.Id)}**");
+                    ? await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} probably validated")
+                    : await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} validated by {userLink}");
 
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -109,4 +111,16 @@ public sealed class ValidationWebhookProcessor : BackgroundService
         "SnowCar" => "<:SnowCar:1420806887913426954>",
         _ => "",
     };
+
+    public static string GetMapCarLink(MapEntity map, string car)
+    {
+        var url = $"https://envimix.gbx.tools/maps/{Uri.EscapeDataString(map.Id)}?car={Uri.EscapeDataString(car)}";
+        return $"[**{TextFormatter.Deformat(map.Name)}**.**{car}**]({url})";
+    }
+
+    public static string GetUserLink(UserEntity user)
+    {
+        var url = $"https://envimix.gbx.tools/users/{Uri.EscapeDataString(user.Id)}";
+        return $"[**{TextFormatter.Deformat(user.Nickname ?? user.Id)}**]({url})";
+    }
 }

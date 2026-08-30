@@ -1828,8 +1828,9 @@ public sealed class EnvimaniaService(
 
         var envEmote = ValidationWebhookProcessor.GetEnvEmote(record.Map);
         var carEmote = ValidationWebhookProcessor.GetCarEmote(record.Car.Id);
+        var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(record.Map, record.Car.Id);
 
-        record.RemovedMessageDiscordSnowflake = await client.SendMessageAsync($"{envEmote} **{TextFormatter.Deformat(record.Map.Name)}**.**{TextFormatter.Deformat(record.Car.Id)}** {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** was **removed**");
+        record.RemovedMessageDiscordSnowflake = await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} record of **{new TimeInt32(record.Time)}** by **{TextFormatter.Deformat(record.User.Nickname ?? record.User.Id)}** was **removed**");
 
         var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
 
