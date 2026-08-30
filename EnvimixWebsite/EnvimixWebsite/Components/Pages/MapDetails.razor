@@ -1,0 +1,73 @@
+@page "/maps/{MapUid}"
+@using TmEssentials.Razor
+@inject IEnvimixService EnvimixService
+@inject ILogger<MapDetails> Logger
+@attribute [StreamRendering]
+
+<PageTitle>@(map is null ? MapUid : GetMapName(map)) - ENVIMIX map</PageTitle>
+
+<ReuContainer>
+    @if (isLoading)
+    {
+        <p>Loading map...</p>
+    }
+    else if (loadFailed)
+    {
+        <h2>@MapUid</h2>
+        <p>Unable to load this map at this time.</p>
+    }
+    else if (map is null)
+    {
+        <h2>Map not found</h2>
+        <p>This map does not exist or is not available.</p>
+    }
+    else
+    {
+        <h2><FormattedText Text="@GetMapName(map)"></FormattedText></h2>
+        <p class="map-uid">@map.Uid</p>
+
+        <dl class="map-summary">
+            <div>
+                <dt>Collection</dt>
+                <dd>@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</dd>
+            </div>
+            <div>
+                <dt>Laps</dt>
+                <dd>@map.Laps</dd>
+            </div>
+        </dl>
+    }
+</ReuContainer>
+
+@code {
+    [Parameter]
+    public string MapUid { get; set; } = "";
+
+    private MapDetailsInfo? map;
+    private bool isLoading = true;
+    private bool loadFailed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+
+        try
+        {
+            map = await EnvimixService.GetMapAsync(MapUid);
+        }
+        catch (Exception ex)
+        {
+            map = null;
+            loadFailed = true;
+            Logger.LogError(ex, "Unable to load map {MapUid}", MapUid);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetMapName(MapDetailsInfo value)
+        => string.IsNullOrWhiteSpace(value.Name) ? value.Uid : value.Name;
+}

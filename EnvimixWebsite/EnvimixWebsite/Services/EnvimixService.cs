@@ -18,6 +18,7 @@ public interface IEnvimixService
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
+    Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
 }
 
 public sealed class EnvimixService(
@@ -195,6 +196,29 @@ public sealed class EnvimixService(
         CancellationToken cancellationToken = default)
         => GetDetailAsync<CarInfo>($"cars/{Uri.EscapeDataString(carId)}", cancellationToken);
 
+    public async Task<MapDetailsInfo?> GetMapAsync(
+        string mapUid,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{config["EnvimixApi"]}/maps/{Uri.EscapeDataString(mapUid)}");
+        var accessToken = await GetAccessTokenAsync(required: false);
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<MapDetailsInfo>(cancellationToken);
+    }
+
     private async Task<T?> GetDetailAsync<T>(
         string path,
         CancellationToken cancellationToken)
@@ -296,5 +320,10 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
-    bool? IsWorldRecord,
     bool Removed);
+
+public sealed record MapDetailsInfo(
+    string Name,
+    string Uid,
+    string Collection,
+    int Laps);

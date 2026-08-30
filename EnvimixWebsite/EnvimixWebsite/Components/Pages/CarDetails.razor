@@ -75,7 +75,7 @@
                                     }
                                 </td>
                                 <td>
-                                    <span class="primary-value">@GetMapName(record)</span>
+                                    <a class="primary-value" href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a>
                                     @if (!string.IsNullOrWhiteSpace(record.MapName))
                                     {
                                         <small>@record.MapUid</small>
@@ -133,6 +133,9 @@
 
     private static string GetUserUrl(string userLogin)
         => $"/users/{Uri.EscapeDataString(userLogin)}";
+
+    private static string GetMapUrl(string mapUid)
+        => $"/maps/{Uri.EscapeDataString(mapUid)}";
 
     private static string GetRecordUrl(RecordInfo record)
         => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";

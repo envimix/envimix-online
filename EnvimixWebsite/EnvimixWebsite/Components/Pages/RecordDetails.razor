@@ -29,7 +29,7 @@
         }
 
         <h2>@FormatTime(record.Time)</h2>
-        <p class="map-name">@GetMapName(record)</p>
+    <p class="map-name"><a href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a></p>
 
         <dl class="record-summary">
             <div>
@@ -74,10 +74,6 @@
             <div>
                 <dt>Driven</dt>
                 <dd>@FormatDateTime(record.DrivenAt)</dd>
-            </div>
-            <div>
-                <dt>World record</dt>
-                <dd>@FormatWorldRecord(record.IsWorldRecord)</dd>
             </div>
             <div>
                 <dt>Status</dt>
@@ -143,6 +139,9 @@
     private static string GetCarUrl(string carId)
         => $"/cars/{Uri.EscapeDataString(carId)}";
 
+    private static string GetMapUrl(string mapUid)
+        => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
     private static string GetServerUrl(string serverLogin)
         => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
 
@@ -155,11 +154,4 @@
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
 
-    private static string FormatWorldRecord(bool? isWorldRecord)
-        => isWorldRecord switch
-        {
-            true => "Yes",
-            false => "No",
-            null => "Unknown"
-        };
 }
