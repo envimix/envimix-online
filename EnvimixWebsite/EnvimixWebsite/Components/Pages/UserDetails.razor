@@ -23,7 +23,7 @@
     }
     else
     {
-        <h2><FormattedText Text="@GetUserName(user)">@GetUserName(user)</FormattedText></h2>
+        <h2><FormattedText Text="@GetUserName(user)"></FormattedText></h2>
         @if (!string.Equals(user.Login, user.Nickname, StringComparison.Ordinal))
         {
             <p class="user-login">@user.Login</p>
