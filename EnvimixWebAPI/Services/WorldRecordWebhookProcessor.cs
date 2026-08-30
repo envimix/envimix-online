@@ -29,12 +29,29 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
         {
             try
             {
+                if (!webhook.NewRecord.Map.IsCampaignMap)
+                {
+                    continue;
+                }
+
+                var hasDifferentLapCount = webhook.NewRecord.Map.Laps > 0
+                    && webhook.NewRecord.Laps != webhook.NewRecord.Map.Laps;
+
+                if (hasDifferentLapCount && webhook.NewRecord.Laps != 1)
+                {
+                    logger.LogInformation("Skipping world record webhook for map {MapName} with {Laps} laps because its default is {DefaultLaps} laps", webhook.NewRecord.Map.Name, webhook.NewRecord.Laps, webhook.NewRecord.Map.Laps);
+                    continue;
+                }
+
                 using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
 
                 var envEmote = ValidationWebhookProcessor.GetEnvEmote(webhook.NewRecord.Map);
                 var carEmote = ValidationWebhookProcessor.GetCarEmote(webhook.NewRecord.CarId);
 
                 var delta = webhook.PrevRecord is null ? null : $" `{(webhook.NewRecord.Time - webhook.PrevRecord.Time) / 1000f:+0.000;-0.000}`";
+                var lapCategory = hasDifferentLapCount
+                    ? $" **(1 lap)**"
+                    : "";
 
                 await using var scope = scopeFactory.CreateAsyncScope();
 
@@ -49,7 +66,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                     .GroupBy(x => x.UserId)
                     .CountAsync(stoppingToken);*/
 
-                var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
+                var messageId = await client.SendMessageAsync($"**(WR)** {envEmote} **{TextFormatter.Deformat(webhook.NewRecord.Map.Name)}**.**{webhook.NewRecord.CarId}** {carEmote}{lapCategory} `{new TimeInt32(webhook.NewRecord.Time)}`{delta} by **{TextFormatter.Deformat(webhook.NewRecord.User.Nickname ?? webhook.NewRecord.User.Id)}** ({TimestampTag.FromDateTimeOffset(webhook.NewRecord.DrivenAt, TimestampTagStyles.ShortTime)})");
 
                 /*if (recordCount > 20)
                 {

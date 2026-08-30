@@ -1006,7 +1006,9 @@ public sealed class EnvimaniaService(
             .Where(x => x.Map == map && x.Car == car && x.Gravity == gravity && x.Laps == laps && !x.Removed)
             .OrderBy(x => x.Time)
             .FirstOrDefaultAsync(cancellationToken);
-        var isValidation = currentWorldRecord is null;
+        var hasDefaultLapCount = map.Laps > 0;
+        var hasDifferentLapCount = hasDefaultLapCount && laps != map.Laps;
+        var isValidation = currentWorldRecord is null && hasDefaultLapCount && !hasDifferentLapCount;
 
         var record = new RecordEntity
         {
@@ -1069,7 +1071,10 @@ public sealed class EnvimaniaService(
 
                 await hybridCache.RemoveAsync($"ValidationsByTitleId_{map.TitlePackId}", CancellationToken.None);
             }
-            else if (record.Time < currentWorldRecord?.Time && map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
+            else if (hasDefaultLapCount
+                && (!hasDifferentLapCount || laps == 1)
+                && (currentWorldRecord is null || record.Time < currentWorldRecord.Time)
+                && map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
             {
                 logger.LogInformation("New world record by {user} on map {mapName} with car {carName}: {time}ms (previous WR: {prevTime}ms)", principal.GetName(), TextFormatter.Deformat(map.Name), carName, newRecord.Time, currentWorldRecord?.Time);
 
@@ -1378,16 +1383,35 @@ public sealed class EnvimaniaService(
         {
             var record = addition.Record;
 
-            if (addition.IsValidation)
+            if (!record.Map.IsCampaignMap)
+            {
+                continue;
+            }
+
+            if (record.Map.Laps <= 0)
+            {
+                continue;
+            }
+
+            var hasDifferentLapCount = record.Laps != record.Map.Laps;
+
+            if (hasDifferentLapCount && record.Laps != 1)
+            {
+                logger.LogInformation("Skipping record report for map {mapName} with {laps} laps because only the default {defaultLaps}-lap category and single-lap category are reported", TextFormatter.Deformat(record.Map.Name), record.Laps, record.Map.Laps);
+                continue;
+            }
+
+            if (addition.IsValidation && !hasDifferentLapCount)
             {
                 logger.LogInformation("New validation by {user} on map {mapName} with car {carName}: {time}ms", record.User.Id, TextFormatter.Deformat(record.Map.Name), record.Car.Id, record.Time);
 
                 await hybridCache.RemoveAsync($"ValidationsByTitleId_{record.Map.TitlePackId}", CancellationToken.None);
                 await validationWebhookChannel.Writer.WriteAsync(new ValidationWebhookDispatch(record.Map, record.Car.Id, record.Gravity, record.Laps), cancellationToken);
             }
-            else if (record.Time < addition.PreviousWorldRecord?.Time && record.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
+            else if ((addition.PreviousWorldRecord is null || record.Time < addition.PreviousWorldRecord.Time)
+                && record.Map.Campaign?.ReleasedAt < DateTimeOffset.UtcNow.AddMonths(-1))
             {
-                logger.LogInformation("New world record by {user} on map {mapName} with car {carName}: {time}ms (previous WR: {prevTime}ms)", record.User.Id, TextFormatter.Deformat(record.Map.Name), record.Car.Id, record.Time, addition.PreviousWorldRecord.Time);
+                logger.LogInformation("New world record by {user} on map {mapName} with car {carName}: {time}ms (previous WR: {prevTime}ms)", record.User.Id, TextFormatter.Deformat(record.Map.Name), record.Car.Id, record.Time, addition.PreviousWorldRecord?.Time);
 
                 await worldRecordWebhookChannel.Writer.WriteAsync(new WorldRecordWebhookDispatch(record, addition.PreviousWorldRecord), cancellationToken);
             }
@@ -1875,7 +1899,7 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid && !x.Removed)
+            .Where(x => x.Map.Id == mapUid && x.Map.Laps > 0 && x.Laps == x.Map.Laps && !x.Removed)
             .GroupBy(x => new { x.Car.Id, x.Gravity, x.Laps })
             .Select(g => g.OrderBy(x => x.DrivenAt).First())
             .AsNoTracking()
@@ -1892,7 +1916,7 @@ public sealed class EnvimaniaService(
             return await db.Records
                 .Include(x => x.Map)
                     .ThenInclude(x => x.Campaign)
-                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed)
+                .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && x.Map.Laps > 0 && x.Laps == x.Map.Laps && !x.Removed)
                 .GroupBy(x => new { x.MapId, x.Car.Id, x.Gravity, x.Laps })
                 .Select(g => g.OrderBy(x => x.DrivenAt).First())
                 .AsNoTracking()
@@ -1907,7 +1931,7 @@ public sealed class EnvimaniaService(
             .Include(x => x.Car)
             .Include(x => x.Map)
             .Include(x => x.Checkpoints)
-            .Where(x => x.Map.Id == mapUid && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Laps == filter.Laps && !x.Removed)
+            .Where(x => x.Map.Id == mapUid && x.Map.Laps > 0 && x.Laps == x.Map.Laps && x.Car.Id == filter.Car && x.Gravity == filter.Gravity && x.Laps == filter.Laps && !x.Removed)
             .OrderBy(x => x.DrivenAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -2017,6 +2041,12 @@ public sealed class EnvimaniaService(
             var mapUid = map.Id;
             var gravity = 0; // TODO should be configurable
 
+            if (map.Laps <= 0)
+            {
+                logger.LogInformation("Skipping validation restoration for map {mapUid} because its default lap count is unknown", mapUid);
+                continue;
+            }
+
             logger.LogInformation("Restoring validations for map {mapUid}...", mapUid);
 
             foreach (var car in envimaniaOptions.Value.Car)
@@ -2027,7 +2057,7 @@ public sealed class EnvimaniaService(
                 {
                     var existingValidation = await db.Records
                         .Include(x => x.Map)
-                        .Where(x => x.Map.Id == mapUid && x.CarId == car && x.Gravity == 0) // there should be a check for Laps == map.Laps but I didn't implment that into MapEntity fuck
+                        .Where(x => x.Map.Id == mapUid && x.CarId == car && x.Gravity == 0 && x.Laps == x.Map.Laps)
                         .GroupBy(x => new { x.CarId, x.Gravity, x.Laps })
                         .Select(g => g.OrderBy(x => x.DrivenAt).First())
                         .AsNoTracking()
@@ -2099,6 +2129,12 @@ public sealed class EnvimaniaService(
                     if (!ValidateGhost(ghost, out var carName, out var laps, out var validationFailure))
                     {
                         logger.LogWarning("Invalid ghost for leaderboard entry {login} on map {mapUid}: {reason}", oldestLeaderboardRecord.Login, mapUid, validationFailure);
+                        continue;
+                    }
+
+                    if (laps != map.Laps)
+                    {
+                        logger.LogInformation("Skipping validation restoration for map {mapUid} with {laps} laps because its default is {defaultLaps}", mapUid, laps, map.Laps);
                         continue;
                     }
 
@@ -2329,7 +2365,7 @@ public sealed class EnvimaniaService(
                             });
                         }
 
-                        if (!isDefaultCar && (oldestRecordDrivenAt is null || lastModified < oldestRecordDrivenAt))
+                        if (!isDefaultCar && map.Laps > 0 && laps == map.Laps && (oldestRecordDrivenAt is null || lastModified < oldestRecordDrivenAt))
                         {
                             oldestRecordDrivenAt = lastModified;
                             validation = record;

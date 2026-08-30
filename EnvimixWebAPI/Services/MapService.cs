@@ -59,6 +59,11 @@ public sealed class MapService(AppDbContext db) : IMapService
 
         map.Name = mapInfo.Name;
 
+        if (mapInfo.Laps > 0)
+        {
+            map.Laps = mapInfo.Laps;
+        }
+
         if (!string.IsNullOrWhiteSpace(mapInfo.Collection))
         {
             map.Collection = mapInfo.Collection;

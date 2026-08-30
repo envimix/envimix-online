@@ -18,6 +18,7 @@ public sealed class MapEntity
 
     public bool IsCampaignMap { get; set; }
     public int? Order { get; set; }
+    public int Laps { get; set; }
 
     [StringLength(64)]
     public string Collection { get; set; } = "";

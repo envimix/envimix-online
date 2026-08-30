@@ -45,6 +45,12 @@ public sealed class ValidationWebhookProcessor : BackgroundService
                     continue;
                 }
 
+                if (webhook.Map.Laps <= 0 || webhook.Laps != webhook.Map.Laps)
+                {
+                    logger.LogInformation("Skipping validation webhook for map {MapId} with {Laps} laps because its default is {DefaultLaps} laps", webhook.Map.Id, webhook.Laps, webhook.Map.Laps);
+                    continue;
+                }
+
                 using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
 
                 var envEmote = GetEnvEmote(webhook.Map);
