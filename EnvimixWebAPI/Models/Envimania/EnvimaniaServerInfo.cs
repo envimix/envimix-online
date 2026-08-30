@@ -18,7 +18,27 @@ public sealed record EnvimaniaServerInfo(
     bool CanAdminister);
 
 public sealed record EnvimaniaServerSession(
+    Guid Id,
     string MapUid,
     string MapName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt);
+
+public sealed record EnvimaniaSessionInfo(
+    Guid Id,
+    string ServerLogin,
+    string MapUid,
+    string MapName,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? EndedAt,
+    EnvimaniaSessionRecord[] Records);
+
+public sealed record EnvimaniaSessionRecord(
+    string UserLogin,
+    string? Nickname,
+    string Car,
+    int Laps,
+    int Time,
+    int Score,
+    int NbRespawns,
+    DateTimeOffset DrivenAt);

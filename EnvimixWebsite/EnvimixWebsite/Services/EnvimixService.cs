@@ -14,6 +14,7 @@ public interface IEnvimixService
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
     Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, CancellationToken cancellationToken = default);
+    Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
 }
 
 public sealed class EnvimixService(
@@ -148,6 +149,29 @@ public sealed class EnvimixService(
         return await response.Content.ReadFromJsonAsync<EnvimaniaServerInfo>(cancellationToken);
     }
 
+    public async Task<EnvimaniaSessionInfo?> GetSessionAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{config["EnvimixApi"]}/envimania/sessions/{sessionId}");
+        var accessToken = await GetAccessTokenAsync(required: false);
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<EnvimaniaSessionInfo>(cancellationToken);
+    }
+
     private async Task<string?> GetAccessTokenAsync(bool required = true)
     {
         var httpContext = httpContextAccessor.HttpContext;
@@ -179,7 +203,27 @@ public sealed record EnvimaniaServerInfo(
     bool CanAdminister);
 
 public sealed record EnvimaniaServerSession(
+    Guid Id,
     string MapUid,
     string MapName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt);
+
+public sealed record EnvimaniaSessionInfo(
+    Guid Id,
+    string ServerLogin,
+    string MapUid,
+    string MapName,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? EndedAt,
+    EnvimaniaSessionRecord[] Records);
+
+public sealed record EnvimaniaSessionRecord(
+    string UserLogin,
+    string? Nickname,
+    string Car,
+    int Laps,
+    int Time,
+    int Score,
+    int NbRespawns,
+    DateTimeOffset DrivenAt);

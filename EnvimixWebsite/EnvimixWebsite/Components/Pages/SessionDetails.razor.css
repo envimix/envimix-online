@@ -1,0 +1,62 @@
+.map-uid {
+    margin-top: -0.75rem;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
+.session-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 3rem;
+    margin-block: 1rem 2rem;
+}
+
+.session-summary div {
+    min-width: 8rem;
+}
+
+.session-summary dt {
+    font-weight: 600;
+}
+
+.session-summary dd {
+    margin: 0.25rem 0 0;
+}
+
+.records-scroll {
+    overflow-x: auto;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 1rem;
+}
+
+.records-table th,
+.records-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.records-table th {
+    font-weight: 600;
+}
+
+.player-name,
+.records-table small {
+    display: block;
+}
+
+.records-table small {
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .records-table th,
+    .records-table td {
+        padding-inline: 0.4rem;
+    }
+}

@@ -1,0 +1,140 @@
+@page "/envimania/sessions/{SessionId:guid}"
+@inject IEnvimixService EnvimixService
+@inject ILogger<SessionDetails> Logger
+@attribute [StreamRendering]
+
+<PageTitle>@(session is null ? "Session" : GetMapName(session)) - ENVIMIX session</PageTitle>
+
+<ReuContainer>
+    @if (isLoading)
+    {
+        <p>Loading session...</p>
+    }
+    else if (loadFailed)
+    {
+        <h2>Session</h2>
+        <p>Unable to load this session at this time.</p>
+    }
+    else if (session is null)
+    {
+        <h2>Session not found</h2>
+        <p>This session does not exist or is not available.</p>
+    }
+    else
+    {
+        <p><a href="@GetServerUrl(session.ServerLogin)">@session.ServerLogin</a></p>
+        <h2>@GetMapName(session)</h2>
+        <p class="map-uid">@session.MapUid</p>
+
+        <dl class="session-summary">
+            <div>
+                <dt>Started</dt>
+                <dd>@FormatDateTime(session.StartedAt)</dd>
+            </div>
+            <div>
+                <dt>Ended</dt>
+                <dd>@FormatDateTime(session.EndedAt, "Not closed")</dd>
+            </div>
+            <div>
+                <dt>Duration</dt>
+                <dd>@FormatDuration(session.StartedAt, session.EndedAt)</dd>
+            </div>
+            <div>
+                <dt>Records</dt>
+                <dd>@session.Records.Length</dd>
+            </div>
+        </dl>
+
+        <h3>Records</h3>
+        @if (session.Records.Length == 0)
+        {
+            <p>No records were driven during this session.</p>
+        }
+        else
+        {
+            <div class="records-scroll">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Car</th>
+                            <th scope="col">Laps</th>
+                            <th scope="col">Time</th>
+                            <th scope="col">Score</th>
+                            <th scope="col">Respawns</th>
+                            <th scope="col">Driven</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < session.Records.Length; index++)
+                        {
+                            var record = session.Records[index];
+                            <tr>
+                                <td>@(index + 1)</td>
+                                <td>
+                                    <span class="player-name">@(string.IsNullOrWhiteSpace(record.Nickname) ? record.UserLogin : record.Nickname)</span>
+                                    @if (!string.IsNullOrWhiteSpace(record.Nickname))
+                                    {
+                                        <small>@record.UserLogin</small>
+                                    }
+                                </td>
+                                <td>@record.Car</td>
+                                <td>@record.Laps</td>
+                                <td>@FormatTime(record.Time)</td>
+                                <td>@record.Score</td>
+                                <td>@record.NbRespawns</td>
+                                <td>@FormatDateTime(record.DrivenAt)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</ReuContainer>
+
+@code {
+    [Parameter]
+    public Guid SessionId { get; set; }
+
+    private EnvimaniaSessionInfo? session;
+    private bool isLoading = true;
+    private bool loadFailed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+
+        try
+        {
+            session = await EnvimixService.GetSessionAsync(SessionId);
+        }
+        catch (Exception ex)
+        {
+            session = null;
+            loadFailed = true;
+            Logger.LogError(ex, "Unable to load session {SessionId}", SessionId);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetMapName(EnvimaniaSessionInfo value)
+        => string.IsNullOrWhiteSpace(value.MapName) ? value.MapUid : value.MapName;
+
+    private static string GetServerUrl(string serverLogin)
+        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+
+    private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
+        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;
+
+    private static string FormatDuration(DateTimeOffset startedAt, DateTimeOffset? endedAt)
+        => endedAt is null ? "In progress" : (endedAt.Value - startedAt).ToString(@"d\.hh\:mm\:ss");
+
+    private static string FormatTime(int milliseconds)
+        => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
+}

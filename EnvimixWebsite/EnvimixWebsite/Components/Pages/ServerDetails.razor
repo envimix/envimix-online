@@ -61,7 +61,7 @@
                     {
                         <tr>
                             <td>
-                                <span class="map-name">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</span>
+                                <a class="map-name" href="@GetSessionUrl(session.Id)">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</a>
                                 @if (!string.IsNullOrWhiteSpace(session.MapName))
                                 {
                                     <small>@session.MapUid</small>
@@ -173,4 +173,7 @@
 
     private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
         => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;
+
+    private static string GetSessionUrl(Guid sessionId)
+        => $"/envimania/sessions/{sessionId}";
 }

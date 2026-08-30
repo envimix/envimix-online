@@ -24,6 +24,7 @@ public static class EnvimaniaEndpoints
         group.MapGet("registered", GetRegistered);
         group.MapGet("servers", GetServers);
         group.MapGet("servers/{serverLogin}", GetServer);
+        group.MapGet("sessions/{sessionId:guid}", GetSession);
 
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
@@ -253,6 +254,7 @@ public static class EnvimaniaEndpoints
             .OrderByDescending(x => x.StartedAt)
             .Take(20)
             .Select(x => new EnvimaniaServerSession(
+                x.Id,
                 x.Map.Id,
                 x.Map.Name,
                 x.StartedAt,
@@ -268,6 +270,65 @@ public static class EnvimaniaEndpoints
             server.IsBanned,
             access.CanDelete,
             access.CanAdminister));
+    }
+
+    private static async Task<Results<Ok<EnvimaniaSessionInfo>, NotFound>> GetSession(
+        Guid sessionId,
+        HttpRequest request,
+        AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var session = await db.EnvimaniaSessions
+            .Where(x => x.Id == sessionId)
+            .Select(x => new
+            {
+                x.Id,
+                ServerLogin = x.Server.Id,
+                ServerDeletedAt = x.Server.DeletedAt,
+                MapUid = x.Map.Id,
+                MapName = x.Map.Name,
+                x.StartedAt,
+                EndedAt = x.FinishedGracefully ? (DateTimeOffset?)x.EndedAt : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (session is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var access = await envimaniaService.GetServerAccessAsync(
+            session.ServerLogin, principal, GetBearerToken(request), cancellationToken);
+        if (session.ServerDeletedAt is not null && !access.CanAdminister)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var records = await db.Records
+            .Where(x => x.SessionId == sessionId && !x.Removed)
+            .OrderBy(x => x.Time)
+            .ThenByDescending(x => x.Score)
+            .Select(x => new EnvimaniaSessionRecord(
+                x.UserId,
+                x.User.Nickname,
+                x.CarId,
+                x.Laps,
+                x.Time,
+                x.Score,
+                x.NbRespawns,
+                x.DrivenAt))
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(new EnvimaniaSessionInfo(
+            session.Id,
+            session.ServerLogin,
+            session.MapUid,
+            session.MapName,
+            session.StartedAt,
+            session.EndedAt,
+            records));
     }
 
     private static string? GetBearerToken(HttpRequest request)
