@@ -1,0 +1,62 @@
+.title-id {
+    margin-top: -0.75rem;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
+.title-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 3rem;
+    margin-block: 1rem 2rem;
+}
+
+.title-summary div {
+    min-width: 7rem;
+}
+
+.title-summary dt {
+    font-weight: 600;
+}
+
+.title-summary dd {
+    margin: 0.25rem 0 0;
+}
+
+.maps-scroll {
+    overflow-x: auto;
+}
+
+.maps-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 0.4rem 0;
+}
+
+.maps-table th,
+.maps-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    text-align: left;
+}
+
+.maps-table th {
+    font-weight: 600;
+}
+
+.map-name,
+.maps-table small {
+    display: block;
+}
+
+.maps-table small {
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .maps-table th,
+    .maps-table td {
+        padding-inline: 0.4rem;
+    }
+}

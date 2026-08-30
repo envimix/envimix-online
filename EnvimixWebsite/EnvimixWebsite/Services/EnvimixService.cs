@@ -20,6 +20,7 @@ public interface IEnvimixService
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
+    Task<TitleDetailsInfo?> GetTitleAsync(string titleId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
     Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, CancellationToken cancellationToken = default);
     Task<byte[]?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
@@ -247,6 +248,11 @@ public sealed class EnvimixService(
         CancellationToken cancellationToken = default)
         => GetDetailAsync<CarInfo>($"cars/{Uri.EscapeDataString(carId)}", cancellationToken);
 
+    public Task<TitleDetailsInfo?> GetTitleAsync(
+        string titleId,
+        CancellationToken cancellationToken = default)
+        => GetDetailAsync<TitleDetailsInfo>($"titles/{Uri.EscapeDataString(titleId)}", cancellationToken);
+
     public async Task<MapDetailsInfo?> GetMapAsync(
         string mapUid,
         CancellationToken cancellationToken = default)
@@ -360,6 +366,7 @@ public sealed record EnvimaniaServerSession(
     string MapName,
     string? ServerModeName,
     string? TitleId,
+    string? TitleDisplayName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,
@@ -371,6 +378,7 @@ public sealed record EnvimaniaSessionInfo(
     string? ServerName,
     string? ServerModeName,
     string? TitleId,
+    string? TitleDisplayName,
     string MapUid,
     string MapName,
     int MapLaps,
@@ -404,6 +412,24 @@ public sealed record CarInfo(
     int RecordCount,
     int PlayerCount,
     RecordInfo[] RecentRecords);
+
+public sealed record TitleDetailsInfo(
+    string Id,
+    string? DisplayName,
+    string? Version,
+    DateTimeOffset? ReleasedAt,
+    int MapCount,
+    int RecordCount,
+    int PlayerCount,
+    int SessionCount,
+    TitleMapInfo[] Maps);
+
+public sealed record TitleMapInfo(
+    string Uid,
+    string Name,
+    string Collection,
+    string? Campaign,
+    int? Order);
 
 public sealed record RecordInfo(
     string UserLogin,

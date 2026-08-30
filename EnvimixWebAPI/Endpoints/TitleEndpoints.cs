@@ -1,6 +1,7 @@
 ﻿using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -14,12 +15,69 @@ public static class TitleEndpoints
         group.WithTags("Title Pack");
 
         group.MapPost("", SubmitTitle);
+        group.MapGet("{titleId}", GetTitle);
         group.MapGet("{titleId}/release", GetTitleRelease);
         group.MapGet("{titleId}/stats", GetTitleStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/general", GetGeneralStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/skillpoints", GetSkillpointStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/activity-points", GetActivityPointStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/completion", GetCompletionStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
+    }
+
+    private static async Task<Results<Ok<TitleDetailsInfo>, NotFound>> GetTitle(
+        string titleId,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var title = await db.Titles
+            .Where(x => x.Id == titleId)
+            .Select(x => new
+            {
+                x.Id,
+                x.DisplayName,
+                x.Version,
+                x.ReleasedAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (title is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var maps = await db.Maps
+            .Where(x => x.TitlePackId == titleId)
+            .OrderBy(x => x.CampaignId == null)
+            .ThenBy(x => x.Campaign!.Name)
+            .ThenBy(x => x.Order == null)
+            .ThenBy(x => x.Order)
+            .ThenBy(x => x.Name)
+            .Select(x => new TitleMapInfo(
+                x.Id,
+                x.Name,
+                x.Collection,
+                x.Campaign == null ? null : x.Campaign.Name,
+                x.Order))
+            .ToArrayAsync(cancellationToken);
+
+        var recordCount = await db.Records.CountAsync(x => x.TitleId == titleId, cancellationToken);
+        var playerCount = await db.Records
+            .Where(x => x.TitleId == titleId)
+            .Select(x => x.UserId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        var sessionCount = await db.EnvimaniaSessions.CountAsync(x => x.TitleId == titleId, cancellationToken);
+
+        return TypedResults.Ok(new TitleDetailsInfo(
+            title.Id,
+            title.DisplayName,
+            title.Version,
+            title.ReleasedAt,
+            maps.Length,
+            recordCount,
+            playerCount,
+            sessionCount,
+            maps));
     }
 
     private static async Task<Ok> SubmitTitle(

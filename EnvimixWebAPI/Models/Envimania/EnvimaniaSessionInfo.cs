@@ -6,6 +6,7 @@ public sealed record EnvimaniaSessionInfo(
     string? ServerName,
     string? ServerModeName,
     string? TitleId,
+    string? TitleDisplayName,
     string MapUid,
     string MapName,
     int MapLaps,

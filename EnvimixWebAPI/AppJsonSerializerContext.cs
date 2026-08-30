@@ -21,6 +21,7 @@ namespace EnvimixWebAPI;
 [JsonSerializable(typeof(EnvimaniaSessionRecordResponse))]
 [JsonSerializable(typeof(MapInfo))]
 [JsonSerializable(typeof(MapInfoResponse))]
+[JsonSerializable(typeof(TitleDetailsInfo))]
 [JsonSerializable(typeof(ManiaPlanetDedicatedServer))]
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, UseStringEnumConverter = true)]
 internal partial class AppJsonSerializerContext : JsonSerializerContext;

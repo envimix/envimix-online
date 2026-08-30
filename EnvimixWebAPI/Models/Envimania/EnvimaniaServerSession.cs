@@ -6,6 +6,7 @@ public sealed record EnvimaniaServerSession(
     string MapName,
     string? ServerModeName,
     string? TitleId,
+    string? TitleDisplayName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,

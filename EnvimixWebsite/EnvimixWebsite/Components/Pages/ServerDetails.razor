@@ -97,7 +97,25 @@
                                 }
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(session.ServerModeName) ? "-" : session.ServerModeName)</td>
-                            <td>@(string.IsNullOrWhiteSpace(session.TitleId) ? "-" : session.TitleId)</td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(session.TitleId))
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    <a href="@GetTitleUrl(session.TitleId)">
+                                        @if (string.IsNullOrWhiteSpace(session.TitleDisplayName))
+                                        {
+                                            @session.TitleId
+                                        }
+                                        else
+                                        {
+                                            <FormattedText Text="@session.TitleDisplayName"></FormattedText>
+                                        }
+                                    </a>
+                                }
+                            </td>
                             <td>@session.PlayerCount</td>
                             <td><a href="@GetSessionUrl(session.Id)">@FormatDateTime(session.StartedAt)</a></td>
                             <td>
@@ -245,6 +263,9 @@
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private static string GetTitleUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}";
 
     private async Task LoadMoreSessionsAsync()
     {

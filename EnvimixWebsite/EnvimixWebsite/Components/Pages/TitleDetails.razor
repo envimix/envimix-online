@@ -1,0 +1,128 @@
+@page "/titles/{TitleId}"
+@using TmEssentials.Razor
+@inject IEnvimixService EnvimixService
+@inject ILogger<TitleDetails> Logger
+@attribute [StreamRendering]
+
+<PageTitle>@(title?.DisplayName ?? title?.Id ?? TitleId) - ENVIMIX title</PageTitle>
+
+<ReuContainer>
+    @if (isLoading)
+    {
+        <p>Loading title...</p>
+    }
+    else if (loadFailed)
+    {
+        <h2>@TitleId</h2>
+        <p>Unable to load this title at this time.</p>
+    }
+    else if (title is null)
+    {
+        <h2>Title not found</h2>
+        <p>This title does not exist or is not available.</p>
+    }
+    else
+    {
+        <h2>
+            @if (string.IsNullOrWhiteSpace(title.DisplayName))
+            {
+                @title.Id
+            }
+            else
+            {
+                <FormattedText Text="@title.DisplayName"></FormattedText>
+            }
+        </h2>
+        @if (!string.IsNullOrWhiteSpace(title.DisplayName))
+        {
+            <p class="title-id">@title.Id</p>
+        }
+
+        <dl class="title-summary">
+            <div><dt>Maps</dt><dd>@title.MapCount</dd></div>
+            <div><dt>Records</dt><dd>@title.RecordCount</dd></div>
+            <div><dt>Players</dt><dd>@title.PlayerCount</dd></div>
+            <div><dt>Sessions</dt><dd>@title.SessionCount</dd></div>
+            @if (!string.IsNullOrWhiteSpace(title.Version))
+            {
+                <div><dt>Version</dt><dd>@title.Version</dd></div>
+            }
+            <div><dt>Released</dt><dd>@FormatDateTime(title.ReleasedAt)</dd></div>
+        </dl>
+
+        <h3>Maps</h3>
+        @if (title.Maps.Length == 0)
+        {
+            <p>No maps belong to this title yet.</p>
+        }
+        else
+        {
+            <div class="maps-scroll">
+                <table class="maps-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Map</th>
+                            <th scope="col">Environment</th>
+                            <th scope="col">Campaign</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var map in title.Maps)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="map-name" href="@GetMapUrl(map.Uid)"><FormattedText Text="@GetMapName(map)"></FormattedText></a>
+                                    @if (!string.IsNullOrWhiteSpace(map.Name))
+                                    {
+                                        <small>@map.Uid</small>
+                                    }
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</td>
+                                <td>@(string.IsNullOrWhiteSpace(map.Campaign) ? "-" : map.Campaign)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</ReuContainer>
+
+@code {
+    [Parameter]
+    public string TitleId { get; set; } = "";
+
+    private TitleDetailsInfo? title;
+    private bool isLoading = true;
+    private bool loadFailed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+
+        try
+        {
+            title = await EnvimixService.GetTitleAsync(TitleId);
+        }
+        catch (Exception ex)
+        {
+            title = null;
+            loadFailed = true;
+            Logger.LogError(ex, "Unable to load title {TitleId}", TitleId);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetMapName(TitleMapInfo map)
+        => string.IsNullOrWhiteSpace(map.Name) ? map.Uid : map.Name;
+
+    private static string GetMapUrl(string mapUid)
+        => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private static string FormatDateTime(DateTimeOffset? dateTime)
+        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Unknown";
+}

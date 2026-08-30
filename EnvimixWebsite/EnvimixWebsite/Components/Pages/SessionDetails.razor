@@ -45,7 +45,25 @@
             </div>
             <div>
                 <dt>Title</dt>
-                <dd>@(string.IsNullOrWhiteSpace(session.TitleId) ? "Unknown" : session.TitleId)</dd>
+                <dd>
+                    @if (string.IsNullOrWhiteSpace(session.TitleId))
+                    {
+                        <span>Unknown</span>
+                    }
+                    else
+                    {
+                        <a href="@GetTitleUrl(session.TitleId)">
+                            @if (string.IsNullOrWhiteSpace(session.TitleDisplayName))
+                            {
+                                @session.TitleId
+                            }
+                            else
+                            {
+                                <FormattedText Text="@session.TitleDisplayName"></FormattedText>
+                            }
+                        </a>
+                    }
+                </dd>
             </div>
             <div>
                 <dt>Started</dt>
@@ -202,6 +220,9 @@
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private static string GetTitleUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}";
 
     private static string GetRecordUrl(string mapUid, string car, string userLogin, int time)
         => $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(car)}/{Uri.EscapeDataString(userLogin)}/{time}";
