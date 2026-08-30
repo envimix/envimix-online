@@ -83,16 +83,16 @@
 
         @if (server.CanDelete)
         {
-            <section class="danger-zone">
-                <h2>Danger zone</h2>
-                <div class="danger-actions">
+            <section class="server-actions">
+                <h2>Server actions</h2>
+                <div class="action-buttons">
                     @if (server.IsHidden && server.CanAdminister)
                     {
                         <form method="post" action="/profile/servers/register">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <input type="hidden" name="returnToServer" value="true" />
-                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Register</ReuButton>
+                            <ReuButton type="submit">Register</ReuButton>
                         </form>
                     }
                     else
@@ -100,7 +100,7 @@
                         <form method="post" action="/profile/servers/delete" onsubmit="return confirm('Unregister this server from Envimania? Its data will be preserved and admins will continue seeing it.');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
-                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Unregister</ReuButton>
+                            <ReuButton type="submit">Unregister</ReuButton>
                         </form>
                     }
 
@@ -112,7 +112,7 @@
                                 <AntiforgeryToken />
                                 <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                                 <input type="hidden" name="reason" />
-                                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Ban</ReuButton>
+                                <ReuButton type="submit">Ban</ReuButton>
                             </form>
                         }
                         else
@@ -120,10 +120,18 @@
                             <form method="post" action="/profile/servers/unban" onsubmit="return confirm('Unban this server?');">
                                 <AntiforgeryToken />
                                 <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
-                                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Unban</ReuButton>
+                                <ReuButton type="submit">Unban</ReuButton>
                             </form>
                         }
+                    }
+                </div>
+            </section>
 
+            <section class="danger-zone">
+                <h2>Danger zone</h2>
+                <div class="danger-actions">
+                    @if (server.CanAdminister)
+                    {
                         <form method="post" action="/profile/servers/delete-records" onsubmit="return confirm('Permanently delete every record driven on this server?');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />

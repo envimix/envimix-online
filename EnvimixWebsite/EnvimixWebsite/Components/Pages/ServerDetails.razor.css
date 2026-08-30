@@ -48,6 +48,7 @@
     margin-inline-start: 0.25rem;
 }
 
+.server-actions,
 .danger-zone {
     margin-top: 3rem;
     margin-bottom: 1.5rem;
@@ -57,12 +58,14 @@
     color: var(--color-red);
 }
 
+.action-buttons,
 .danger-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
 }
 
+.server-actions ::deep .reu-button,
 .danger-zone ::deep .reu-button {
     padding: 0.5rem 1rem;
 }
