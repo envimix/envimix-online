@@ -9,6 +9,7 @@ public static class DomainConfiguration
     public static void AddDomainServices(this IServiceCollection services)
     {
         services.AddHostedService<InitiateZonesBackgroundService>();
+        services.AddHostedService<SessionTimeoutBackgroundService>();
         services.AddHostedService<ValidationWebhookProcessor>();
         services.AddHostedService<WorldRecordWebhookProcessor>();
 

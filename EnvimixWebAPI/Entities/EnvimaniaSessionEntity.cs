@@ -6,6 +6,7 @@ public sealed class EnvimaniaSessionEntity
     public required MapEntity Map { get; set; }
     public required ServerEntity Server { get; set; }
     public DateTimeOffset StartedAt { get; set; }
-    public DateTimeOffset EndedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? EndedAt { get; set; }
     public bool FinishedGracefully { get; set; }
 }

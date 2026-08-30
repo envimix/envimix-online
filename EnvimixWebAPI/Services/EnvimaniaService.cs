@@ -651,7 +651,8 @@ public sealed class EnvimaniaService(
             Id = sessionGuid,
             Map = map,
             Server = server,
-            StartedAt = startedAt
+            StartedAt = startedAt,
+            ExpiresAt = expiresAt
         };
 
         logger.LogDebug("Storing the Envimania session and token...");
@@ -824,12 +825,20 @@ public sealed class EnvimaniaService(
             .FirstOrDefaultAsync(x => x.Id == sessionGuid, cancellationToken)
             ?? throw new Exception("Session not found in database but should have been found");
 
-        if (session.FinishedGracefully)
+        if (session.EndedAt is not null)
         {
             return new ActionForbiddenResponse("Session is closed");
         }
 
         var token = tokenService.GenerateEnvimaniaSessionToken(session.Id, session.Map.Id, session.Server.Id, out _, out var expiresAt);
+
+        var updatedCount = await db.EnvimaniaSessions
+            .Where(x => x.Id == sessionGuid && x.EndedAt == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ExpiresAt, expiresAt), cancellationToken);
+        if (updatedCount == 0)
+        {
+            return new ActionForbiddenResponse("Session is closed");
+        }
 
         logger.LogInformation("Session token extended until {expiresAt}.", expiresAt);
 
