@@ -29,8 +29,15 @@
         <p class="map-uid">@map.Uid</p>
 
         <dl class="map-summary">
+            @if (!string.IsNullOrWhiteSpace(map.AuthorLogin))
+            {
+                <div>
+                    <dt>Author</dt>
+                    <dd><a href="@GetUserUrl(map.AuthorLogin)"><FormattedText Text="@GetAuthorName(map)"></FormattedText></a></dd>
+                </div>
+            }
             <div>
-                <dt>Collection</dt>
+                <dt>Environment</dt>
                 <dd>@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</dd>
             </div>
             @if (ShouldShowLaps(map.Laps))
@@ -253,6 +260,9 @@
 
     private static string GetMapName(MapDetailsInfo value)
         => string.IsNullOrWhiteSpace(value.Name) ? value.Uid : value.Name;
+
+    private static string GetAuthorName(MapDetailsInfo value)
+        => string.IsNullOrWhiteSpace(value.AuthorNickname) ? value.AuthorLogin! : value.AuthorNickname;
 
     private static string GetValidatorName(MapRecordCarInfo car)
         => string.IsNullOrWhiteSpace(car.ValidatorNickname) ? car.ValidatorLogin! : car.ValidatorNickname;

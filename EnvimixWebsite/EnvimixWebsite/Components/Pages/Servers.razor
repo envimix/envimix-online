@@ -1,4 +1,5 @@
 @page "/envimania/servers"
+@using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<Servers> Logger
 @attribute [StreamRendering]
@@ -25,7 +26,7 @@
         <table class="server-table">
             <thead>
                 <tr>
-                    <th scope="col">Server login</th>
+                    <th scope="col">Server</th>
                     <th scope="col">Status</th>
                     <th scope="col">Sessions</th>
                     <th scope="col">Last seen</th>
@@ -35,7 +36,22 @@
                 @foreach (var server in servers)
                 {
                     <tr>
-                        <td><a href="@GetServerUrl(server.ServerLogin)">@server.ServerLogin</a></td>
+                        <td>
+                            <a class="server-name" href="@GetServerUrl(server.ServerLogin)">
+                                @if (string.IsNullOrWhiteSpace(server.ServerName))
+                                {
+                                    @server.ServerLogin
+                                }
+                                else
+                                {
+                                    <FormattedText Text="@server.ServerName"></FormattedText>
+                                }
+                            </a>
+                            @if (!string.IsNullOrWhiteSpace(server.ServerName))
+                            {
+                                <small class="server-login">@server.ServerLogin</small>
+                            }
+                        </td>
                         <td>@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</td>
                         <td>@server.SessionCount</td>
                         <td>@FormatDateTime(server.LastSeenAt)</td>

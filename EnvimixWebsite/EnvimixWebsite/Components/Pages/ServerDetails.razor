@@ -1,5 +1,6 @@
 @page "/envimania/servers/{ServerLogin}"
 @rendermode InteractiveServer
+@using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<ServerDetails> Logger
 @inject IJSRuntime JS
@@ -26,7 +27,20 @@
     }
     else
     {
-        <h2>@server.ServerLogin</h2>
+        <h2>
+            @if (string.IsNullOrWhiteSpace(server.ServerName))
+            {
+                @server.ServerLogin
+            }
+            else
+            {
+                <FormattedText Text="@server.ServerName"></FormattedText>
+            }
+        </h2>
+        @if (!string.IsNullOrWhiteSpace(server.ServerName))
+        {
+            <p class="server-login">@server.ServerLogin</p>
+        }
 
         <dl class="server-summary">
             <div>
@@ -64,6 +78,8 @@
                 <thead>
                     <tr>
                         <th scope="col">Map</th>
+                        <th scope="col">Mode</th>
+                        <th scope="col">Title</th>
                         <th scope="col">Players</th>
                         <th scope="col">Started</th>
                         <th scope="col">Ended</th>
@@ -80,6 +96,8 @@
                                     <small class="map-uid">@session.MapUid</small>
                                 }
                             </td>
+                            <td>@(string.IsNullOrWhiteSpace(session.ServerModeName) ? "-" : session.ServerModeName)</td>
+                            <td>@(string.IsNullOrWhiteSpace(session.TitleId) ? "-" : session.TitleId)</td>
                             <td>@session.PlayerCount</td>
                             <td><a href="@GetSessionUrl(session.Id)">@FormatDateTime(session.StartedAt)</a></td>
                             <td>

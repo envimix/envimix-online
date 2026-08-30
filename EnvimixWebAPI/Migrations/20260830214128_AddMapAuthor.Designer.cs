@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830214128_AddMapAuthor")]
+    partial class AddMapAuthor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,16 +144,8 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<string>("ServerId")
                         .HasColumnType("varchar(64)");
 
-                    b.Property<string>("ServerModeName")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<DateTimeOffset>("StartedAt")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("TitleId")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
 
                     b.HasKey("Id");
 
@@ -441,10 +436,6 @@ namespace EnvimixWebAPI.Migrations
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
 
                     b.Property<DateTimeOffset>("RegisteredAt")
                         .HasColumnType("datetime(6)");

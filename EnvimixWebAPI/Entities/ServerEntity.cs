@@ -8,6 +8,9 @@ public sealed class ServerEntity
     public required string Id { get; set; }
 
     [StringLength(255)]
+    public string? Name { get; set; }
+
+    [StringLength(255)]
     public string? BanReason { get; set; }
 
     public DateTimeOffset RegisteredAt { get; set; }

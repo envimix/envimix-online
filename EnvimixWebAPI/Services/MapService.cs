@@ -74,6 +74,16 @@ public sealed class MapService(AppDbContext db) : IMapService
             map.Collection = mapInfo.Collection;
         }
 
+        if (!string.IsNullOrWhiteSpace(mapInfo.AuthorLogin))
+        {
+            map.AuthorLogin = mapInfo.AuthorLogin;
+        }
+
+        if (!string.IsNullOrWhiteSpace(mapInfo.AuthorNickname))
+        {
+            map.AuthorNickname = mapInfo.AuthorNickname;
+        }
+
         map.AuthorTime = mapInfo.AuthorTime;
         map.GoldTime = mapInfo.GoldTime;
         map.SilverTime = mapInfo.SilverTime;

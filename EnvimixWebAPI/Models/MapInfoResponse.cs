@@ -8,6 +8,8 @@ public sealed class MapInfoResponse
     [JsonPropertyName(nameof(Name))] public required string Name { get; set; }
     [JsonPropertyName(nameof(Uid))] public required string Uid { get; set; }
     [JsonPropertyName(nameof(Collection))] public required string Collection { get; set; }
+    [JsonPropertyName(nameof(AuthorLogin))] public required string? AuthorLogin { get; set; }
+    [JsonPropertyName(nameof(AuthorNickname))] public required string? AuthorNickname { get; set; }
     [JsonPropertyName(nameof(Laps))] public required int Laps { get; set; }
     [JsonPropertyName(nameof(TitlePack))] public required TitleInfo? TitlePack { get; set; }
     [JsonPropertyName(nameof(Campaign))] public required Campaign? Campaign { get; set; }

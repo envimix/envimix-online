@@ -1,3 +1,9 @@
+.server-login {
+    margin-top: -0.75rem;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
 .server-summary {
     display: flex;
     flex-wrap: wrap;

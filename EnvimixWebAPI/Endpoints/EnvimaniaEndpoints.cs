@@ -206,6 +206,7 @@ public static class EnvimaniaEndpoints
             .OrderBy(x => x.Id)
             .Select(x => new EnvimaniaServerSummary(
                 x.Id,
+                x.Name,
                 x.EnvimaniaSessions.Count,
                 x.EnvimaniaSessions
                     .OrderByDescending(session => session.StartedAt)
@@ -236,6 +237,7 @@ public static class EnvimaniaEndpoints
             .Select(x => new
             {
                 ServerLogin = x.Id,
+                ServerName = x.Name,
                 SessionCount = x.EnvimaniaSessions.Count,
                 x.RegisteredAt,
                 LastSeenAt = x.EnvimaniaSessions
@@ -265,6 +267,8 @@ public static class EnvimaniaEndpoints
                 x.Id,
                 x.Map.Id,
                 x.Map.Name,
+                x.ServerModeName,
+                x.TitleId,
                 x.StartedAt,
                 x.EndedAt,
                 x.FinishedGracefully,
@@ -291,6 +295,7 @@ public static class EnvimaniaEndpoints
 
         return TypedResults.Ok(new EnvimaniaServerInfo(
             server.ServerLogin,
+            server.ServerName,
             server.SessionCount,
             matchingSessionCount,
             server.RegisteredAt,
@@ -316,7 +321,10 @@ public static class EnvimaniaEndpoints
             {
                 x.Id,
                 ServerLogin = x.Server.Id,
+                ServerName = x.Server.Name,
                 ServerDeletedAt = x.Server.DeletedAt,
+                x.ServerModeName,
+                x.TitleId,
                 MapUid = x.Map.Id,
                 MapName = x.Map.Name,
                 MapLaps = x.Map.Laps,
@@ -358,6 +366,9 @@ public static class EnvimaniaEndpoints
         return TypedResults.Ok(new EnvimaniaSessionInfo(
             session.Id,
             session.ServerLogin,
+            session.ServerName,
+            session.ServerModeName,
+            session.TitleId,
             session.MapUid,
             session.MapName,
             session.MapLaps,

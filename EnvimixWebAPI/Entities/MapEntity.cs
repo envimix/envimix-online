@@ -23,6 +23,12 @@ public sealed class MapEntity
     [StringLength(64)]
     public string Collection { get; set; } = "";
 
+    [StringLength(64)]
+    public string? AuthorLogin { get; set; }
+
+    [StringLength(255)]
+    public string? AuthorNickname { get; set; }
+
     public CampaignEntity? Campaign { get; set; }
     public int? CampaignId { get; set; }
 

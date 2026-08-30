@@ -647,11 +647,15 @@ public sealed class EnvimaniaService(
 
         var map = await mapService.GetAddOrUpdateAsync(request.Map, server, cancellationToken: cancellationToken);
 
+        server.Name = request.ServerName;
+
         var session = new EnvimaniaSessionEntity
         {
             Id = sessionGuid,
             Map = map,
             Server = server,
+            ServerModeName = request.ServerModeName,
+            TitleId = request.TitleId,
             StartedAt = startedAt,
             ExpiresAt = expiresAt
         };

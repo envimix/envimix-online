@@ -335,6 +335,7 @@ public sealed class EnvimixService(
 
 public sealed record EnvimaniaServerSummary(
     string ServerLogin,
+    string? ServerName,
     int SessionCount,
     DateTimeOffset? LastSeenAt,
     bool IsHidden,
@@ -342,6 +343,7 @@ public sealed record EnvimaniaServerSummary(
 
 public sealed record EnvimaniaServerInfo(
     string ServerLogin,
+    string? ServerName,
     int SessionCount,
     int MatchingSessionCount,
     DateTimeOffset RegisteredAt,
@@ -356,6 +358,8 @@ public sealed record EnvimaniaServerSession(
     Guid Id,
     string MapUid,
     string MapName,
+    string? ServerModeName,
+    string? TitleId,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,
@@ -364,6 +368,9 @@ public sealed record EnvimaniaServerSession(
 public sealed record EnvimaniaSessionInfo(
     Guid Id,
     string ServerLogin,
+    string? ServerName,
+    string? ServerModeName,
+    string? TitleId,
     string MapUid,
     string MapName,
     int MapLaps,
@@ -421,6 +428,8 @@ public sealed record MapDetailsInfo(
     string Name,
     string Uid,
     string Collection,
+    string? AuthorLogin,
+    string? AuthorNickname,
     int Laps);
 
 public sealed record MapRecordsPage(

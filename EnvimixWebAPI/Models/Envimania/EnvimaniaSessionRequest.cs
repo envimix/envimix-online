@@ -4,6 +4,9 @@ public sealed class EnvimaniaSessionRequest
 {
     public required string ServerLogin { get; set; }
     public required string ServerToken { get; set; }
+    public required string ServerName { get; set; }
+    public required string ServerModeName { get; set; }
+    public required string TitleId { get; set; }
     public required MapInfo Map { get; set; }
     public required UserInfo[] Players { get; set; }
     public required string[] Cars { get; set; }

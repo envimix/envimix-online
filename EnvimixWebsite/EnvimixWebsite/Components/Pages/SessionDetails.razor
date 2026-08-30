@@ -23,11 +23,30 @@
     }
     else
     {
-        <p><a href="@GetServerUrl(session.ServerLogin)">@session.ServerLogin</a></p>
+        <p>
+            <a href="@GetServerUrl(session.ServerLogin)">
+                @if (string.IsNullOrWhiteSpace(session.ServerName))
+                {
+                    @session.ServerLogin
+                }
+                else
+                {
+                    <FormattedText Text="@session.ServerName"></FormattedText>
+                }
+            </a>
+        </p>
         <h2><a href="@GetMapUrl(session.MapUid)"><FormattedText Text="@GetMapName(session)"></FormattedText></a></h2>
         <p class="map-uid">@session.MapUid</p>
 
         <dl class="session-summary">
+            <div>
+                <dt>Mode</dt>
+                <dd>@(string.IsNullOrWhiteSpace(session.ServerModeName) ? "Unknown" : session.ServerModeName)</dd>
+            </div>
+            <div>
+                <dt>Title</dt>
+                <dd>@(string.IsNullOrWhiteSpace(session.TitleId) ? "Unknown" : session.TitleId)</dd>
+            </div>
             <div>
                 <dt>Started</dt>
                 <dd>@FormatDateTime(session.StartedAt)</dd>

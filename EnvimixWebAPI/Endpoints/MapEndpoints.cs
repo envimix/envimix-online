@@ -81,6 +81,14 @@ public static class MapEndpoints
 
             map.Name = mapInfo.Name;
             map.Collection = mapInfo.Collection ?? "";
+            if (!string.IsNullOrWhiteSpace(mapInfo.AuthorLogin))
+            {
+                map.AuthorLogin = mapInfo.AuthorLogin;
+            }
+            if (!string.IsNullOrWhiteSpace(mapInfo.AuthorNickname))
+            {
+                map.AuthorNickname = mapInfo.AuthorNickname;
+            }
             map.TitlePackId = request.TitleId;
             map.IsCampaignMap = true;
             map.Order = mapInfo.Order;
@@ -418,6 +426,8 @@ public static class MapEndpoints
             Name = map.Name,
             Uid = map.Id,
             Collection = map.Collection,
+            AuthorLogin = map.AuthorLogin,
+            AuthorNickname = map.AuthorNickname,
             Laps = map.Laps,
             TitlePack = map.TitlePack is null ? null : new()
             {

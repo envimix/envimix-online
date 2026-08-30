@@ -7,6 +7,8 @@ public sealed class MapInfo
     [JsonPropertyName(nameof(Name))] public required string Name { get; set; }
     [JsonPropertyName(nameof(Uid))] public required string Uid { get; set; }
     [JsonPropertyName(nameof(Collection))] public string? Collection { get; set; }
+    [JsonPropertyName(nameof(AuthorLogin))] public string? AuthorLogin { get; set; }
+    [JsonPropertyName(nameof(AuthorNickname))] public string? AuthorNickname { get; set; }
     [JsonPropertyName(nameof(Order))] public int? Order { get; set; }
     [JsonPropertyName(nameof(Campaign))] public string? Campaign { get; set; }
     [JsonPropertyName(nameof(Laps))] public int Laps { get; set; }

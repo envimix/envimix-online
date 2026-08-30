@@ -15,6 +15,16 @@
     font-weight: 600;
 }
 
+.server-name,
+.server-login {
+    display: block;
+}
+
+.server-login {
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
     .server-table th,
     .server-table td {
