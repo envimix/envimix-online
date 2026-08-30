@@ -1,6 +1,8 @@
 @page "/envimania/servers/{ServerLogin}"
+@rendermode InteractiveServer
 @inject IEnvimixService EnvimixService
 @inject ILogger<ServerDetails> Logger
+@inject IJSRuntime JS
 @attribute [StreamRendering]
 
 <PageTitle>@(server?.ServerLogin ?? ServerLogin) - ENVIMIX server</PageTitle>
@@ -83,7 +85,9 @@
             @if (server.RecentSessions.Length < server.SessionCount && SessionLimit < 500)
             {
                 <p class="show-more-sessions">
-                    <a href="@GetShowMoreUrl()">Show @Math.Min(10, server.SessionCount - server.RecentSessions.Length) more</a>
+                    <button type="button" @onclick="LoadMoreSessionsAsync" disabled="@isLoadingMore">
+                        @(isLoadingMore ? "Loading..." : $"Show {Math.Min(10, server.SessionCount - server.RecentSessions.Length)} more")
+                    </button>
                     <small>Showing @server.RecentSessions.Length of @server.SessionCount</small>
                 </p>
             }
@@ -173,6 +177,7 @@
 
     private EnvimaniaServerInfo? server;
     private bool isLoading = true;
+    private bool isLoadingMore;
     private bool loadFailed;
 
     protected override async Task OnParametersSetAsync()
@@ -206,8 +211,43 @@
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
 
-    private string GetShowMoreUrl()
-        => $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={Math.Min(SessionLimit + 10, 500)}";
+    private async Task LoadMoreSessionsAsync()
+    {
+        if (server is null || isLoadingMore)
+        {
+            return;
+        }
+
+        isLoadingMore = true;
+
+        try
+        {
+            var sessionLimit = Math.Min(SessionLimit + 10, 500);
+            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, sessionLimit);
+            if (updatedServer is null)
+            {
+                return;
+            }
+
+            SessionLimit = sessionLimit;
+            server = server with
+            {
+                SessionCount = updatedServer.SessionCount,
+                RecentSessions = updatedServer.RecentSessions
+            };
+
+            var url = $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={SessionLimit}";
+            await JS.InvokeVoidAsync("history.replaceState", null, "", url);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to load more sessions for server {ServerLogin}", ServerLogin);
+        }
+        finally
+        {
+            isLoadingMore = false;
+        }
+    }
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)
         => endedAt is not null && !finishedGracefully;
