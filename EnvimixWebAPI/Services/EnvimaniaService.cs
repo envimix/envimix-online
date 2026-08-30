@@ -210,7 +210,8 @@ public sealed class EnvimaniaService(
         {
             server = new ServerEntity
             {
-                Id = request.ServerLogin
+                Id = request.ServerLogin,
+                RegisteredAt = DateTimeOffset.UtcNow
             };
             await db.Servers.AddAsync(server, cancellationToken);
         }

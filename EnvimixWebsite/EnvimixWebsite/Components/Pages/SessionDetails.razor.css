@@ -73,10 +73,6 @@
     opacity: 0.5;
 }
 
-.records-table form ::deep .reu-button {
-    padding: 0.25rem 0.55rem;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;

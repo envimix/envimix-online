@@ -42,7 +42,16 @@
             }
         </dl>
 
-        <h3>Records</h3>
+        <div class="records-heading">
+            <h3>Records</h3>
+            @if (recordsPage?.Cars.Length > 0)
+            {
+                <label>
+                    <input type="checkbox" @bind="ShowAllRecords" @bind:after="ChangeRecordModeAsync" disabled="@recordsLoading" />
+                    Show all records
+                </label>
+            }
+        </div>
         @if (recordsPage is null)
         {
             @if (recordsLoadFailed)
@@ -60,13 +69,6 @@
         }
         else
         {
-            <div class="records-options">
-                <label>
-                    <input type="checkbox" @bind="ShowAllRecords" @bind:after="ChangeRecordModeAsync" disabled="@recordsLoading" />
-                    Show all records
-                </label>
-            </div>
-
             <div class="car-tabs" role="tablist" aria-label="Cars">
                 @foreach (var car in recordsPage.Cars)
                 {
