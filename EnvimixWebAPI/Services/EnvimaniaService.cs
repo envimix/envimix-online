@@ -1219,6 +1219,23 @@ public sealed class EnvimaniaService(
 
     private async Task<string?> ValidateRecordRequestAsync(EnvimaniaSessionRecordRequest request, CancellationToken cancellationToken)
     {
+        if (request.Record.Checkpoints.Length == 0)
+        {
+            return "Invalid record";
+        }
+
+        var finishCp = request.Record.Checkpoints[^1];
+
+        if (request.Record.Time <= 0
+            || request.Record.Time != finishCp.Time
+            || request.Record.Score != finishCp.Score
+            || request.Record.NbRespawns != finishCp.NbRespawns
+            || request.Record.Distance != finishCp.Distance
+            || request.Record.Speed != finishCp.Speed)
+        {
+            return "Invalid record";
+        }
+
         if (!Validator.ValidateLogin(request.User.Login))
         {
             return "Invalid login";
@@ -1232,22 +1249,6 @@ public sealed class EnvimaniaService(
         if (!await zoneService.IsValidAsync(request.User.Zone, cancellationToken))
         {
             return "Invalid Zone";
-        }
-
-        if (request.Record.Checkpoints.Length == 0)
-        {
-            return "Invalid record";
-        }
-
-        var finishCp = request.Record.Checkpoints[^1];
-
-        if (request.Record.Time != finishCp.Time
-            || request.Record.Score != finishCp.Score
-            || request.Record.NbRespawns != finishCp.NbRespawns
-            || request.Record.Distance != finishCp.Distance
-            || request.Record.Speed != finishCp.Speed)
-        {
-            return "Invalid record";
         }
 
         if (!modService.IsValidCar(request.Car))
