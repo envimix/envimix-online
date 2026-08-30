@@ -21,6 +21,7 @@ public interface IEnvimixService
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
+    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
 }
 
 public sealed class EnvimixService(
@@ -266,6 +267,22 @@ public sealed class EnvimixService(
         return await response.Content.ReadFromJsonAsync<MapDetailsInfo>(cancellationToken);
     }
 
+    public Task<MapRecordsPage?> GetMapRecordsAsync(
+        string mapUid,
+        string? car = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var carQuery = string.IsNullOrWhiteSpace(car)
+            ? ""
+            : $"&car={Uri.EscapeDataString(car)}";
+
+        return GetDetailAsync<MapRecordsPage>(
+            $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}{carQuery}",
+            cancellationToken);
+    }
+
     private async Task<T?> GetDetailAsync<T>(
         string path,
         CancellationToken cancellationToken)
@@ -379,3 +396,13 @@ public sealed record MapDetailsInfo(
     string Uid,
     string Collection,
     int Laps);
+
+public sealed record MapRecordsPage(
+    MapRecordCarInfo[] Cars,
+    string? Car,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    RecordInfo[] Records);
+
+public sealed record MapRecordCarInfo(string Id, int RecordCount);

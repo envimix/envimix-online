@@ -22,6 +22,7 @@ public static class MapEndpoints
 
         group.MapPost("", SubmitMaps).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapGet("{mapUid}", GetMap);
+        group.MapGet("{mapUid}/records", GetRecords);
         group.MapGet("{mapUid}/download", DownloadMap);
         group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
     }
@@ -101,6 +102,54 @@ public static class MapEndpoints
         await cache.RemoveAsync($"PossibleEnvimixCombinations_{request.TitleId}", CancellationToken.None);
 
         return TypedResults.Ok();
+    }
+
+    private static async Task<Results<Ok<MapRecordsPage>, NotFound>> GetRecords(
+        string mapUid,
+        string? car,
+        int? page,
+        int? pageSize,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (!await db.Maps.AnyAsync(x => x.Id == mapUid, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var requestedPageSize = Math.Clamp(pageSize ?? 50, 10, 100);
+
+        var cars = await db.Records
+            .Where(x => x.MapId == mapUid)
+            .GroupBy(x => new { x.CarId, x.Car.Order })
+            .Select(group => new
+            {
+                Id = group.Key.CarId,
+                Order = group.Key.Order,
+                RecordCount = group.Count()
+            })
+            .OrderBy(x => x.Order == null)
+            .ThenBy(x => x.Order)
+            .ThenBy(x => x.Id)
+            .Select(x => new MapRecordCarInfo(x.Id, x.RecordCount))
+            .ToArrayAsync(cancellationToken);
+
+        car = string.IsNullOrWhiteSpace(car) ? cars.FirstOrDefault()?.Id : car;
+        var totalCount = cars.FirstOrDefault(x => x.Id == car)?.RecordCount ?? 0;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)requestedPageSize));
+        var requestedPage = Math.Clamp(page ?? 1, 1, totalPages);
+
+        var records = car is null
+            ? []
+            : await RecordEndpoints.Project(db.Records
+                .Where(x => x.MapId == mapUid && x.CarId == car)
+                .OrderByDescending(x => x.DrivenAt)
+                .ThenBy(x => x.Id)
+                .Skip((requestedPage - 1) * requestedPageSize)
+                .Take(requestedPageSize))
+                .ToArrayAsync(cancellationToken);
+
+            return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, records));
     }
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> GetMap(

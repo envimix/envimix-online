@@ -1,7 +1,9 @@
 @page "/maps/{MapUid}"
+@rendermode InteractiveServer
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<MapDetails> Logger
+@inject IJSRuntime JS
 @attribute [StreamRendering]
 
 <PageTitle>@(map is null ? MapUid : GetMapName(map)) - ENVIMIX map</PageTitle>
@@ -39,6 +41,134 @@
                 </div>
             }
         </dl>
+
+        <h3>Records</h3>
+        @if (recordsPage is null)
+        {
+            @if (recordsLoadFailed)
+            {
+                <p>Unable to load records at this time.</p>
+            }
+            else
+            {
+                <p>Loading records...</p>
+            }
+        }
+        else if (recordsPage.Cars.Length == 0)
+        {
+            <p>No records have been driven on this map yet.</p>
+        }
+        else
+        {
+            <div class="car-tabs" role="tablist" aria-label="Cars">
+                @foreach (var car in recordsPage.Cars)
+                {
+                    <button type="button"
+                            role="tab"
+                            class="@(car.Id == recordsPage.Car ? "selected" : null)"
+                            aria-selected="@(car.Id == recordsPage.Car)"
+                            disabled="@recordsLoading"
+                            @onclick="() => SelectCarAsync(car.Id)">
+                        <CarDisplay CarId="@car.Id" Linked="false" />
+                        <span>@car.RecordCount</span>
+                    </button>
+                }
+            </div>
+
+            <section class="map-records" aria-busy="@recordsLoading">
+                <h4><CarDisplay CarId="@(recordsPage.Car ?? "")" Linked="false" IconSize="42" /></h4>
+
+                @if (recordsLoadFailed)
+                {
+                    <p>Unable to load this records page.</p>
+                }
+                else
+                {
+                    <div class="records-scroll">
+                        <table class="records-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Player</th>
+                                    <th scope="col">Gravity</th>
+                                    @if (ShouldShowLaps(map.Laps))
+                                    {
+                                        <th scope="col">Laps</th>
+                                    }
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Driven</th>
+                                    <th scope="col">Server</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var index = 0; index < recordsPage.Records.Length; index++)
+                                {
+                                    var record = recordsPage.Records[index];
+                                    <tr class="@(record.Removed ? "removed-record" : null)">
+                                        <td>@((recordsPage.Page - 1) * recordsPage.PageSize + index + 1)</td>
+                                        <td>
+                                            @if (string.IsNullOrWhiteSpace(record.Nickname))
+                                            {
+                                                <a class="player-name" href="@GetUserUrl(record.UserLogin)">@record.UserLogin</a>
+                                            }
+                                            else
+                                            {
+                                                <a class="player-name" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname"></FormattedText></a>
+                                                <small>@record.UserLogin</small>
+                                            }
+                                        </td>
+                                        <td>@record.Gravity</td>
+                                        @if (ShouldShowLaps(map.Laps))
+                                        {
+                                            <td>@FormatRecordLaps(map.Laps, record.Laps)</td>
+                                        }
+                                        <td>
+                                            <a href="@GetRecordUrl(record)">@FormatTime(record.Time)</a>
+                                            @if (record.Removed)
+                                            {
+                                                <small>(removed)</small>
+                                            }
+                                        </td>
+                                        <td>@FormatDateTime(record.DrivenAt)</td>
+                                        <td>
+                                            @if (string.IsNullOrWhiteSpace(record.ServerLogin))
+                                            {
+                                                <span>-</span>
+                                            }
+                                            else
+                                            {
+                                                <a href="@GetServerUrl(record.ServerLogin)">@record.ServerLogin</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <nav class="records-pagination" aria-label="Records pages">
+                        <button type="button" disabled="@(recordsLoading || recordsPage.Page <= 1)" @onclick="() => GoToPageAsync(recordsPage.Page - 1)">Previous</button>
+                        @foreach (var pageNumber in GetVisiblePages())
+                        {
+                            @if (pageNumber == 0)
+                            {
+                                <span aria-hidden="true">...</span>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="@(pageNumber == recordsPage.Page ? "selected" : null)"
+                                        aria-current="@(pageNumber == recordsPage.Page ? "page" : null)"
+                                        disabled="@(recordsLoading || pageNumber == recordsPage.Page)"
+                                        @onclick="() => GoToPageAsync(pageNumber)">@pageNumber</button>
+                            }
+                        }
+                        <button type="button" disabled="@(recordsLoading || recordsPage.Page >= TotalPages)" @onclick="() => GoToPageAsync(recordsPage.Page + 1)">Next</button>
+                        <small>@recordsPage.TotalCount records</small>
+                    </nav>
+                }
+            </section>
+        }
     }
 </ReuContainer>
 
@@ -46,9 +176,22 @@
     [Parameter]
     public string MapUid { get; set; } = "";
 
+    [SupplyParameterFromQuery(Name = "car")]
+    public string? RecordCar { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int RecordPage { get; set; } = 1;
+
     private MapDetailsInfo? map;
+    private MapRecordsPage? recordsPage;
     private bool isLoading = true;
+    private bool recordsLoading;
     private bool loadFailed;
+    private bool recordsLoadFailed;
+
+    private int TotalPages => recordsPage is null
+        ? 1
+        : Math.Max(1, (int)Math.Ceiling(recordsPage.TotalCount / (double)recordsPage.PageSize));
 
     protected override async Task OnParametersSetAsync()
     {
@@ -58,6 +201,10 @@
         try
         {
             map = await EnvimixService.GetMapAsync(MapUid);
+            if (map is not null)
+            {
+                await LoadRecordsAsync(RecordCar, RecordPage, updateUrl: false);
+            }
         }
         catch (Exception ex)
         {
@@ -79,4 +226,108 @@
 
     private static string FormatMapLaps(int mapLaps)
         => mapLaps == 0 ? "Undefined" : mapLaps.ToString();
+
+    private async Task SelectCarAsync(string car)
+    {
+        if (recordsPage?.Car == car)
+        {
+            return;
+        }
+
+        await LoadRecordsAsync(car, 1, updateUrl: true);
+    }
+
+    private Task GoToPageAsync(int page)
+        => LoadRecordsAsync(recordsPage?.Car, page, updateUrl: true);
+
+    private async Task LoadRecordsAsync(string? car, int page, bool updateUrl)
+    {
+        if (recordsLoading)
+        {
+            return;
+        }
+
+        recordsLoading = true;
+        recordsLoadFailed = false;
+
+        try
+        {
+            var result = await EnvimixService.GetMapRecordsAsync(MapUid, car, page);
+            if (result is null)
+            {
+                recordsLoadFailed = true;
+                return;
+            }
+
+            recordsPage = result;
+            RecordCar = result.Car;
+            RecordPage = result.Page;
+
+            if (updateUrl)
+            {
+                var carQuery = string.IsNullOrWhiteSpace(result.Car)
+                    ? ""
+                    : $"&car={Uri.EscapeDataString(result.Car)}";
+                var url = $"/maps/{Uri.EscapeDataString(MapUid)}?page={result.Page}{carQuery}";
+                await JS.InvokeVoidAsync("history.replaceState", null, "", url);
+            }
+        }
+        catch (Exception ex)
+        {
+            recordsLoadFailed = true;
+            Logger.LogError(ex, "Unable to load records for map {MapUid}", MapUid);
+        }
+        finally
+        {
+            recordsLoading = false;
+        }
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var currentPage = recordsPage?.Page ?? 1;
+        var start = Math.Max(1, currentPage - 2);
+        var end = Math.Min(TotalPages, currentPage + 2);
+
+        if (start > 1)
+        {
+            yield return 1;
+            if (start > 2)
+            {
+                yield return 0;
+            }
+        }
+
+        for (var page = start; page <= end; page++)
+        {
+            yield return page;
+        }
+
+        if (end < TotalPages)
+        {
+            if (end < TotalPages - 1)
+            {
+                yield return 0;
+            }
+            yield return TotalPages;
+        }
+    }
+
+    private static string GetUserUrl(string userLogin)
+        => $"/users/{Uri.EscapeDataString(userLogin)}";
+
+    private static string GetRecordUrl(RecordInfo record)
+        => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";
+
+    private static string GetServerUrl(string serverLogin)
+        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+
+    private static string FormatRecordLaps(int mapLaps, int recordLaps)
+        => mapLaps == 0 ? "Undefined" : recordLaps.ToString();
+
+    private static string FormatDateTime(DateTimeOffset dateTime)
+        => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+    private static string FormatTime(int milliseconds)
+        => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
 }

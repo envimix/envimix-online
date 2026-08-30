@@ -16,3 +16,13 @@ public sealed record RecordInfo(
     Guid? SessionId,
     string? ServerLogin,
     bool Removed);
+
+public sealed record MapRecordsPage(
+    MapRecordCarInfo[] Cars,
+    string? Car,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    RecordInfo[] Records);
+
+public sealed record MapRecordCarInfo(string Id, int RecordCount);

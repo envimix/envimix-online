@@ -22,3 +22,124 @@
 .map-summary dd {
     margin: 0.25rem 0 0;
 }
+
+.car-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-block: 0.75rem 1.25rem;
+    padding-bottom: 0.4rem;
+    overflow-x: auto;
+}
+
+.car-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: 4px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.car-tabs button.selected {
+    border-color: currentColor;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.car-tabs button:disabled:not(.selected) {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.car-tabs button > span:last-child {
+    opacity: 0.7;
+}
+
+.map-records h4 {
+    margin-block: 0;
+}
+
+.map-records[aria-busy="true"] .records-scroll {
+    opacity: 0.6;
+}
+
+.records-scroll {
+    overflow-x: auto;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 0.4rem 0;
+}
+
+.records-table th,
+.records-table td {
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.records-table th {
+    font-weight: 600;
+}
+
+.player-name,
+.records-table small {
+    display: block;
+}
+
+.records-table small {
+    opacity: 0.7;
+}
+
+.removed-record {
+    opacity: 0.5;
+}
+
+.records-pagination {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+}
+
+.records-pagination button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: 4px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.records-pagination button.selected {
+    border-color: currentColor;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+    font-weight: 600;
+}
+
+.records-pagination button:disabled:not(.selected) {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.records-pagination small {
+    margin-inline-start: 0.35rem;
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .records-table th,
+    .records-table td {
+        padding-inline: 0.4rem;
+    }
+}
