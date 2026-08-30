@@ -1,5 +1,13 @@
+.server-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
 .server-table {
     width: 100%;
+    min-width: 36rem;
     border-collapse: collapse;
     margin-block: 1rem;
 }

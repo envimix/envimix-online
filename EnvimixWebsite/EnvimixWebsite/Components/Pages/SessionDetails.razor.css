@@ -29,7 +29,10 @@
 }
 
 .records-scroll {
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .car-records {
@@ -44,6 +47,7 @@
 
 .records-table {
     width: 100%;
+    min-width: 42rem;
     border-collapse: collapse;
     margin-block: 0.4rem 0;
 }

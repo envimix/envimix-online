@@ -24,11 +24,15 @@
 }
 
 .maps-scroll {
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .maps-table {
     width: 100%;
+    min-width: 38rem;
     border-collapse: collapse;
     margin-block: 0.4rem 0;
 }

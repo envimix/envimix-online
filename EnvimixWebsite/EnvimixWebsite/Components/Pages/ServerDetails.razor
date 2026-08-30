@@ -74,6 +74,7 @@
         }
         else
         {
+            <div class="session-table-scroll">
             <table class="session-table">
                 <thead>
                     <tr>
@@ -129,6 +130,7 @@
                     }
                 </tbody>
             </table>
+            </div>
 
             @if (server.RecentSessions.Length < server.MatchingSessionCount && SessionLimit < 500)
             {
