@@ -430,7 +430,11 @@ public sealed record MapDetailsInfo(
     string Collection,
     string? AuthorLogin,
     string? AuthorNickname,
-    int Laps);
+    int Laps,
+    int AuthorTime,
+    int GoldTime,
+    int SilverTime,
+    int BronzeTime);
 
 public sealed record MapRecordsPage(
     MapRecordCarInfo[] Cars,

@@ -123,7 +123,17 @@ public static class MapEndpoints
         AppDbContext db,
         CancellationToken cancellationToken)
     {
-        if (!await db.Maps.AnyAsync(x => x.Id == mapUid, cancellationToken))
+        var mapInfo = await db.Maps
+            .Where(x => x.Id == mapUid)
+            .Select(x => new
+            {
+                x.Collection,
+                x.AuthorLogin,
+                x.AuthorNickname
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (mapInfo is null)
         {
             return TypedResults.NotFound();
         }
@@ -173,11 +183,20 @@ public static class MapEndpoints
             .Select(carInfo =>
             {
                 validators.TryGetValue(carInfo.Id, out var validator);
+                var isDefaultCar = mapInfo.Collection switch
+                {
+                    "Canyon" => carInfo.Id == "CanyonCar",
+                    "Stadium" => carInfo.Id == "StadiumCar",
+                    "Valley" => carInfo.Id == "ValleyCar",
+                    "Lagoon" => carInfo.Id == "LagoonCar",
+                    _ => false
+                };
+
                 return new MapRecordCarInfo(
                     carInfo.Id,
                     carInfo.RecordCount,
-                    validator?.Login,
-                    validator?.Nickname);
+                    isDefaultCar ? mapInfo.AuthorLogin ?? validator?.Login : validator?.Login,
+                    isDefaultCar ? mapInfo.AuthorNickname ?? validator?.Nickname : validator?.Nickname);
             })
             .ToArray();
 
@@ -429,6 +448,10 @@ public static class MapEndpoints
             AuthorLogin = map.AuthorLogin,
             AuthorNickname = map.AuthorNickname,
             Laps = map.Laps,
+            AuthorTime = map.AuthorTime,
+            GoldTime = map.GoldTime,
+            SilverTime = map.SilverTime,
+            BronzeTime = map.BronzeTime,
             TitlePack = map.TitlePack is null ? null : new()
             {
                 Id = map.TitlePack.Id,

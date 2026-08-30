@@ -47,6 +47,34 @@
                     <dd>@FormatMapLaps(map.Laps)</dd>
                 </div>
             }
+            @if (map.AuthorTime > 0)
+            {
+                <div class="medal-time author-medal">
+                    <dt>Author</dt>
+                    <dd>@FormatTime(map.AuthorTime)</dd>
+                </div>
+            }
+            @if (map.GoldTime > 0)
+            {
+                <div class="medal-time gold-medal">
+                    <dt>Gold</dt>
+                    <dd>@FormatTime(map.GoldTime)</dd>
+                </div>
+            }
+            @if (map.SilverTime > 0)
+            {
+                <div class="medal-time silver-medal">
+                    <dt>Silver</dt>
+                    <dd>@FormatTime(map.SilverTime)</dd>
+                </div>
+            }
+            @if (map.BronzeTime > 0)
+            {
+                <div class="medal-time bronze-medal">
+                    <dt>Bronze</dt>
+                    <dd>@FormatTime(map.BronzeTime)</dd>
+                </div>
+            }
         </dl>
 
         <div class="records-heading">

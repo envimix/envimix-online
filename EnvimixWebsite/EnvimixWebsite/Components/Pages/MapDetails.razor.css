@@ -23,6 +23,28 @@
     margin: 0.25rem 0 0;
 }
 
+.map-summary .medal-time {
+    min-width: 5.5rem;
+    padding-inline-start: 0.65rem;
+    border-inline-start: 0.2rem solid;
+}
+
+.author-medal {
+    border-color: #55c7d9;
+}
+
+.gold-medal {
+    border-color: #d8aa28;
+}
+
+.silver-medal {
+    border-color: #9da5ad;
+}
+
+.bronze-medal {
+    border-color: #b87543;
+}
+
 ::deep .reu-button {
     padding-inline: 0.75rem;
 }
