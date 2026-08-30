@@ -158,14 +158,21 @@ public static class MapEndpoints
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> VisitMap(
         string mapUid,
+        MapInfo? mapInfo,
         AppDbContext db,
         IEnvimaniaService envimaniaService,
         IRatingService ratingService,
         IStarService starService,
+        IMapService mapService,
         IUserService userService,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
+        if (mapInfo is not null && mapUid != mapInfo.Uid)
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Map UID does not match route"));
+        }
+
         var userModel = await userService.GetAsync(principal.GetName(), cancellationToken);
 
         if (userModel is null)
@@ -178,18 +185,24 @@ public static class MapEndpoints
             return TypedResults.Forbid();
         }
 
-        var map = await db.Maps
-            .Include(x => x.TitlePack)
-            .Include(x => x.Campaign)
-            .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken: cancellationToken);
+        MapEntity map;
 
-        if (map is null)
+        if (mapInfo is not null)
         {
-            map = new MapEntity
+            map = await mapService.GetAddOrUpdateAsync(mapInfo, server: null, cancellationToken);
+        }
+        else
+        {
+            map = await db.Maps
+                .Include(x => x.TitlePack)
+                .Include(x => x.Campaign)
+                .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken)
+                ?? new MapEntity { Id = mapUid };
+
+            if (db.Entry(map).State == EntityState.Detached)
             {
-                Id = mapUid
-            };
-            await db.Maps.AddAsync(map, cancellationToken);
+                await db.Maps.AddAsync(map, cancellationToken);
+            }
         }
 
         if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
