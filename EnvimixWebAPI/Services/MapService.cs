@@ -45,6 +45,11 @@ public sealed class MapService(AppDbContext db) : IMapService
     {
         var map = await GetAsync(mapInfo.Uid, cancellationToken);
 
+        if (map?.IsCampaignMap == true)
+        {
+            return map;
+        }
+
         if (map is null)
         {
             map = new MapEntity
@@ -68,6 +73,11 @@ public sealed class MapService(AppDbContext db) : IMapService
         {
             map.Collection = mapInfo.Collection;
         }
+
+        map.AuthorTime = mapInfo.AuthorTime;
+        map.GoldTime = mapInfo.GoldTime;
+        map.SilverTime = mapInfo.SilverTime;
+        map.BronzeTime = mapInfo.BronzeTime;
 
         await db.SaveChangesAsync(cancellationToken);
 
