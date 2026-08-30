@@ -21,7 +21,7 @@ public interface IEnvimixService
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
-    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 50, bool showAll = false, CancellationToken cancellationToken = default);
+    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, CancellationToken cancellationToken = default);
     string GetGhostDownloadUrl(Guid ghostId);
 }
 
@@ -273,7 +273,7 @@ public sealed class EnvimixService(
         string mapUid,
         string? car = null,
         int page = 1,
-        int pageSize = 50,
+        int pageSize = 20,
         bool showAll = false,
         CancellationToken cancellationToken = default)
     {
