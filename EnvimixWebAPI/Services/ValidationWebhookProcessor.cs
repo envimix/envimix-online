@@ -115,12 +115,12 @@ public sealed class ValidationWebhookProcessor : BackgroundService
     public static string GetMapCarLink(MapEntity map, string car)
     {
         var url = $"https://envimix.gbx.tools/maps/{Uri.EscapeDataString(map.Id)}?car={Uri.EscapeDataString(car)}";
-        return $"[**{TextFormatter.Deformat(map.Name)}**.**{car}**]({url})";
+        return $"[**{TextFormatter.Deformat(map.Name)}**.**{car}**](<{url}>)";
     }
 
     public static string GetUserLink(UserEntity user)
     {
         var url = $"https://envimix.gbx.tools/users/{Uri.EscapeDataString(user.Id)}";
-        return $"[**{TextFormatter.Deformat(user.Nickname ?? user.Id)}**]({url})";
+        return $"[**{TextFormatter.Deformat(user.Nickname ?? user.Id)}**](<{url}>)";
     }
 }

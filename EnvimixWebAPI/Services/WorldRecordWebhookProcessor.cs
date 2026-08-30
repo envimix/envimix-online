@@ -49,7 +49,7 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
                 var carEmote = ValidationWebhookProcessor.GetCarEmote(webhook.NewRecord.CarId);
                 var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(webhook.NewRecord.Map, webhook.NewRecord.CarId);
                 var recordUrl = $"https://envimix.gbx.tools/records/{Uri.EscapeDataString(webhook.NewRecord.Map.Id)}/{Uri.EscapeDataString(webhook.NewRecord.CarId)}/{Uri.EscapeDataString(webhook.NewRecord.User.Id)}/{webhook.NewRecord.Time}";
-                var recordTimeLink = $"[`{new TimeInt32(webhook.NewRecord.Time)}`]({recordUrl})";
+                var recordTimeLink = $"[`{new TimeInt32(webhook.NewRecord.Time)}`](<{recordUrl}>)";
                 var userLink = ValidationWebhookProcessor.GetUserLink(webhook.NewRecord.User);
 
                 var delta = webhook.PrevRecord is null ? null : $" `{(webhook.NewRecord.Time - webhook.PrevRecord.Time) / 1000f:+0.000;-0.000}`";
