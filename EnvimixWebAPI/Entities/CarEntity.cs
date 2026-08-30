@@ -6,4 +6,6 @@ public sealed class CarEntity
 {
     [StringLength(16)]
     public required string Id { get; set; }
+
+    public int? Order { get; set; }
 }

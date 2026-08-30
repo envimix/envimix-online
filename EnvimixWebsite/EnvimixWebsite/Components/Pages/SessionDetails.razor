@@ -60,7 +60,10 @@
         else
         {
             <div class="car-records">
-                @foreach (var carGroup in session.Records.GroupBy(record => record.Car))
+                @foreach (var carGroup in session.Records
+                    .GroupBy(record => record.Car)
+                    .OrderBy(group => CarOrder.GetIndex(group.Key))
+                    .ThenBy(group => group.Key))
                 {
                     var records = carGroup.ToArray();
                     <section class="car-records-group">

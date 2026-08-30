@@ -34,7 +34,8 @@ public sealed class ModService(AppDbContext db, IOptionsSnapshot<EnvimaniaOption
         {
             car = new CarEntity
             {
-                Id = carName
+                Id = carName,
+                Order = CarOrder.GetOrder(carName)
             };
 
             await db.Cars.AddAsync(car, cancellationToken);
