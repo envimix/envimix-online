@@ -15,6 +15,7 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
+    Guid? GhostId,
     bool Removed);
 
 public sealed record MapRecordsPage(
@@ -23,6 +24,7 @@ public sealed record MapRecordsPage(
     int Page,
     int PageSize,
     int TotalCount,
+    bool ShowAll,
     RecordInfo[] Records);
 
 public sealed record MapRecordCarInfo(string Id, int RecordCount);

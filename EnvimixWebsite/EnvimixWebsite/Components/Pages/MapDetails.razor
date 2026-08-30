@@ -60,18 +60,25 @@
         }
         else
         {
+            <div class="records-options">
+                <label>
+                    <input type="checkbox" @bind="ShowAllRecords" @bind:after="ChangeRecordModeAsync" disabled="@recordsLoading" />
+                    Show all records
+                </label>
+            </div>
+
             <div class="car-tabs" role="tablist" aria-label="Cars">
                 @foreach (var car in recordsPage.Cars)
                 {
-                    <button type="button"
-                            role="tab"
-                            class="@(car.Id == recordsPage.Car ? "selected" : null)"
-                            aria-selected="@(car.Id == recordsPage.Car)"
-                            disabled="@recordsLoading"
-                            @onclick="() => SelectCarAsync(car.Id)">
+                    <ReuButton CssClass="car-tab"
+                               role="tab"
+                               Active="@(car.Id == recordsPage.Car)"
+                               aria-selected="@(car.Id == recordsPage.Car)"
+                               Disabled="@recordsLoading"
+                               OnClick="() => SelectCarAsync(car.Id)">
                         <CarDisplay CarId="@car.Id" Linked="false" />
                         <span>@car.RecordCount</span>
-                    </button>
+                    </ReuButton>
                 }
             </div>
 
@@ -88,9 +95,11 @@
                         <table class="records-table">
                             <thead>
                                 <tr>
-                                    <th scope="col">#</th>
+                                    @if (!recordsPage.ShowAll)
+                                    {
+                                        <th scope="col">#</th>
+                                    }
                                     <th scope="col">Player</th>
-                                    <th scope="col">Gravity</th>
                                     @if (ShouldShowLaps(map.Laps))
                                     {
                                         <th scope="col">Laps</th>
@@ -98,6 +107,7 @@
                                     <th scope="col">Time</th>
                                     <th scope="col">Driven</th>
                                     <th scope="col">Server</th>
+                                    <th scope="col"><span class="visually-hidden">Download</span></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -105,7 +115,10 @@
                                 {
                                     var record = recordsPage.Records[index];
                                     <tr class="@(record.Removed ? "removed-record" : null)">
-                                        <td>@((recordsPage.Page - 1) * recordsPage.PageSize + index + 1)</td>
+                                        @if (!recordsPage.ShowAll)
+                                        {
+                                            <td>@((recordsPage.Page - 1) * recordsPage.PageSize + index + 1)</td>
+                                        }
                                         <td>
                                             @if (string.IsNullOrWhiteSpace(record.Nickname))
                                             {
@@ -117,7 +130,6 @@
                                                 <small>@record.UserLogin</small>
                                             }
                                         </td>
-                                        <td>@record.Gravity</td>
                                         @if (ShouldShowLaps(map.Laps))
                                         {
                                             <td>@FormatRecordLaps(map.Laps, record.Laps)</td>
@@ -140,6 +152,12 @@
                                                 <a href="@GetServerUrl(record.ServerLogin)">@record.ServerLogin</a>
                                             }
                                         </td>
+                                        <td>
+                                            @if (record.GhostId is Guid ghostId)
+                                            {
+                                                <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" CssClass="ghost-download" download>Ghost</ReuButton>
+                                            }
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -147,7 +165,7 @@
                     </div>
 
                     <nav class="records-pagination" aria-label="Records pages">
-                        <button type="button" disabled="@(recordsLoading || recordsPage.Page <= 1)" @onclick="() => GoToPageAsync(recordsPage.Page - 1)">Previous</button>
+                        <ReuButton Disabled="@(recordsLoading || recordsPage.Page <= 1)" OnClick="() => GoToPageAsync(recordsPage.Page - 1)">Previous</ReuButton>
                         @foreach (var pageNumber in GetVisiblePages())
                         {
                             @if (pageNumber == 0)
@@ -156,14 +174,13 @@
                             }
                             else
                             {
-                                <button type="button"
-                                        class="@(pageNumber == recordsPage.Page ? "selected" : null)"
-                                        aria-current="@(pageNumber == recordsPage.Page ? "page" : null)"
-                                        disabled="@(recordsLoading || pageNumber == recordsPage.Page)"
-                                        @onclick="() => GoToPageAsync(pageNumber)">@pageNumber</button>
+                                <ReuButton Active="@(pageNumber == recordsPage.Page)"
+                                       aria-current="@(pageNumber == recordsPage.Page ? "page" : null)"
+                                       Disabled="@(recordsLoading || pageNumber == recordsPage.Page)"
+                                       OnClick="() => GoToPageAsync(pageNumber)">@pageNumber</ReuButton>
                             }
                         }
-                        <button type="button" disabled="@(recordsLoading || recordsPage.Page >= TotalPages)" @onclick="() => GoToPageAsync(recordsPage.Page + 1)">Next</button>
+                            <ReuButton Disabled="@(recordsLoading || recordsPage.Page >= TotalPages)" OnClick="() => GoToPageAsync(recordsPage.Page + 1)">Next</ReuButton>
                         <small>@recordsPage.TotalCount records</small>
                     </nav>
                 }
@@ -182,12 +199,16 @@
     [SupplyParameterFromQuery(Name = "page")]
     public int RecordPage { get; set; } = 1;
 
+    [SupplyParameterFromQuery(Name = "all")]
+    public bool ShowAllRecords { get; set; }
+
     private MapDetailsInfo? map;
     private MapRecordsPage? recordsPage;
     private bool isLoading = true;
     private bool recordsLoading;
     private bool loadFailed;
     private bool recordsLoadFailed;
+    private bool appliedShowAllRecords;
 
     private int TotalPages => recordsPage is null
         ? 1
@@ -240,6 +261,15 @@
     private Task GoToPageAsync(int page)
         => LoadRecordsAsync(recordsPage?.Car, page, updateUrl: true);
 
+    private async Task ChangeRecordModeAsync()
+    {
+        await LoadRecordsAsync(recordsPage?.Car, 1, updateUrl: true);
+        if (recordsLoadFailed)
+        {
+            ShowAllRecords = appliedShowAllRecords;
+        }
+    }
+
     private async Task LoadRecordsAsync(string? car, int page, bool updateUrl)
     {
         if (recordsLoading)
@@ -252,7 +282,7 @@
 
         try
         {
-            var result = await EnvimixService.GetMapRecordsAsync(MapUid, car, page);
+            var result = await EnvimixService.GetMapRecordsAsync(MapUid, car, page, showAll: ShowAllRecords);
             if (result is null)
             {
                 recordsLoadFailed = true;
@@ -262,13 +292,16 @@
             recordsPage = result;
             RecordCar = result.Car;
             RecordPage = result.Page;
+            ShowAllRecords = result.ShowAll;
+            appliedShowAllRecords = result.ShowAll;
 
             if (updateUrl)
             {
                 var carQuery = string.IsNullOrWhiteSpace(result.Car)
                     ? ""
                     : $"&car={Uri.EscapeDataString(result.Car)}";
-                var url = $"/maps/{Uri.EscapeDataString(MapUid)}?page={result.Page}{carQuery}";
+                var allQuery = result.ShowAll ? "&all=true" : "";
+                var url = $"/maps/{Uri.EscapeDataString(MapUid)}?page={result.Page}{carQuery}{allQuery}";
                 await JS.InvokeVoidAsync("history.replaceState", null, "", url);
             }
         }

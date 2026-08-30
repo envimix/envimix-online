@@ -21,7 +21,8 @@ public interface IEnvimixService
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
-    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 50, bool showAll = false, CancellationToken cancellationToken = default);
+    string GetGhostDownloadUrl(Guid ghostId);
 }
 
 public sealed class EnvimixService(
@@ -273,6 +274,7 @@ public sealed class EnvimixService(
         string? car = null,
         int page = 1,
         int pageSize = 50,
+        bool showAll = false,
         CancellationToken cancellationToken = default)
     {
         var carQuery = string.IsNullOrWhiteSpace(car)
@@ -280,9 +282,12 @@ public sealed class EnvimixService(
             : $"&car={Uri.EscapeDataString(car)}";
 
         return GetDetailAsync<MapRecordsPage>(
-            $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}{carQuery}",
+            $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}&showAll={showAll}{carQuery}",
             cancellationToken);
     }
+
+    public string GetGhostDownloadUrl(Guid ghostId)
+        => $"{config["EnvimixApi"]}/ghosts/{ghostId}/download";
 
     private async Task<T?> GetDetailAsync<T>(
         string path,
@@ -392,6 +397,7 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
+    Guid? GhostId,
     bool Removed);
 
 public sealed record MapDetailsInfo(
@@ -406,6 +412,7 @@ public sealed record MapRecordsPage(
     int Page,
     int PageSize,
     int TotalCount,
+    bool ShowAll,
     RecordInfo[] Records);
 
 public sealed record MapRecordCarInfo(string Id, int RecordCount);

@@ -58,5 +58,6 @@ public static class RecordEndpoints
                 x.DrivenAt,
                 x.SessionId,
                 x.Session == null ? null : x.Session.Server.Id,
+                x.GhostId,
                 x.Removed));
 }

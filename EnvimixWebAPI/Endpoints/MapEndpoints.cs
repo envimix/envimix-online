@@ -109,6 +109,7 @@ public static class MapEndpoints
         string? car,
         int? page,
         int? pageSize,
+        bool? showAll,
         AppDbContext db,
         CancellationToken cancellationToken)
     {
@@ -118,6 +119,7 @@ public static class MapEndpoints
         }
 
         var requestedPageSize = Math.Clamp(pageSize ?? 50, 10, 100);
+        var includeAllRecords = showAll == true;
 
         var cars = await db.Records
             .Where(x => x.MapId == mapUid)
@@ -126,7 +128,9 @@ public static class MapEndpoints
             {
                 Id = group.Key.CarId,
                 Order = group.Key.Order,
-                RecordCount = group.Count()
+                RecordCount = includeAllRecords
+                    ? group.Count()
+                    : group.Select(record => record.UserId).Distinct().Count()
             })
             .OrderBy(x => x.Order == null)
             .ThenBy(x => x.Order)
@@ -139,17 +143,32 @@ public static class MapEndpoints
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)requestedPageSize));
         var requestedPage = Math.Clamp(page ?? 1, 1, totalPages);
 
+        var recordsQuery = db.Records
+            .Where(x => x.MapId == mapUid && x.CarId == car);
+
+        if (!includeAllRecords)
+        {
+            recordsQuery = recordsQuery.Where(record => !db.Records.Any(other =>
+                other.MapId == record.MapId &&
+                other.CarId == record.CarId &&
+                other.UserId == record.UserId &&
+                (other.Time < record.Time ||
+                    (other.Time == record.Time && other.DrivenAt > record.DrivenAt) ||
+                    (other.Time == record.Time && other.DrivenAt == record.DrivenAt && other.Id > record.Id))));
+        }
+
+        var orderedRecords = includeAllRecords
+            ? recordsQuery.OrderByDescending(x => x.DrivenAt).ThenByDescending(x => x.Id)
+            : recordsQuery.OrderBy(x => x.Time).ThenByDescending(x => x.DrivenAt).ThenByDescending(x => x.Id);
+
         var records = car is null
             ? []
-            : await RecordEndpoints.Project(db.Records
-                .Where(x => x.MapId == mapUid && x.CarId == car)
-                .OrderByDescending(x => x.DrivenAt)
-                .ThenBy(x => x.Id)
+            : await RecordEndpoints.Project(orderedRecords
                 .Skip((requestedPage - 1) * requestedPageSize)
                 .Take(requestedPageSize))
                 .ToArrayAsync(cancellationToken);
 
-            return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, records));
+        return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, includeAllRecords, records));
     }
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> GetMap(

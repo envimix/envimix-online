@@ -31,31 +31,30 @@
     overflow-x: auto;
 }
 
-.car-tabs button {
+.records-options {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.records-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.car-tabs ::deep .car-tab {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     flex: 0 0 auto;
-    padding: 0.45rem 0.7rem;
-    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    border-radius: 4px;
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
 }
 
-.car-tabs button.selected {
-    border-color: currentColor;
-    background: color-mix(in srgb, currentColor 10%, transparent);
-}
-
-.car-tabs button:disabled:not(.selected) {
-    cursor: wait;
+.car-tabs ::deep .car-tab:disabled:not(.active) {
     opacity: 0.65;
 }
 
-.car-tabs button > span:last-child {
+.car-tabs ::deep .car-tab > span:last-child {
     opacity: 0.7;
 }
 
@@ -110,31 +109,34 @@
     margin-top: 1rem;
 }
 
-.records-pagination button {
+.records-pagination ::deep .reu-button {
     min-width: 2.25rem;
     min-height: 2.25rem;
-    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    border-radius: 4px;
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
 }
 
-.records-pagination button.selected {
-    border-color: currentColor;
-    background: color-mix(in srgb, currentColor 10%, transparent);
-    font-weight: 600;
-}
-
-.records-pagination button:disabled:not(.selected) {
-    cursor: wait;
+.records-pagination ::deep .reu-button:disabled:not(.active) {
     opacity: 0.65;
 }
 
 .records-pagination small {
     margin-inline-start: 0.35rem;
     opacity: 0.7;
+}
+
+.records-table ::deep .ghost-download {
+    padding: 0.25rem 0.55rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 @media (max-width: 600px) {
