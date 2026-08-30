@@ -23,7 +23,7 @@ public static class CarEndpoints
             return TypedResults.NotFound();
         }
 
-        var recordsQuery = db.Records.Where(x => x.CarId == carId && !x.Removed);
+        var recordsQuery = db.Records.Where(x => x.CarId == carId);
         var recordCount = await recordsQuery.CountAsync(cancellationToken);
         var playerCount = await recordsQuery.Select(x => x.UserId).Distinct().CountAsync(cancellationToken);
         var records = await RecordEndpoints.GetRecent(recordsQuery, cancellationToken);

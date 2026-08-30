@@ -21,12 +21,13 @@ public static class RecordEndpoints
         AppDbContext db,
         CancellationToken cancellationToken)
     {
-        var record = await Project(db.Records.Where(x =>
+        var record = await Project(db.Records
+            .Where(x =>
                 x.MapId == mapUid &&
                 x.CarId == car &&
                 x.UserId == login &&
-                x.Time == time))
-            .OrderByDescending(x => x.DrivenAt)
+                x.Time == time)
+            .OrderByDescending(x => x.DrivenAt))
             .FirstOrDefaultAsync(cancellationToken);
 
         return record is null ? TypedResults.NotFound() : TypedResults.Ok(record);
@@ -35,14 +36,13 @@ public static class RecordEndpoints
     internal static Task<RecordInfo[]> GetRecent(
         IQueryable<RecordEntity> records,
         CancellationToken cancellationToken)
-        => Project(records)
+        => Project(records
             .OrderByDescending(x => x.DrivenAt)
-            .Take(50)
+            .Take(50))
             .ToArrayAsync(cancellationToken);
 
     internal static IQueryable<RecordInfo> Project(IQueryable<RecordEntity> records)
         => records
-            .Where(x => !x.Removed)
             .Select(x => new RecordInfo(
                 x.UserId,
                 x.User.Nickname,
@@ -57,5 +57,6 @@ public static class RecordEndpoints
                 x.DrivenAt,
                 x.SessionId,
                 x.Session == null ? null : x.Session.Server.Id,
-                x.IsWorldRecord));
+                x.IsWorldRecord,
+                x.Removed));
 }

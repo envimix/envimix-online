@@ -48,6 +48,11 @@
     opacity: 0.7;
 }
 
+.removed-note {
+    margin-inline-start: 0.25rem;
+    opacity: 0.7;
+}
+
 @media (max-width: 600px) {
     .records-table th,
     .records-table td {

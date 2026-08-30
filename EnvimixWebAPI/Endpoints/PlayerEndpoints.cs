@@ -24,7 +24,7 @@ public static class PlayerEndpoints
                 Login = x.Id,
                 x.Nickname,
                 Zone = x.Zone == null ? null : x.Zone.Name,
-                RecordCount = x.Records.Count(record => !record.Removed)
+                RecordCount = x.Records.Count
             })
             .FirstOrDefaultAsync(cancellationToken);
 

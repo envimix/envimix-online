@@ -14,4 +14,5 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
-    bool? IsWorldRecord);
+    bool? IsWorldRecord,
+    bool Removed);

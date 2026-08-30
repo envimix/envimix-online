@@ -71,7 +71,13 @@
                                 </td>
                                 <td><a href="@GetCarUrl(record.Car)">@record.Car</a></td>
                                 <td>@record.Laps</td>
-                                <td><a href="@GetRecordUrl(record)">@FormatTime(record.Time)</a></td>
+                                <td>
+                                    <a href="@GetRecordUrl(record)">@FormatTime(record.Time)</a>
+                                    @if (record.Removed)
+                                    {
+                                        <span class="removed-note">(removed)</span>
+                                    }
+                                </td>
                                 <td>@FormatDateTime(record.DrivenAt)</td>
                             </tr>
                         }

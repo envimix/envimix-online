@@ -79,6 +79,10 @@
                 <dt>World record</dt>
                 <dd>@FormatWorldRecord(record.IsWorldRecord)</dd>
             </div>
+            <div>
+                <dt>Status</dt>
+                <dd>@(record.Removed ? "Removed" : "Active")</dd>
+            </div>
             @if (!string.IsNullOrWhiteSpace(record.ServerLogin))
             {
                 <div>
