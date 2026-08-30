@@ -267,12 +267,26 @@ public static class EnvimaniaEndpoints
                 x.StartedAt,
                 x.EndedAt,
                 x.FinishedGracefully,
-                db.Records
-                    .Where(record => record.SessionId == x.Id)
-                    .Select(record => record.UserId)
-                    .Distinct()
-                    .Count()))
+                0))
             .ToArrayAsync(cancellationToken);
+
+        var recentSessionIds = recentSessions.Select(x => x.Id).ToArray();
+        var playerCounts = await db.Records
+            .Where(x => x.SessionId != null && recentSessionIds.Contains(x.SessionId.Value))
+            .GroupBy(x => x.SessionId)
+            .Select(group => new
+            {
+                SessionId = group.Key,
+                PlayerCount = group.Select(x => x.UserId).Distinct().Count()
+            })
+            .ToArrayAsync(cancellationToken);
+        var playerCountsBySession = playerCounts.ToDictionary(
+            x => x.SessionId!.Value,
+            x => x.PlayerCount);
+
+        recentSessions = recentSessions
+            .Select(x => x with { PlayerCount = playerCountsBySession.GetValueOrDefault(x.Id) })
+            .ToArray();
 
         return TypedResults.Ok(new EnvimaniaServerInfo(
             server.ServerLogin,

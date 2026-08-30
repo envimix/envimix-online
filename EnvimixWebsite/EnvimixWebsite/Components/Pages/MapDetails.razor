@@ -112,7 +112,7 @@
                                 {
                                     var record = recordsPage.Records[index];
                                     <tr class="@(record.Removed ? "removed-record" : null)">
-                                        <td>@record.Rank</td>
+                                        <td>@(record.Rank > 0 ? record.Rank : null)</td>
                                         <td>
                                             @if (string.IsNullOrWhiteSpace(record.Nickname))
                                             {

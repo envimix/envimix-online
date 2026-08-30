@@ -125,10 +125,6 @@
     opacity: 0.7;
 }
 
-.records-table ::deep .ghost-download {
-    padding: 0.25rem 0.55rem;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;
