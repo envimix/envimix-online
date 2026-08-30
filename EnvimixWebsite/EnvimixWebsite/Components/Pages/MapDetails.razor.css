@@ -23,6 +23,10 @@
     margin: 0.25rem 0 0;
 }
 
+::deep .reu-button {
+    padding-inline: 0.75rem;
+}
+
 .car-tabs {
     display: flex;
     gap: 0.4rem;
@@ -33,7 +37,6 @@
 
 .records-options {
     display: flex;
-    justify-content: flex-end;
 }
 
 .records-options label {
@@ -111,7 +114,6 @@
 
 .records-pagination ::deep .reu-button {
     min-width: 2.25rem;
-    min-height: 2.25rem;
 }
 
 .records-pagination ::deep .reu-button:disabled:not(.active) {

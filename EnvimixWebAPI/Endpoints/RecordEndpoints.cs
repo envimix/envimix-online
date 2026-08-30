@@ -59,5 +59,66 @@ public static class RecordEndpoints
                 x.SessionId,
                 x.Session == null ? null : x.Session.Server.Id,
                 x.GhostId,
+                null,
                 x.Removed));
+
+    internal static IQueryable<RecordProjection> ProjectWithId(IQueryable<RecordEntity> records)
+        => records.Select(x => new RecordProjection(
+            x.Id,
+            x.UserId,
+            x.User.Nickname,
+            x.MapId,
+            x.Map.Name,
+            x.Map.Laps,
+            x.CarId,
+            x.Gravity,
+            x.Laps,
+            x.Time,
+            x.Score,
+            x.NbRespawns,
+            x.DrivenAt,
+            x.SessionId,
+            x.Session == null ? null : x.Session.Server.Id,
+            x.GhostId,
+            x.Removed));
+
+    internal sealed record RecordProjection(
+        int Id,
+        string UserLogin,
+        string? Nickname,
+        string MapUid,
+        string MapName,
+        int MapLaps,
+        string Car,
+        int Gravity,
+        int Laps,
+        int Time,
+        int Score,
+        int NbRespawns,
+        DateTimeOffset DrivenAt,
+        Guid? SessionId,
+        string? ServerLogin,
+        Guid? GhostId,
+        bool Removed)
+    {
+        public RecordInfo ToRecordInfo(int? rank)
+            => new(
+                UserLogin,
+                Nickname,
+                MapUid,
+                MapName,
+                MapLaps,
+                Car,
+                Gravity,
+                Laps,
+                Time,
+                Score,
+                NbRespawns,
+                DrivenAt,
+                SessionId,
+                ServerLogin,
+                GhostId,
+                rank,
+                Removed);
+    }
 }

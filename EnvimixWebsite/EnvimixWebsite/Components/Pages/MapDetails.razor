@@ -95,10 +95,7 @@
                         <table class="records-table">
                             <thead>
                                 <tr>
-                                    @if (!recordsPage.ShowAll)
-                                    {
-                                        <th scope="col">#</th>
-                                    }
+                                    <th scope="col">#</th>
                                     <th scope="col">Player</th>
                                     @if (ShouldShowLaps(map.Laps))
                                     {
@@ -115,10 +112,7 @@
                                 {
                                     var record = recordsPage.Records[index];
                                     <tr class="@(record.Removed ? "removed-record" : null)">
-                                        @if (!recordsPage.ShowAll)
-                                        {
-                                            <td>@((recordsPage.Page - 1) * recordsPage.PageSize + index + 1)</td>
-                                        }
+                                        <td>@record.Rank</td>
                                         <td>
                                             @if (string.IsNullOrWhiteSpace(record.Nickname))
                                             {
@@ -155,7 +149,7 @@
                                         <td>
                                             @if (record.GhostId is Guid ghostId)
                                             {
-                                                <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" CssClass="ghost-download" download>Ghost</ReuButton>
+                                                <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" CssClass="ghost-download" download>Download</ReuButton>
                                             }
                                         </td>
                                     </tr>

@@ -1,7 +1,7 @@
 .car-display {
     display: inline-flex;
     align-items: center;
-    gap: clamp(0.4rem, calc(var(--car-icon-size) * 0.2), 0.75rem);
+    gap: clamp(0.5rem, calc(var(--car-icon-size) * 0.25), 1rem);
 }
 
 .car-icon {

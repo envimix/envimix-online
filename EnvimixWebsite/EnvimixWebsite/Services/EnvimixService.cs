@@ -22,6 +22,7 @@ public interface IEnvimixService
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
     Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, CancellationToken cancellationToken = default);
+    Task<byte[]?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
     string GetGhostDownloadUrl(Guid ghostId);
 }
 
@@ -286,8 +287,22 @@ public sealed class EnvimixService(
             cancellationToken);
     }
 
+    public async Task<byte[]?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.GetAsync(
+            $"{config["EnvimixApi"]}/ghosts/{ghostId}/download",
+            cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     public string GetGhostDownloadUrl(Guid ghostId)
-        => $"{config["EnvimixApi"]}/ghosts/{ghostId}/download";
+        => $"/ghosts/{ghostId}/download";
 
     private async Task<T?> GetDetailAsync<T>(
         string path,
@@ -398,6 +413,7 @@ public sealed record RecordInfo(
     Guid? SessionId,
     string? ServerLogin,
     Guid? GhostId,
+    int? Rank,
     bool Removed);
 
 public sealed record MapDetailsInfo(

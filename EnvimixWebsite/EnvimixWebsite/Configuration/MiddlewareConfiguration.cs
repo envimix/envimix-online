@@ -49,6 +49,7 @@ public static class MiddlewareConfiguration
         TurboEndpoints.Map(app);
         ServerEndpoints.Map(app);
         RecordEndpoints.Map(app);
+        GhostEndpoints.Map(app);
         //ConnectEndpoints.Map(app);
 
         app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>

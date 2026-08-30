@@ -16,6 +16,7 @@ public sealed record RecordInfo(
     Guid? SessionId,
     string? ServerLogin,
     Guid? GhostId,
+    int? Rank,
     bool Removed);
 
 public sealed record MapRecordsPage(

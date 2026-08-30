@@ -143,30 +143,57 @@ public static class MapEndpoints
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)requestedPageSize));
         var requestedPage = Math.Clamp(page ?? 1, 1, totalPages);
 
-        var recordsQuery = db.Records
+        var allRecordsQuery = db.Records
             .Where(x => x.MapId == mapUid && x.CarId == car);
 
-        if (!includeAllRecords)
-        {
-            recordsQuery = recordsQuery.Where(record => !db.Records.Any(other =>
+        var bestRecordsQuery = allRecordsQuery
+            .Where(record => !db.Records.Any(other =>
                 other.MapId == record.MapId &&
                 other.CarId == record.CarId &&
                 other.UserId == record.UserId &&
                 (other.Time < record.Time ||
                     (other.Time == record.Time && other.DrivenAt > record.DrivenAt) ||
                     (other.Time == record.Time && other.DrivenAt == record.DrivenAt && other.Id > record.Id))));
-        }
 
-        var orderedRecords = includeAllRecords
-            ? recordsQuery.OrderByDescending(x => x.DrivenAt).ThenByDescending(x => x.Id)
-            : recordsQuery.OrderBy(x => x.Time).ThenByDescending(x => x.DrivenAt).ThenByDescending(x => x.Id);
+        var recordsQuery = includeAllRecords ? allRecordsQuery : bestRecordsQuery;
 
-        var records = car is null
+        var orderedRecords = recordsQuery
+            .OrderBy(x => x.Time)
+            .ThenByDescending(x => x.DrivenAt)
+            .ThenByDescending(x => x.Id);
+
+        var projectedRecords = car is null
             ? []
-            : await RecordEndpoints.Project(orderedRecords
+            : await RecordEndpoints.ProjectWithId(orderedRecords
                 .Skip((requestedPage - 1) * requestedPageSize)
                 .Take(requestedPageSize))
                 .ToArrayAsync(cancellationToken);
+
+        RecordInfo[] records;
+
+        if (includeAllRecords && projectedRecords.Length > 0)
+        {
+            var rankedRecordIds = await bestRecordsQuery
+                .OrderBy(x => x.Time)
+                .ThenByDescending(x => x.DrivenAt)
+                .ThenByDescending(x => x.Id)
+                .Select(x => x.Id)
+                .ToArrayAsync(cancellationToken);
+            var ranks = rankedRecordIds
+                .Select((recordId, index) => (recordId, Rank: index + 1))
+                .ToDictionary(x => x.recordId, x => x.Rank);
+
+            records = projectedRecords
+                .Select(record => record.ToRecordInfo(ranks.GetValueOrDefault(record.Id)))
+                .ToArray();
+        }
+        else
+        {
+            records = projectedRecords
+                .Select((record, index) => record.ToRecordInfo(
+                    (requestedPage - 1) * requestedPageSize + index + 1))
+                .ToArray();
+        }
 
         return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, includeAllRecords, records));
     }
