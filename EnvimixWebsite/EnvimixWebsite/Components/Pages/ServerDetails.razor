@@ -64,11 +64,17 @@
                                 <a class="map-name" href="@GetSessionUrl(session.Id)">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</a>
                                 @if (!string.IsNullOrWhiteSpace(session.MapName))
                                 {
-                                    <small>@session.MapUid</small>
+                                    <small class="map-uid">@session.MapUid</small>
                                 }
                             </td>
                             <td>@FormatDateTime(session.StartedAt)</td>
-                            <td>@FormatDateTime(session.EndedAt, "Not closed")</td>
+                            <td>
+                                @FormatDateTime(session.EndedAt, "Not closed")
+                                @if (IsExpired(session.EndedAt, session.FinishedGracefully))
+                                {
+                                    <small>(expired)</small>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -176,4 +182,7 @@
 
     private static string GetSessionUrl(Guid sessionId)
         => $"/envimania/sessions/{sessionId}";
+
+    private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)
+        => endedAt is not null && !finishedGracefully;
 }

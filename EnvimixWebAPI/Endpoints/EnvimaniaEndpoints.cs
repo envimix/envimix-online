@@ -258,7 +258,8 @@ public static class EnvimaniaEndpoints
                 x.Map.Id,
                 x.Map.Name,
                 x.StartedAt,
-                x.EndedAt))
+                x.EndedAt,
+                x.FinishedGracefully))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(new EnvimaniaServerInfo(
@@ -290,7 +291,8 @@ public static class EnvimaniaEndpoints
                 MapUid = x.Map.Id,
                 MapName = x.Map.Name,
                 x.StartedAt,
-                x.EndedAt
+                x.EndedAt,
+                x.FinishedGracefully
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -328,6 +330,7 @@ public static class EnvimaniaEndpoints
             session.MapName,
             session.StartedAt,
             session.EndedAt,
+            session.FinishedGracefully,
             records));
     }
 

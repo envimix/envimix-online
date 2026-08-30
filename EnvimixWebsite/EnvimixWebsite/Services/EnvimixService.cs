@@ -207,7 +207,8 @@ public sealed record EnvimaniaServerSession(
     string MapUid,
     string MapName,
     DateTimeOffset StartedAt,
-    DateTimeOffset? EndedAt);
+    DateTimeOffset? EndedAt,
+    bool FinishedGracefully);
 
 public sealed record EnvimaniaSessionInfo(
     Guid Id,
@@ -216,6 +217,7 @@ public sealed record EnvimaniaSessionInfo(
     string MapName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
+    bool FinishedGracefully,
     EnvimaniaSessionRecord[] Records);
 
 public sealed record EnvimaniaSessionRecord(

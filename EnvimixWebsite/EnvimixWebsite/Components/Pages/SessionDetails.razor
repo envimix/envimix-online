@@ -33,7 +33,13 @@
             </div>
             <div>
                 <dt>Ended</dt>
-                <dd>@FormatDateTime(session.EndedAt, "Not closed")</dd>
+                <dd>
+                    @FormatDateTime(session.EndedAt, "Not closed")
+                    @if (IsExpired(session))
+                    {
+                        <small>Expired</small>
+                    }
+                </dd>
             </div>
             <div>
                 <dt>Duration</dt>
@@ -134,6 +140,9 @@
 
     private static string FormatDuration(DateTimeOffset startedAt, DateTimeOffset? endedAt)
         => endedAt is null ? "In progress" : (endedAt.Value - startedAt).ToString(@"d\.hh\:mm\:ss");
+
+    private static bool IsExpired(EnvimaniaSessionInfo value)
+        => value.EndedAt is not null && !value.FinishedGracefully;
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
