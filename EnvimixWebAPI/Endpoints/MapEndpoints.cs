@@ -253,7 +253,6 @@ public static class MapEndpoints
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> VisitMap(
         string mapUid,
-        MapInfo? mapInfo,
         AppDbContext db,
         IEnvimaniaService envimaniaService,
         IRatingService ratingService,
@@ -261,7 +260,8 @@ public static class MapEndpoints
         IMapService mapService,
         IUserService userService,
         ClaimsPrincipal principal,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MapInfo? mapInfo = null)
     {
         if (mapInfo is not null && mapUid != mapInfo.Uid)
         {
