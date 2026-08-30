@@ -1,4 +1,5 @@
 @page "/envimania/sessions/{SessionId:guid}"
+@using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<SessionDetails> Logger
 @attribute [StreamRendering]
@@ -37,7 +38,7 @@
                     @FormatDateTime(session.EndedAt, "Not closed")
                     @if (IsExpired(session))
                     {
-                        <small>Expired</small>
+                        <small class="expired-note">(expired)</small>
                     }
                 </dd>
             </div>
@@ -67,8 +68,6 @@
                             <th scope="col">Car</th>
                             <th scope="col">Laps</th>
                             <th scope="col">Time</th>
-                            <th scope="col">Score</th>
-                            <th scope="col">Respawns</th>
                             <th scope="col">Driven</th>
                         </tr>
                     </thead>
@@ -79,17 +78,19 @@
                             <tr>
                                 <td>@(index + 1)</td>
                                 <td>
-                                    <span class="player-name">@(string.IsNullOrWhiteSpace(record.Nickname) ? record.UserLogin : record.Nickname)</span>
-                                    @if (!string.IsNullOrWhiteSpace(record.Nickname))
+                                    @if (string.IsNullOrWhiteSpace(record.Nickname))
                                     {
+                                        <a class="player-name" href="@GetUserUrl(record.UserLogin)">@record.UserLogin</a>
+                                    }
+                                    else
+                                    {
+                                        <a class="player-name" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname">@record.Nickname</FormattedText></a>
                                         <small>@record.UserLogin</small>
                                     }
                                 </td>
-                                <td>@record.Car</td>
+                                <td><a href="@GetCarUrl(record.Car)">@record.Car</a></td>
                                 <td>@record.Laps</td>
-                                <td>@FormatTime(record.Time)</td>
-                                <td>@record.Score</td>
-                                <td>@record.NbRespawns</td>
+                                <td><a href="@GetRecordUrl(session.MapUid, record.Car, record.UserLogin, record.Time)">@FormatTime(record.Time)</a></td>
                                 <td>@FormatDateTime(record.DrivenAt)</td>
                             </tr>
                         }
@@ -134,6 +135,15 @@
 
     private static string GetServerUrl(string serverLogin)
         => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+
+    private static string GetUserUrl(string userLogin)
+        => $"/users/{Uri.EscapeDataString(userLogin)}";
+
+    private static string GetCarUrl(string carId)
+        => $"/cars/{Uri.EscapeDataString(carId)}";
+
+    private static string GetRecordUrl(string mapUid, string car, string userLogin, int time)
+        => $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(car)}/{Uri.EscapeDataString(userLogin)}/{time}";
 
     private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
         => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;

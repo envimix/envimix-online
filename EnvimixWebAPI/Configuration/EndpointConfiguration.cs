@@ -20,6 +20,9 @@ public static class EndpointConfiguration
         });
 
         EnvimaniaEndpoints.Map(app.MapGroup("/envimania"));
+        PlayerEndpoints.Map(app.MapGroup("/players"));
+        RecordEndpoints.Map(app.MapGroup("/records"));
+        CarEndpoints.Map(app.MapGroup("/cars"));
         InsiderEndpoints.Map(app.MapGroup("/insiders"));
         Endpoints.MapEndpoints.Map(app.MapGroup("/maps"));
         RateEndpoints.Map(app.MapGroup("/rate"));

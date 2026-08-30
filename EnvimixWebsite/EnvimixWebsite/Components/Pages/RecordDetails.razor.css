@@ -1,0 +1,23 @@
+.map-name {
+    margin-top: -0.75rem;
+    opacity: 0.7;
+}
+
+.record-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 1.5rem 2rem;
+    margin-block: 1rem 2rem;
+}
+
+.record-summary dt {
+    font-weight: 600;
+}
+
+.record-summary dd {
+    margin: 0.25rem 0 0;
+}
+
+.technical-value {
+    overflow-wrap: anywhere;
+}

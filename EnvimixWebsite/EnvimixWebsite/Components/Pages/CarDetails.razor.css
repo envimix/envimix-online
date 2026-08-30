@@ -1,31 +1,20 @@
-.map-uid {
-    margin-top: -0.75rem;
-    opacity: 0.7;
-    overflow-wrap: anywhere;
-}
-
-.session-summary {
+.detail-summary {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem 3rem;
     margin-block: 1rem 2rem;
 }
 
-.session-summary div {
+.detail-summary div {
     min-width: 8rem;
 }
 
-.session-summary dt {
+.detail-summary dt {
     font-weight: 600;
 }
 
-.session-summary dd {
+.detail-summary dd {
     margin: 0.25rem 0 0;
-}
-
-.expired-note {
-    margin-inline-start: 0.25rem;
-    opacity: 0.7;
 }
 
 .records-scroll {
@@ -50,7 +39,7 @@
     font-weight: 600;
 }
 
-.player-name,
+.primary-value,
 .records-table small {
     display: block;
 }

@@ -1,12 +1,5 @@
 namespace EnvimixWebAPI.Models.Envimania;
 
-public sealed record EnvimaniaServerSummary(
-    string ServerLogin,
-    int SessionCount,
-    DateTimeOffset? LastSeenAt,
-    bool IsHidden,
-    bool IsBanned);
-
 public sealed record EnvimaniaServerInfo(
     string ServerLogin,
     int SessionCount,
@@ -16,31 +9,3 @@ public sealed record EnvimaniaServerInfo(
     bool IsBanned,
     bool CanDelete,
     bool CanAdminister);
-
-public sealed record EnvimaniaServerSession(
-    Guid Id,
-    string MapUid,
-    string MapName,
-    DateTimeOffset StartedAt,
-    DateTimeOffset? EndedAt,
-    bool FinishedGracefully);
-
-public sealed record EnvimaniaSessionInfo(
-    Guid Id,
-    string ServerLogin,
-    string MapUid,
-    string MapName,
-    DateTimeOffset StartedAt,
-    DateTimeOffset? EndedAt,
-    bool FinishedGracefully,
-    EnvimaniaSessionRecord[] Records);
-
-public sealed record EnvimaniaSessionRecord(
-    string UserLogin,
-    string? Nickname,
-    string Car,
-    int Laps,
-    int Time,
-    int Score,
-    int NbRespawns,
-    DateTimeOffset DrivenAt);

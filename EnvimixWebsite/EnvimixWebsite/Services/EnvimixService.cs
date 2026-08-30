@@ -15,6 +15,9 @@ public interface IEnvimixService
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
     Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
+    Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
+    Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
 }
 
 public sealed class EnvimixService(
@@ -172,6 +175,42 @@ public sealed class EnvimixService(
         return await response.Content.ReadFromJsonAsync<EnvimaniaSessionInfo>(cancellationToken);
     }
 
+    public Task<PlayerInfo?> GetUserAsync(
+        string userLogin,
+        CancellationToken cancellationToken = default)
+        => GetDetailAsync<PlayerInfo>($"players/{Uri.EscapeDataString(userLogin)}", cancellationToken);
+
+    public Task<RecordInfo?> GetRecordAsync(
+        string mapUid,
+        string car,
+        string userLogin,
+        int time,
+        CancellationToken cancellationToken = default)
+        => GetDetailAsync<RecordInfo>(
+            $"records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(car)}/{Uri.EscapeDataString(userLogin)}/{time}",
+            cancellationToken);
+
+    public Task<CarInfo?> GetCarAsync(
+        string carId,
+        CancellationToken cancellationToken = default)
+        => GetDetailAsync<CarInfo>($"cars/{Uri.EscapeDataString(carId)}", cancellationToken);
+
+    private async Task<T?> GetDetailAsync<T>(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        using var response = await httpClient.GetAsync(
+            $"{config["EnvimixApi"]}/{path}",
+            cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return default;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken);
+    }
+
     private async Task<string?> GetAccessTokenAsync(bool required = true)
     {
         var httpContext = httpContextAccessor.HttpContext;
@@ -229,3 +268,32 @@ public sealed record EnvimaniaSessionRecord(
     int Score,
     int NbRespawns,
     DateTimeOffset DrivenAt);
+
+public sealed record PlayerInfo(
+    string Login,
+    string? Nickname,
+    string? Zone,
+    int RecordCount,
+    RecordInfo[] RecentRecords);
+
+public sealed record CarInfo(
+    string Id,
+    int RecordCount,
+    int PlayerCount,
+    RecordInfo[] RecentRecords);
+
+public sealed record RecordInfo(
+    string UserLogin,
+    string? Nickname,
+    string MapUid,
+    string MapName,
+    string Car,
+    int Gravity,
+    int Laps,
+    int Time,
+    int Score,
+    int NbRespawns,
+    DateTimeOffset DrivenAt,
+    Guid? SessionId,
+    string? ServerLogin,
+    bool? IsWorldRecord);

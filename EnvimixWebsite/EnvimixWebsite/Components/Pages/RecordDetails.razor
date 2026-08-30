@@ -1,0 +1,161 @@
+@page "/records/{MapUid}/{Car}/{UserLogin}/{Time:int}"
+@using TmEssentials.Razor
+@inject IEnvimixService EnvimixService
+@inject ILogger<RecordDetails> Logger
+@attribute [StreamRendering]
+
+<PageTitle>@FormatTime(Time) - ENVIMIX record</PageTitle>
+
+<ReuContainer>
+    @if (isLoading)
+    {
+        <p>Loading record...</p>
+    }
+    else if (loadFailed)
+    {
+        <h2>@FormatTime(Time)</h2>
+        <p>Unable to load this record at this time.</p>
+    }
+    else if (record is null)
+    {
+        <h2>Record not found</h2>
+        <p>This record does not exist or is not available.</p>
+    }
+    else
+    {
+        @if (record.SessionId is Guid sessionId)
+        {
+            <p><a href="@GetSessionUrl(sessionId)">Session</a></p>
+        }
+
+        <h2>@FormatTime(record.Time)</h2>
+        <p class="map-name">@GetMapName(record)</p>
+
+        <dl class="record-summary">
+            <div>
+                <dt>Player</dt>
+                <dd>
+                    <a href="@GetUserUrl(record.UserLogin)">
+                        @if (string.IsNullOrWhiteSpace(record.Nickname))
+                        {
+                            @record.UserLogin
+                        }
+                        else
+                        {
+                            <FormattedText Text="@record.Nickname">@record.Nickname</FormattedText>
+                        }
+                    </a>
+                </dd>
+            </div>
+            <div>
+                <dt>Car</dt>
+                <dd><a href="@GetCarUrl(record.Car)">@record.Car</a></dd>
+            </div>
+            <div>
+                <dt>Map UID</dt>
+                <dd class="technical-value">@record.MapUid</dd>
+            </div>
+            <div>
+                <dt>Laps</dt>
+                <dd>@record.Laps</dd>
+            </div>
+            <div>
+                <dt>Gravity</dt>
+                <dd>@record.Gravity</dd>
+            </div>
+            <div>
+                <dt>Score</dt>
+                <dd>@record.Score</dd>
+            </div>
+            <div>
+                <dt>Respawns</dt>
+                <dd>@record.NbRespawns</dd>
+            </div>
+            <div>
+                <dt>Driven</dt>
+                <dd>@FormatDateTime(record.DrivenAt)</dd>
+            </div>
+            <div>
+                <dt>World record</dt>
+                <dd>@FormatWorldRecord(record.IsWorldRecord)</dd>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(record.ServerLogin))
+            {
+                <div>
+                    <dt>Server</dt>
+                    <dd><a href="@GetServerUrl(record.ServerLogin)">@record.ServerLogin</a></dd>
+                </div>
+            }
+        </dl>
+    }
+</ReuContainer>
+
+@code {
+    [Parameter]
+    public string MapUid { get; set; } = "";
+
+    [Parameter]
+    public string Car { get; set; } = "";
+
+    [Parameter]
+    public string UserLogin { get; set; } = "";
+
+    [Parameter]
+    public int Time { get; set; }
+
+    private RecordInfo? record;
+    private bool isLoading = true;
+    private bool loadFailed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadFailed = false;
+
+        try
+        {
+            record = await EnvimixService.GetRecordAsync(MapUid, Car, UserLogin, Time);
+        }
+        catch (Exception ex)
+        {
+            record = null;
+            loadFailed = true;
+            Logger.LogError(ex,
+                "Unable to load record {MapUid}/{Car}/{UserLogin}/{Time}",
+                MapUid, Car, UserLogin, Time);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetMapName(RecordInfo value)
+        => string.IsNullOrWhiteSpace(value.MapName) ? value.MapUid : value.MapName;
+
+    private static string GetUserUrl(string userLogin)
+        => $"/users/{Uri.EscapeDataString(userLogin)}";
+
+    private static string GetCarUrl(string carId)
+        => $"/cars/{Uri.EscapeDataString(carId)}";
+
+    private static string GetServerUrl(string serverLogin)
+        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+
+    private static string GetSessionUrl(Guid sessionId)
+        => $"/envimania/sessions/{sessionId}";
+
+    private static string FormatDateTime(DateTimeOffset dateTime)
+        => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+    private static string FormatTime(int milliseconds)
+        => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
+
+    private static string FormatWorldRecord(bool? isWorldRecord)
+        => isWorldRecord switch
+        {
+            true => "Yes",
+            false => "No",
+            null => "Unknown"
+        };
+}
