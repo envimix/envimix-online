@@ -9,6 +9,8 @@ internal static class RecordEndpoints
     {
         app.MapPost("/records/remove", RemoveRecord)
             .RequireAuthorization();
+        app.MapPost("/records/revert", RevertRecord)
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> RemoveRecord(
@@ -23,6 +25,23 @@ internal static class RecordEndpoints
         CancellationToken cancellationToken)
     {
         await envimixService.RemoveRecordAsync(mapUid, login, carId, gravity, laps, time, cancellationToken);
+        return TypedResults.LocalRedirect(sessionId.HasValue
+            ? $"/envimania/sessions/{sessionId}"
+            : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");
+    }
+
+    private static async Task<IResult> RevertRecord(
+        [FromForm] Guid? sessionId,
+        [FromForm] string mapUid,
+        [FromForm] string login,
+        [FromForm] string carId,
+        [FromForm] int gravity,
+        [FromForm] int laps,
+        [FromForm] int time,
+        IEnvimixService envimixService,
+        CancellationToken cancellationToken)
+    {
+        await envimixService.RevertRecordAsync(mapUid, login, carId, gravity, laps, time, cancellationToken);
         return TypedResults.LocalRedirect(sessionId.HasValue
             ? $"/envimania/sessions/{sessionId}"
             : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");

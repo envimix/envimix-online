@@ -1,0 +1,53 @@
+@if (Linked)
+{
+    <a class="car-display" style="--car-icon-size: @(IconSize)px" href="@GetCarUrl()">
+        @CarContent
+    </a>
+}
+else
+{
+    <span class="car-display" style="--car-icon-size: @(IconSize)px">
+        @CarContent
+    </span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required string CarId { get; set; }
+
+    [Parameter]
+    public bool Linked { get; set; } = true;
+
+    [Parameter]
+    public int IconSize { get; set; } = 24;
+
+    private RenderFragment CarContent => builder =>
+    {
+        if (GetCarIconUrl() is string iconUrl)
+        {
+            builder.OpenElement(0, "img");
+            builder.AddAttribute(1, "class", "car-icon");
+            builder.AddAttribute(2, "src", iconUrl);
+            builder.AddAttribute(3, "alt", "");
+            builder.AddAttribute(4, "width", IconSize);
+            builder.AddAttribute(5, "height", IconSize);
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(6, "span");
+        builder.AddContent(7, CarId);
+        builder.CloseElement();
+    };
+
+    private string GetCarUrl()
+        => $"/cars/{Uri.EscapeDataString(CarId)}";
+
+    private string? GetCarIconUrl()
+        => CarId switch
+        {
+            "BayCar" or "CanyonCar" or "CarSport" or "CoastCar" or "DesertCar" or "IslandCar"
+                or "LagoonCar" or "RallyCar" or "SnowCar" or "StadiumCar" or "TrafficCar" or "ValleyCar"
+                => $"/img/cars/{CarId}.png",
+            _ => null
+        };
+}

@@ -13,7 +13,7 @@
     }
     else if (loadFailed)
     {
-        <h2>@CarId</h2>
+        <h2><CarDisplay CarId="@CarId" Linked="false" IconSize="48" /></h2>
         <p>Unable to load this car at this time.</p>
     }
     else if (car is null)
@@ -23,7 +23,7 @@
     }
     else
     {
-        <h2>@car.Id</h2>
+        <h2><CarDisplay CarId="@car.Id" Linked="false" IconSize="48" /></h2>
 
         <dl class="detail-summary">
             <div>

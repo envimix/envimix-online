@@ -83,7 +83,7 @@
             @if (server.RecentSessions.Length < server.SessionCount && SessionLimit < 500)
             {
                 <p class="show-more-sessions">
-                    <a href="@GetShowMoreUrl()">Show @Math.Min(20, server.SessionCount - server.RecentSessions.Length) more</a>
+                    <a href="@GetShowMoreUrl()">Show @Math.Min(10, server.SessionCount - server.RecentSessions.Length) more</a>
                     <small>Showing @server.RecentSessions.Length of @server.SessionCount</small>
                 </p>
             }
@@ -169,7 +169,7 @@
     public string ServerLogin { get; set; } = "";
 
     [SupplyParameterFromQuery(Name = "sessions")]
-    public int SessionLimit { get; set; } = 20;
+    public int SessionLimit { get; set; } = 10;
 
     private EnvimaniaServerInfo? server;
     private bool isLoading = true;
@@ -182,7 +182,7 @@
 
         try
         {
-            SessionLimit = Math.Clamp(SessionLimit, 20, 500);
+            SessionLimit = Math.Clamp(SessionLimit, 10, 500);
             server = await EnvimixService.GetServerAsync(ServerLogin, SessionLimit);
         }
         catch (Exception ex)
@@ -207,7 +207,7 @@
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
 
     private string GetShowMoreUrl()
-        => $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={Math.Min(SessionLimit + 20, 500)}";
+        => $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={Math.Min(SessionLimit + 10, 500)}";
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)
         => endedAt is not null && !finishedGracefully;

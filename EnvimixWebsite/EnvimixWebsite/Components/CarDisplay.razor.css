@@ -1,0 +1,12 @@
+.car-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.car-icon {
+    width: var(--car-icon-size);
+    height: var(--car-icon-size);
+    object-fit: contain;
+    flex: 0 0 auto;
+}

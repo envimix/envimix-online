@@ -253,7 +253,7 @@ public static class EnvimaniaEndpoints
         var recentSessions = await db.EnvimaniaSessions
             .Where(x => x.Server.Id == serverLogin)
             .OrderByDescending(x => x.StartedAt)
-            .Take(Math.Clamp(sessions, 20, 500))
+            .Take(Math.Clamp(sessions, 10, 500))
             .Select(x => new EnvimaniaServerSession(
                 x.Id,
                 x.Map.Id,

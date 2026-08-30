@@ -48,7 +48,7 @@
             </div>
             <div>
                 <dt>Car</dt>
-                <dd><a href="@GetCarUrl(record.Car)">@record.Car</a></dd>
+                <dd><CarDisplay CarId="@record.Car" IconSize="28" /></dd>
             </div>
             <div>
                 <dt>Map</dt>
@@ -90,9 +90,9 @@
             }
         </dl>
 
-        @if (canAdminister && !record.Removed)
+        @if (canAdminister)
         {
-            <form class="record-actions" method="post" action="/records/remove" onsubmit="return confirm('Remove this record?');">
+            <form class="record-actions" method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
                 <AntiforgeryToken />
                 <input type="hidden" name="mapUid" value="@record.MapUid" />
                 <input type="hidden" name="login" value="@record.UserLogin" />
@@ -100,7 +100,7 @@
                 <input type="hidden" name="gravity" value="@record.Gravity" />
                 <input type="hidden" name="laps" value="@record.Laps" />
                 <input type="hidden" name="time" value="@record.Time" />
-                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Remove</ReuButton>
+                <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
             </form>
         }
     }
@@ -164,9 +164,6 @@
 
     private static string GetUserUrl(string userLogin)
         => $"/users/{Uri.EscapeDataString(userLogin)}";
-
-    private static string GetCarUrl(string carId)
-        => $"/cars/{Uri.EscapeDataString(carId)}";
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";

@@ -73,7 +73,7 @@
                                         <small>@record.MapUid</small>
                                     }
                                 </td>
-                                <td><a href="@GetCarUrl(record.Car)">@record.Car</a></td>
+                                <td><CarDisplay CarId="@record.Car" /></td>
                                 @if (showLaps)
                                 {
                                     <td>@FormatRecordLaps(record.MapLaps, record.Laps)</td>
@@ -129,9 +129,6 @@
 
     private static string GetMapName(RecordInfo record)
         => string.IsNullOrWhiteSpace(record.MapName) ? record.MapUid : record.MapName;
-
-    private static string GetCarUrl(string carId)
-        => $"/cars/{Uri.EscapeDataString(carId)}";
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";

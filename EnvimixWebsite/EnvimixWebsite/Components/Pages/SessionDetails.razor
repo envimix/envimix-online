@@ -64,7 +64,7 @@
                 {
                     var records = carGroup.ToArray();
                     <section class="car-records-group">
-                        <h4><a href="@GetCarUrl(carGroup.Key)">@carGroup.Key</a></h4>
+                        <h4><CarDisplay CarId="@carGroup.Key" IconSize="42" /></h4>
                         <div class="records-scroll">
                             <table class="records-table">
                                 <thead>
@@ -115,20 +115,17 @@
                                             @if (session.CanAdminister)
                                             {
                                                 <td>
-                                                    @if (!record.Removed)
-                                                    {
-                                                        <form method="post" action="/records/remove" onsubmit="return confirm('Remove this record?');">
-                                                            <AntiforgeryToken />
-                                                            <input type="hidden" name="sessionId" value="@session.Id" />
-                                                            <input type="hidden" name="mapUid" value="@session.MapUid" />
-                                                            <input type="hidden" name="login" value="@record.UserLogin" />
-                                                            <input type="hidden" name="carId" value="@record.Car" />
-                                                            <input type="hidden" name="gravity" value="@record.Gravity" />
-                                                            <input type="hidden" name="laps" value="@record.Laps" />
-                                                            <input type="hidden" name="time" value="@record.Time" />
-                                                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Remove</ReuButton>
-                                                        </form>
-                                                    }
+                                                    <form method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
+                                                        <AntiforgeryToken />
+                                                        <input type="hidden" name="sessionId" value="@session.Id" />
+                                                        <input type="hidden" name="mapUid" value="@session.MapUid" />
+                                                        <input type="hidden" name="login" value="@record.UserLogin" />
+                                                        <input type="hidden" name="carId" value="@record.Car" />
+                                                        <input type="hidden" name="gravity" value="@record.Gravity" />
+                                                        <input type="hidden" name="laps" value="@record.Laps" />
+                                                        <input type="hidden" name="time" value="@record.Time" />
+                                                        <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
+                                                    </form>
                                                 </td>
                                             }
                                         </tr>
@@ -180,9 +177,6 @@
 
     private static string GetUserUrl(string userLogin)
         => $"/users/{Uri.EscapeDataString(userLogin)}";
-
-    private static string GetCarUrl(string carId)
-        => $"/cars/{Uri.EscapeDataString(carId)}";
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
