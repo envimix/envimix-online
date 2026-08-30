@@ -48,6 +48,17 @@
     margin-inline-start: 0.25rem;
 }
 
+.show-more-sessions {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-block: 0.75rem 0;
+}
+
+.show-more-sessions small {
+    opacity: 0.7;
+}
+
 .server-actions,
 .danger-zone {
     margin-top: 3rem;

@@ -11,9 +11,10 @@ public interface IEnvimixService
     Task DeleteServerRatingsAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task BanServerAsync(string serverLogin, string reason, CancellationToken cancellationToken = default);
     Task UnbanServerAsync(string serverLogin, CancellationToken cancellationToken = default);
+    Task RemoveRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
-    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, CancellationToken cancellationToken = default);
+    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int sessionLimit = 20, CancellationToken cancellationToken = default);
     Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
@@ -70,6 +71,28 @@ public sealed class EnvimixService(
 
     public async Task UnbanServerAsync(string serverLogin, CancellationToken cancellationToken = default)
         => await SendServerCommandAsync(HttpMethod.Post, serverLogin, "unban", cancellationToken);
+
+    public async Task RemoveRecordAsync(
+        string mapUid,
+        string login,
+        string carId,
+        int gravity,
+        int laps,
+        int time,
+        CancellationToken cancellationToken = default)
+    {
+        var accessToken = await GetAccessTokenAsync();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{config["EnvimixApi"]}/envimania/record/remove")
+        {
+            Content = JsonContent.Create(new { MapUid = mapUid, Login = login, CarId = carId, Gravity = gravity, Laps = laps, Time = time })
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 
     private async Task SendServerCommandAsync(
         HttpMethod method,
@@ -131,11 +154,12 @@ public sealed class EnvimixService(
 
     public async Task<EnvimaniaServerInfo?> GetServerAsync(
         string serverLogin,
+        int sessionLimit = 20,
         CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}");
+            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}?sessions={sessionLimit}");
         var accessToken = await GetAccessTokenAsync(required: false);
         if (!string.IsNullOrEmpty(accessToken))
         {
@@ -282,17 +306,20 @@ public sealed record EnvimaniaSessionInfo(
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,
+    bool CanAdminister,
     EnvimaniaSessionRecord[] Records);
 
 public sealed record EnvimaniaSessionRecord(
     string UserLogin,
     string? Nickname,
     string Car,
+    int Gravity,
     int Laps,
     int Time,
     int Score,
     int NbRespawns,
-    DateTimeOffset DrivenAt);
+    DateTimeOffset DrivenAt,
+    bool Removed);
 
 public sealed record PlayerInfo(
     string Login,

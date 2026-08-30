@@ -4,8 +4,10 @@ public sealed record EnvimaniaSessionRecord(
     string UserLogin,
     string? Nickname,
     string Car,
+    int Gravity,
     int Laps,
     int Time,
     int Score,
     int NbRespawns,
-    DateTimeOffset DrivenAt);
+    DateTimeOffset DrivenAt,
+    bool Removed);

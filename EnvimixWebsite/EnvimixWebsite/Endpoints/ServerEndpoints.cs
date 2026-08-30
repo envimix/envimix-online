@@ -3,24 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EnvimixWebsite.Endpoints;
 
-internal static class ProfileEndpoints
+internal static class ServerEndpoints
 {
     public static void Map(WebApplication app)
     {
-        app.MapPost("/profile/servers/register", RegisterServer)
+        var group = app.MapGroup("/envimania/servers")
             .RequireAuthorization();
-        app.MapPost("/profile/servers/delete", DeleteServer)
-            .RequireAuthorization();
-        app.MapPost("/profile/servers/wipe", WipeServer)
-            .RequireAuthorization();
-        app.MapPost("/profile/servers/delete-records", DeleteServerRecords)
-            .RequireAuthorization();
-        app.MapPost("/profile/servers/delete-ratings", DeleteServerRatings)
-            .RequireAuthorization();
-        app.MapPost("/profile/servers/ban", BanServer)
-            .RequireAuthorization();
-        app.MapPost("/profile/servers/unban", UnbanServer)
-            .RequireAuthorization();
+
+        group.MapPost("/register", RegisterServer);
+        group.MapPost("/delete", DeleteServer);
+        group.MapPost("/wipe", WipeServer);
+        group.MapPost("/delete-records", DeleteServerRecords);
+        group.MapPost("/delete-ratings", DeleteServerRatings);
+        group.MapPost("/ban", BanServer);
+        group.MapPost("/unban", UnbanServer);
     }
 
     private static async Task<IResult> RegisterServer(

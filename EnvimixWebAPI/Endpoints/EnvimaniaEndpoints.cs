@@ -220,6 +220,7 @@ public static class EnvimaniaEndpoints
 
     private static async Task<Results<Ok<EnvimaniaServerInfo>, NotFound>> GetServer(
         string serverLogin,
+        int sessions,
         HttpRequest request,
         AppDbContext db,
         IEnvimaniaService envimaniaService,
@@ -252,7 +253,7 @@ public static class EnvimaniaEndpoints
         var recentSessions = await db.EnvimaniaSessions
             .Where(x => x.Server.Id == serverLogin)
             .OrderByDescending(x => x.StartedAt)
-            .Take(20)
+            .Take(Math.Clamp(sessions, 20, 500))
             .Select(x => new EnvimaniaServerSession(
                 x.Id,
                 x.Map.Id,
@@ -310,18 +311,20 @@ public static class EnvimaniaEndpoints
         }
 
         var records = await db.Records
-            .Where(x => x.SessionId == sessionId && !x.Removed)
+            .Where(x => x.SessionId == sessionId)
             .OrderBy(x => x.Time)
             .ThenByDescending(x => x.Score)
             .Select(x => new EnvimaniaSessionRecord(
                 x.UserId,
                 x.User.Nickname,
                 x.CarId,
+                x.Gravity,
                 x.Laps,
                 x.Time,
                 x.Score,
                 x.NbRespawns,
-                x.DrivenAt))
+                x.DrivenAt,
+                x.Removed))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(new EnvimaniaSessionInfo(
@@ -333,6 +336,7 @@ public static class EnvimaniaEndpoints
             session.StartedAt,
             session.EndedAt,
             session.FinishedGracefully,
+            access.CanAdminister,
             records));
     }
 

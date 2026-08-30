@@ -59,49 +59,85 @@
         }
         else
         {
-            <div class="records-scroll">
-                <table class="records-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Player</th>
-                            <th scope="col">Car</th>
-                            @if (ShouldShowLaps(session.MapLaps))
-                            {
-                                <th scope="col">Laps</th>
-                            }
-                            <th scope="col">Time</th>
-                            <th scope="col">Driven</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (var index = 0; index < session.Records.Length; index++)
-                        {
-                            var record = session.Records[index];
-                            <tr>
-                                <td>@(index + 1)</td>
-                                <td>
-                                    @if (string.IsNullOrWhiteSpace(record.Nickname))
+            <div class="car-records">
+                @foreach (var carGroup in session.Records.GroupBy(record => record.Car))
+                {
+                    var records = carGroup.ToArray();
+                    <section class="car-records-group">
+                        <h4><a href="@GetCarUrl(carGroup.Key)">@carGroup.Key</a></h4>
+                        <div class="records-scroll">
+                            <table class="records-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Player</th>
+                                        @if (ShouldShowLaps(session.MapLaps))
+                                        {
+                                            <th scope="col">Laps</th>
+                                        }
+                                        <th scope="col">Time</th>
+                                        <th scope="col">Driven</th>
+                                        @if (session.CanAdminister)
+                                        {
+                                            <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (var index = 0; index < records.Length; index++)
                                     {
-                                        <a class="player-name" href="@GetUserUrl(record.UserLogin)">@record.UserLogin</a>
+                                        var record = records[index];
+                                        <tr class="@(record.Removed ? "removed-record" : null)">
+                                            <td>@(index + 1)</td>
+                                            <td>
+                                                @if (string.IsNullOrWhiteSpace(record.Nickname))
+                                                {
+                                                    <a class="player-name" href="@GetUserUrl(record.UserLogin)">@record.UserLogin</a>
+                                                }
+                                                else
+                                                {
+                                                    <a class="player-name" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname"></FormattedText></a>
+                                                    <small>@record.UserLogin</small>
+                                                }
+                                            </td>
+                                            @if (ShouldShowLaps(session.MapLaps))
+                                            {
+                                                <td>@FormatRecordLaps(session.MapLaps, record.Laps)</td>
+                                            }
+                                            <td>
+                                                <a href="@GetRecordUrl(session.MapUid, record.Car, record.UserLogin, record.Time)">@FormatTime(record.Time)</a>
+                                                @if (record.Removed)
+                                                {
+                                                    <small>(removed)</small>
+                                                }
+                                            </td>
+                                            <td>@FormatDateTime(record.DrivenAt)</td>
+                                            @if (session.CanAdminister)
+                                            {
+                                                <td>
+                                                    @if (!record.Removed)
+                                                    {
+                                                        <form method="post" action="/records/remove" onsubmit="return confirm('Remove this record?');">
+                                                            <AntiforgeryToken />
+                                                            <input type="hidden" name="sessionId" value="@session.Id" />
+                                                            <input type="hidden" name="mapUid" value="@session.MapUid" />
+                                                            <input type="hidden" name="login" value="@record.UserLogin" />
+                                                            <input type="hidden" name="carId" value="@record.Car" />
+                                                            <input type="hidden" name="gravity" value="@record.Gravity" />
+                                                            <input type="hidden" name="laps" value="@record.Laps" />
+                                                            <input type="hidden" name="time" value="@record.Time" />
+                                                            <ReuButton type="submit" Variant="ReuButtonVariant.Red">Remove</ReuButton>
+                                                        </form>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
                                     }
-                                    else
-                                    {
-                                        <a class="player-name" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname"></FormattedText></a>
-                                        <small>@record.UserLogin</small>
-                                    }
-                                </td>
-                                <td><a href="@GetCarUrl(record.Car)">@record.Car</a></td>
-                                @if (ShouldShowLaps(session.MapLaps))
-                                {
-                                    <td>@FormatRecordLaps(session.MapLaps, record.Laps)</td>
-                                }
-                                <td><a href="@GetRecordUrl(session.MapUid, record.Car, record.UserLogin, record.Time)">@FormatTime(record.Time)</a></td>
-                                <td>@FormatDateTime(record.DrivenAt)</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                }
             </div>
         }
     }

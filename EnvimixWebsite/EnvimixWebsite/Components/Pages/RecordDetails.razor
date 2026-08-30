@@ -29,7 +29,6 @@
         }
 
         <h2>@FormatTime(record.Time)</h2>
-    <p class="map-name"><a href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a></p>
 
         <dl class="record-summary">
             <div>
@@ -52,8 +51,8 @@
                 <dd><a href="@GetCarUrl(record.Car)">@record.Car</a></dd>
             </div>
             <div>
-                <dt>Map UID</dt>
-                <dd class="technical-value">@record.MapUid</dd>
+                <dt>Map</dt>
+                <dd class="technical-value"><a href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a></dd>
             </div>
             @if (ShouldShowLaps(record.MapLaps))
             {
@@ -90,6 +89,20 @@
                 </div>
             }
         </dl>
+
+        @if (canAdminister && !record.Removed)
+        {
+            <form class="record-actions" method="post" action="/records/remove" onsubmit="return confirm('Remove this record?');">
+                <AntiforgeryToken />
+                <input type="hidden" name="mapUid" value="@record.MapUid" />
+                <input type="hidden" name="login" value="@record.UserLogin" />
+                <input type="hidden" name="carId" value="@record.Car" />
+                <input type="hidden" name="gravity" value="@record.Gravity" />
+                <input type="hidden" name="laps" value="@record.Laps" />
+                <input type="hidden" name="time" value="@record.Time" />
+                <ReuButton type="submit" Variant="ReuButtonVariant.Red">Remove</ReuButton>
+            </form>
+        }
     }
 </ReuContainer>
 
@@ -109,6 +122,19 @@
     private RecordInfo? record;
     private bool isLoading = true;
     private bool loadFailed;
+    private bool canAdminister;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var authState = await AuthenticationStateTask;
+            canAdminister = authState.User.IsInRole(Roles.Admin);
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {

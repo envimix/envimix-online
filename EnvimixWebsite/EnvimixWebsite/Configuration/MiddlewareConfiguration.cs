@@ -47,7 +47,8 @@ public static class MiddlewareConfiguration
         }).RequireAuthorization();
 
         TurboEndpoints.Map(app);
-        ProfileEndpoints.Map(app);
+        ServerEndpoints.Map(app);
+        RecordEndpoints.Map(app);
         //ConnectEndpoints.Map(app);
 
         app.MapGet("login", async (HttpContext context, string returnUrl = "/") =>

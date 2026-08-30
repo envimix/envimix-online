@@ -9,4 +9,5 @@ public sealed record EnvimaniaSessionInfo(
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,
+    bool CanAdminister,
     EnvimaniaSessionRecord[] Records);

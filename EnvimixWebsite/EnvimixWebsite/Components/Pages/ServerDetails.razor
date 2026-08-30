@@ -79,6 +79,14 @@
                     }
                 </tbody>
             </table>
+
+            @if (server.RecentSessions.Length < server.SessionCount && SessionLimit < 500)
+            {
+                <p class="show-more-sessions">
+                    <a href="@GetShowMoreUrl()">Show @Math.Min(20, server.SessionCount - server.RecentSessions.Length) more</a>
+                    <small>Showing @server.RecentSessions.Length of @server.SessionCount</small>
+                </p>
+            }
         }
 
         @if (server.CanDelete)
@@ -88,7 +96,7 @@
                 <div class="action-buttons">
                     @if (server.IsHidden && server.CanAdminister)
                     {
-                        <form method="post" action="/profile/servers/register">
+                        <form method="post" action="/envimania/servers/register">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <input type="hidden" name="returnToServer" value="true" />
@@ -97,7 +105,7 @@
                     }
                     else
                     {
-                        <form method="post" action="/profile/servers/delete" onsubmit="return confirm('Unregister this server from Envimania? Its data will be preserved and admins will continue seeing it.');">
+                        <form method="post" action="/envimania/servers/delete" onsubmit="return confirm('Unregister this server from Envimania? Its data will be preserved and admins will continue seeing it.');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <ReuButton type="submit">Unregister</ReuButton>
@@ -108,7 +116,7 @@
                     {
                         @if (!server.IsBanned)
                         {
-                            <form method="post" action="/profile/servers/ban" onsubmit="const reason = prompt('Enter the ban reason:'); if (reason === null || !reason.trim()) return false; this.elements.reason.value = reason.trim(); return true;">
+                            <form method="post" action="/envimania/servers/ban" onsubmit="const reason = prompt('Enter the ban reason:'); if (reason === null || !reason.trim()) return false; this.elements.reason.value = reason.trim(); return true;">
                                 <AntiforgeryToken />
                                 <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                                 <input type="hidden" name="reason" />
@@ -117,7 +125,7 @@
                         }
                         else
                         {
-                            <form method="post" action="/profile/servers/unban" onsubmit="return confirm('Unban this server?');">
+                            <form method="post" action="/envimania/servers/unban" onsubmit="return confirm('Unban this server?');">
                                 <AntiforgeryToken />
                                 <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                                 <ReuButton type="submit">Unban</ReuButton>
@@ -132,19 +140,19 @@
                 <div class="danger-actions">
                     @if (server.CanAdminister)
                     {
-                        <form method="post" action="/profile/servers/delete-records" onsubmit="return confirm('Permanently delete every record driven on this server?');">
+                        <form method="post" action="/envimania/servers/delete-records" onsubmit="return confirm('Permanently delete every record driven on this server?');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <ReuButton type="submit" Variant="ReuButtonVariant.Red">Delete records</ReuButton>
                         </form>
 
-                        <form method="post" action="/profile/servers/delete-ratings" onsubmit="return confirm('Permanently delete every rating submitted by this server?');">
+                        <form method="post" action="/envimania/servers/delete-ratings" onsubmit="return confirm('Permanently delete every rating submitted by this server?');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <ReuButton type="submit" Variant="ReuButtonVariant.Red">Delete ratings</ReuButton>
                         </form>
 
-                        <form method="post" action="/profile/servers/wipe" onsubmit="return confirm('Permanently wipe this server, including its registration, sessions, records, and ratings? This cannot be undone.');">
+                        <form method="post" action="/envimania/servers/wipe" onsubmit="return confirm('Permanently wipe this server, including its registration, sessions, records, and ratings? This cannot be undone.');">
                             <AntiforgeryToken />
                             <input type="hidden" name="serverLogin" value="@server.ServerLogin" />
                             <ReuButton type="submit" Variant="ReuButtonVariant.Red">Full wipe</ReuButton>
@@ -160,6 +168,9 @@
     [Parameter]
     public string ServerLogin { get; set; } = "";
 
+    [SupplyParameterFromQuery(Name = "sessions")]
+    public int SessionLimit { get; set; } = 20;
+
     private EnvimaniaServerInfo? server;
     private bool isLoading = true;
     private bool loadFailed;
@@ -171,7 +182,8 @@
 
         try
         {
-            server = await EnvimixService.GetServerAsync(ServerLogin);
+            SessionLimit = Math.Clamp(SessionLimit, 20, 500);
+            server = await EnvimixService.GetServerAsync(ServerLogin, SessionLimit);
         }
         catch (Exception ex)
         {
@@ -193,6 +205,9 @@
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private string GetShowMoreUrl()
+        => $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={Math.Min(SessionLimit + 20, 500)}";
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)
         => endedAt is not null && !finishedGracefully;
