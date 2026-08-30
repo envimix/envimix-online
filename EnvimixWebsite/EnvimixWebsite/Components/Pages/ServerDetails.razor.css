@@ -44,6 +44,10 @@
     overflow-wrap: anywhere;
 }
 
+.expired-note {
+    margin-inline-start: 0.25rem;
+}
+
 .danger-zone {
     margin-top: 3rem;
     margin-bottom: 1.5rem;

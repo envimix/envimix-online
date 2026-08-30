@@ -72,7 +72,7 @@
                                 @FormatDateTime(session.EndedAt, "Not closed")
                                 @if (IsExpired(session.EndedAt, session.FinishedGracefully))
                                 {
-                                    <small>(expired)</small>
+                                    <small class="expired-note">(expired)</small>
                                 }
                             </td>
                         </tr>
