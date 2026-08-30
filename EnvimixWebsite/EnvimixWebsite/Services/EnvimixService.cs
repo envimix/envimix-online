@@ -15,7 +15,7 @@ public interface IEnvimixService
     Task RevertRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
-    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int sessionLimit = 10, CancellationToken cancellationToken = default);
+    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int sessionLimit = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
     Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
@@ -179,11 +179,12 @@ public sealed class EnvimixService(
     public async Task<EnvimaniaServerInfo?> GetServerAsync(
         string serverLogin,
         int sessionLimit = 10,
+        bool withPlayersOnly = false,
         CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}?sessions={sessionLimit}");
+            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}?sessions={sessionLimit}&withPlayersOnly={withPlayersOnly}");
         var accessToken = await GetAccessTokenAsync(required: false);
         if (!string.IsNullOrEmpty(accessToken))
         {
@@ -322,6 +323,7 @@ public sealed record EnvimaniaServerSummary(
 public sealed record EnvimaniaServerInfo(
     string ServerLogin,
     int SessionCount,
+    int MatchingSessionCount,
     DateTimeOffset? LastSeenAt,
     EnvimaniaServerSession[] RecentSessions,
     bool IsHidden,
@@ -335,7 +337,8 @@ public sealed record EnvimaniaServerSession(
     string MapName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
-    bool FinishedGracefully);
+    bool FinishedGracefully,
+    int PlayerCount);
 
 public sealed record EnvimaniaSessionInfo(
     Guid Id,

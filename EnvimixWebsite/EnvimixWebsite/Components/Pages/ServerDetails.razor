@@ -43,10 +43,16 @@
             </div>
         </dl>
 
-        <h3>Recent sessions</h3>
+        <div class="sessions-heading">
+            <h3>Recent sessions</h3>
+            <label>
+                <input type="checkbox" @bind="WithPlayersOnly" @bind:after="FilterSessionsAsync" disabled="@isLoadingMore" />
+                With players only
+            </label>
+        </div>
         @if (server.RecentSessions.Length == 0)
         {
-            <p>This server has not started an Envimania session yet.</p>
+            <p>@(WithPlayersOnly ? "No sessions with players found." : "This server has not started an Envimania session yet.")</p>
         }
         else
         {
@@ -54,6 +60,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Map</th>
+                        <th scope="col">Players</th>
                         <th scope="col">Started</th>
                         <th scope="col">Ended</th>
                     </tr>
@@ -69,6 +76,7 @@
                                     <small class="map-uid">@session.MapUid</small>
                                 }
                             </td>
+                            <td>@session.PlayerCount</td>
                             <td><a href="@GetSessionUrl(session.Id)">@FormatDateTime(session.StartedAt)</a></td>
                             <td>
                                 @FormatDateTime(session.EndedAt, "Not closed")
@@ -82,13 +90,13 @@
                 </tbody>
             </table>
 
-            @if (server.RecentSessions.Length < server.SessionCount && SessionLimit < 500)
+            @if (server.RecentSessions.Length < server.MatchingSessionCount && SessionLimit < 500)
             {
                 <p class="show-more-sessions">
                     <button type="button" @onclick="LoadMoreSessionsAsync" disabled="@isLoadingMore">
-                        @(isLoadingMore ? "Loading..." : $"Show {Math.Min(10, server.SessionCount - server.RecentSessions.Length)} more")
+                        @(isLoadingMore ? "Loading..." : $"Show {Math.Min(10, server.MatchingSessionCount - server.RecentSessions.Length)} more")
                     </button>
-                    <small>Showing @server.RecentSessions.Length of @server.SessionCount</small>
+                    <small>Showing @server.RecentSessions.Length of @server.MatchingSessionCount</small>
                 </p>
             }
         }
@@ -175,10 +183,14 @@
     [SupplyParameterFromQuery(Name = "sessions")]
     public int SessionLimit { get; set; } = 10;
 
+    [SupplyParameterFromQuery(Name = "withPlayers")]
+    public bool WithPlayersOnly { get; set; }
+
     private EnvimaniaServerInfo? server;
     private bool isLoading = true;
     private bool isLoadingMore;
     private bool loadFailed;
+    private bool appliedWithPlayersOnly;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -188,7 +200,8 @@
         try
         {
             SessionLimit = Math.Clamp(SessionLimit, 10, 500);
-            server = await EnvimixService.GetServerAsync(ServerLogin, SessionLimit);
+            server = await EnvimixService.GetServerAsync(ServerLogin, SessionLimit, WithPlayersOnly);
+            appliedWithPlayersOnly = WithPlayersOnly;
         }
         catch (Exception ex)
         {
@@ -223,7 +236,7 @@
         try
         {
             var sessionLimit = Math.Min(SessionLimit + 10, 500);
-            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, sessionLimit);
+            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, sessionLimit, WithPlayersOnly);
             if (updatedServer is null)
             {
                 return;
@@ -233,11 +246,11 @@
             server = server with
             {
                 SessionCount = updatedServer.SessionCount,
+                MatchingSessionCount = updatedServer.MatchingSessionCount,
                 RecentSessions = updatedServer.RecentSessions
             };
 
-            var url = $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={SessionLimit}";
-            await JS.InvokeVoidAsync("history.replaceState", null, "", url);
+            await UpdateUrlAsync();
         }
         catch (Exception ex)
         {
@@ -247,6 +260,53 @@
         {
             isLoadingMore = false;
         }
+    }
+
+    private async Task FilterSessionsAsync()
+    {
+        if (server is null || isLoadingMore)
+        {
+            return;
+        }
+
+        isLoadingMore = true;
+
+        try
+        {
+            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, 10, WithPlayersOnly);
+            if (updatedServer is null)
+            {
+                WithPlayersOnly = appliedWithPlayersOnly;
+                return;
+            }
+
+            SessionLimit = 10;
+            appliedWithPlayersOnly = WithPlayersOnly;
+            server = server with
+            {
+                SessionCount = updatedServer.SessionCount,
+                MatchingSessionCount = updatedServer.MatchingSessionCount,
+                RecentSessions = updatedServer.RecentSessions
+            };
+
+            await UpdateUrlAsync();
+        }
+        catch (Exception ex)
+        {
+            WithPlayersOnly = appliedWithPlayersOnly;
+            Logger.LogError(ex, "Unable to filter sessions for server {ServerLogin}", ServerLogin);
+        }
+        finally
+        {
+            isLoadingMore = false;
+        }
+    }
+
+    private ValueTask UpdateUrlAsync()
+    {
+        var filterQuery = WithPlayersOnly ? "&withPlayers=true" : "";
+        var url = $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={SessionLimit}{filterQuery}";
+        return JS.InvokeVoidAsync("history.replaceState", null, "", url);
     }
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)

@@ -6,4 +6,5 @@ public sealed record EnvimaniaServerSession(
     string MapName,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
-    bool FinishedGracefully);
+    bool FinishedGracefully,
+    int PlayerCount);

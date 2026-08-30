@@ -48,6 +48,25 @@
     margin-inline-start: 0.25rem;
 }
 
+.sessions-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.sessions-heading h3 {
+    margin-block: 0;
+}
+
+.sessions-heading label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
 .show-more-sessions {
     display: flex;
     align-items: baseline;
