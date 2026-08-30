@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using TmEssentials;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -15,16 +17,44 @@ public class GhostEndpoints
 
     private static async Task<Results<FileContentHttpResult, NotFound>> DownloadGhost(Guid guid, AppDbContext db, HttpContext context, CancellationToken cancellationToken)
     {
-        var ghost = await db.Ghosts
-            .Where(x => x.Id == guid)
+        var record = await db.Records
+            .Where(x => x.GhostId == guid)
+            .Select(x => new
+            {
+                Data = x.Ghost!.Data,
+                x.Ghost.LastModifiedAt,
+                MapName = x.Map.Name,
+                x.CarId,
+                PlayerNickname = x.User.Nickname,
+                PlayerLogin = x.UserId,
+                x.Time
+            })
             .AsNoTracking()
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (ghost is null)
+        if (record is null)
         {
-            return TypedResults.NotFound();
+            var ghost = await db.Ghosts
+                .Where(x => x.Id == guid)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (ghost is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            return CreateGhostFile(ghost.Data, $"{guid}.Ghost.Gbx", ghost.LastModifiedAt, context);
         }
 
+        var playerName = string.IsNullOrWhiteSpace(record.PlayerNickname) ? record.PlayerLogin : record.PlayerNickname;
+        var fileName = $"{SanitizeFileName(record.MapName)}_{SanitizeFileName(record.CarId)}_{SanitizeFileName(playerName)}_({new TimeInt32(record.Time).ToString(useApostrophe: true)}).Ghost.Gbx";
+
+        return CreateGhostFile(record.Data, fileName, record.LastModifiedAt, context);
+    }
+
+    private static FileContentHttpResult CreateGhostFile(byte[] data, string fileName, DateTimeOffset lastModifiedAt, HttpContext context)
+    {
         // CORS middleware is ???
         if (context.Request.Headers.ContainsKey(CorsConstants.Origin))
         {
@@ -33,6 +63,33 @@ public class GhostEndpoints
             context.Response.Headers.AccessControlAllowHeaders = "*";
         }
 
-        return TypedResults.File(ghost.Data, "application/gbx", $"{guid}.Ghost.Gbx", lastModified: ghost.LastModifiedAt);
+        return TypedResults.File(data, "application/gbx", fileName, lastModified: lastModifiedAt);
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var deformatted = TextFormatter.Deformat(value);
+        var builder = new StringBuilder(deformatted.Length);
+        var previousWasWhitespace = false;
+
+        foreach (var character in deformatted)
+        {
+            var isInvalid = char.IsControl(character) || character is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*';
+            var output = isInvalid ? ' ' : character;
+            if (char.IsWhiteSpace(output))
+            {
+                if (!previousWasWhitespace)
+                {
+                    builder.Append(' ');
+                }
+                previousWasWhitespace = true;
+                continue;
+            }
+
+            builder.Append(output);
+            previousWasWhitespace = false;
+        }
+
+        return builder.ToString().Trim(' ', '.');
     }
 }

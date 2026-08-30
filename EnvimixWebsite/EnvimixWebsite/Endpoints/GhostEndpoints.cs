@@ -15,9 +15,9 @@ internal static class GhostEndpoints
         IEnvimixService envimixService,
         CancellationToken cancellationToken)
     {
-        var data = await envimixService.GetGhostAsync(ghostId, cancellationToken);
-        return data is null
+        var download = await envimixService.GetGhostAsync(ghostId, cancellationToken);
+        return download is null
             ? TypedResults.NotFound()
-            : TypedResults.File(data, "application/gbx", $"{ghostId}.Ghost.Gbx", enableRangeProcessing: true);
+            : TypedResults.File(download.Data, "application/gbx", download.FileName, enableRangeProcessing: true);
     }
 }

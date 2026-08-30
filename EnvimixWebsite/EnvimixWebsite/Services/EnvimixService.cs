@@ -23,7 +23,7 @@ public interface IEnvimixService
     Task<TitleDetailsInfo?> GetTitleAsync(string titleId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
     Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, CancellationToken cancellationToken = default);
-    Task<byte[]?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
+    Task<GhostDownload?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
     string GetGhostDownloadUrl(Guid ghostId);
 }
 
@@ -293,7 +293,7 @@ public sealed class EnvimixService(
             cancellationToken);
     }
 
-    public async Task<byte[]?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default)
+    public async Task<GhostDownload?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.GetAsync(
             $"{config["EnvimixApi"]}/ghosts/{ghostId}/download",
@@ -304,7 +304,10 @@ public sealed class EnvimixService(
         }
 
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    var contentDisposition = response.Content.Headers.ContentDisposition;
+    var fileName = contentDisposition?.FileNameStar ?? contentDisposition?.FileName?.Trim('"') ?? $"{ghostId}.Ghost.Gbx";
+    var data = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    return new GhostDownload(data, fileName);
     }
 
     public string GetGhostDownloadUrl(Guid ghostId)
@@ -346,6 +349,8 @@ public sealed record EnvimaniaServerSummary(
     DateTimeOffset? LastSeenAt,
     bool IsHidden,
     bool IsBanned);
+
+public sealed record GhostDownload(byte[] Data, string FileName);
 
 public sealed record EnvimaniaServerInfo(
     string ServerLogin,

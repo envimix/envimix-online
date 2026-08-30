@@ -108,6 +108,13 @@
             }
         </dl>
 
+        @if (record.GhostId is Guid ghostId)
+        {
+            <div class="record-download">
+                <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download>Download ghost</ReuButton>
+            </div>
+        }
+
         @if (canAdminister)
         {
             <form class="record-actions" method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">

@@ -94,11 +94,11 @@
                                 <a class="map-name" href="@GetMapUrl(session.MapUid)">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</a>
                                 @if (!string.IsNullOrWhiteSpace(session.MapName))
                                 {
-                                    <small class="map-uid">@session.MapUid</small>
+                                    <small class="map-uid nowrap">@session.MapUid</small>
                                 }
                             </td>
                             <td class="nowrap">@(string.IsNullOrWhiteSpace(session.ServerModeName) ? "-" : session.ServerModeName)</td>
-                            <td>
+                            <td class="nowrap">
                                 @if (string.IsNullOrWhiteSpace(session.TitleId))
                                 {
                                     <span>-</span>

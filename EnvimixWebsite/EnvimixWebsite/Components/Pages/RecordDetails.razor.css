@@ -17,6 +17,7 @@
     overflow-wrap: anywhere;
 }
 
+.record-download,
 .record-actions {
     margin-block: 1.5rem;
 }
