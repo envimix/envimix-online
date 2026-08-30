@@ -255,6 +255,7 @@ public static class MapEndpoints
             Name = map.Name,
             Uid = map.Id,
             Collection = map.Collection,
+            Laps = map.Laps,
             TitlePack = map.TitlePack is null ? null : new()
             {
                 Id = map.TitlePack.Id,
