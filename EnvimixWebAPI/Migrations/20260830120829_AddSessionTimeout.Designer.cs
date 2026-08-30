@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260830120021_MakeSessionEndedAtNullable")]
-    partial class MakeSessionEndedAtNullable
+    [Migration("20260830120829_AddSessionTimeout")]
+    partial class AddSessionTimeout
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

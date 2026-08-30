@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EnvimixWebAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class MakeSessionEndedAtNullable : Migration
+    public partial class AddSessionTimeout : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,11 +24,41 @@ namespace EnvimixWebAPI.Migrations
                 SET `EndedAt` = NULL
                 WHERE `FinishedGracefully` = FALSE
                 """);
+
+            migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "ExpiresAt",
+                table: "EnvimaniaSessions",
+                type: "datetime(6)",
+                nullable: true);
+
+            migrationBuilder.Sql("""
+                UPDATE `EnvimaniaSessions`
+                SET `ExpiresAt` = DATE_ADD(`StartedAt`, INTERVAL 20 MINUTE)
+                """);
+
+            migrationBuilder.AlterColumn<DateTimeOffset>(
+                name: "ExpiresAt",
+                table: "EnvimaniaSessions",
+                type: "datetime(6)",
+                nullable: false,
+                oldClrType: typeof(DateTimeOffset),
+                oldType: "datetime(6)",
+                oldNullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                UPDATE `EnvimaniaSessions`
+                SET `EndedAt` = `ExpiresAt`
+                WHERE `EndedAt` IS NULL
+                """);
+
+            migrationBuilder.DropColumn(
+                name: "ExpiresAt",
+                table: "EnvimaniaSessions");
+
             migrationBuilder.AlterColumn<DateTimeOffset>(
                 name: "EndedAt",
                 table: "EnvimaniaSessions",
