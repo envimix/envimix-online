@@ -31,10 +31,13 @@
                 <dt>Collection</dt>
                 <dd>@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</dd>
             </div>
-            <div>
-                <dt>Laps</dt>
-                <dd>@map.Laps</dd>
-            </div>
+            @if (ShouldShowLaps(map.Laps))
+            {
+                <div>
+                    <dt>Laps</dt>
+                    <dd>@FormatMapLaps(map.Laps)</dd>
+                </div>
+            }
         </dl>
     }
 </ReuContainer>
@@ -70,4 +73,10 @@
 
     private static string GetMapName(MapDetailsInfo value)
         => string.IsNullOrWhiteSpace(value.Name) ? value.Uid : value.Name;
+
+    private static bool ShouldShowLaps(int mapLaps)
+        => mapLaps == 0 || mapLaps > 1;
+
+    private static string FormatMapLaps(int mapLaps)
+        => mapLaps == 0 ? "Undefined" : mapLaps.ToString();
 }

@@ -5,6 +5,7 @@ public sealed record EnvimaniaSessionInfo(
     string ServerLogin,
     string MapUid,
     string MapName,
+    int MapLaps,
     DateTimeOffset StartedAt,
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,

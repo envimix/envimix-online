@@ -66,7 +66,10 @@
                             <th scope="col">#</th>
                             <th scope="col">Player</th>
                             <th scope="col">Car</th>
-                            <th scope="col">Laps</th>
+                            @if (ShouldShowLaps(session.MapLaps))
+                            {
+                                <th scope="col">Laps</th>
+                            }
                             <th scope="col">Time</th>
                             <th scope="col">Driven</th>
                         </tr>
@@ -89,7 +92,10 @@
                                     }
                                 </td>
                                 <td><a href="@GetCarUrl(record.Car)">@record.Car</a></td>
-                                <td>@record.Laps</td>
+                                @if (ShouldShowLaps(session.MapLaps))
+                                {
+                                    <td>@FormatRecordLaps(session.MapLaps, record.Laps)</td>
+                                }
                                 <td><a href="@GetRecordUrl(session.MapUid, record.Car, record.UserLogin, record.Time)">@FormatTime(record.Time)</a></td>
                                 <td>@FormatDateTime(record.DrivenAt)</td>
                             </tr>
@@ -156,6 +162,12 @@
 
     private static bool IsExpired(EnvimaniaSessionInfo value)
         => value.EndedAt is not null && !value.FinishedGracefully;
+
+    private static bool ShouldShowLaps(int mapLaps)
+        => mapLaps == 0 || mapLaps > 1;
+
+    private static string FormatRecordLaps(int mapLaps, int recordLaps)
+        => mapLaps == 0 ? "Undefined" : recordLaps.ToString();
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");

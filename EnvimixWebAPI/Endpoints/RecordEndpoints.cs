@@ -48,6 +48,7 @@ public static class RecordEndpoints
                 x.User.Nickname,
                 x.MapId,
                 x.Map.Name,
+                x.Map.Laps,
                 x.CarId,
                 x.Gravity,
                 x.Laps,

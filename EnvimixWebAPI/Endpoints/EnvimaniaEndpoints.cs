@@ -290,6 +290,7 @@ public static class EnvimaniaEndpoints
                 ServerDeletedAt = x.Server.DeletedAt,
                 MapUid = x.Map.Id,
                 MapName = x.Map.Name,
+                MapLaps = x.Map.Laps,
                 x.StartedAt,
                 x.EndedAt,
                 x.FinishedGracefully
@@ -328,6 +329,7 @@ public static class EnvimaniaEndpoints
             session.ServerLogin,
             session.MapUid,
             session.MapName,
+            session.MapLaps,
             session.StartedAt,
             session.EndedAt,
             session.FinishedGracefully,

@@ -43,13 +43,17 @@
         }
         else
         {
+            var showLaps = car.RecentRecords.Any(record => ShouldShowLaps(record.MapLaps));
             <div class="records-scroll">
                 <table class="records-table">
                     <thead>
                         <tr>
                             <th scope="col">Player</th>
                             <th scope="col">Map</th>
-                            <th scope="col">Laps</th>
+                            @if (showLaps)
+                            {
+                                <th scope="col">Laps</th>
+                            }
                             <th scope="col">Time</th>
                             <th scope="col">Driven</th>
                         </tr>
@@ -81,7 +85,10 @@
                                         <small>@record.MapUid</small>
                                     }
                                 </td>
-                                <td>@record.Laps</td>
+                                @if (showLaps)
+                                {
+                                    <td>@FormatRecordLaps(record.MapLaps, record.Laps)</td>
+                                }
                                 <td>
                                     <a href="@GetRecordUrl(record)">@FormatTime(record.Time)</a>
                                     @if (record.Removed)
@@ -145,4 +152,10 @@
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
+
+    private static bool ShouldShowLaps(int mapLaps)
+        => mapLaps == 0 || mapLaps > 1;
+
+    private static string FormatRecordLaps(int mapLaps, int recordLaps)
+        => mapLaps == 0 ? "Undefined" : mapLaps > 1 ? recordLaps.ToString() : "";
 }

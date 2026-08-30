@@ -5,6 +5,7 @@ public sealed record RecordInfo(
     string? Nickname,
     string MapUid,
     string MapName,
+    int MapLaps,
     string Car,
     int Gravity,
     int Laps,
