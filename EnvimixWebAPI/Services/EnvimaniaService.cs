@@ -637,6 +637,17 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid server token");
         }
 
+        var title = await db.Titles.FindAsync([request.TitleId], cancellationToken);
+        if (title is null)
+        {
+            title = new TitleEntity
+            {
+                Id = request.TitleId,
+                ReleasedAt = null
+            };
+            await db.Titles.AddAsync(title, cancellationToken);
+        }
+
         logger.LogDebug("Generating new session token...");
 
         var sessionGuid = Guid.CreateVersion7();
@@ -655,7 +666,7 @@ public sealed class EnvimaniaService(
             Map = map,
             Server = server,
             ServerModeName = request.ServerModeName,
-            TitleId = request.TitleId,
+            Title = title,
             StartedAt = startedAt,
             ExpiresAt = expiresAt
         };

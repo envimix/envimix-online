@@ -11,7 +11,7 @@ public sealed class EnvimaniaSessionEntity
     [StringLength(255)]
     public string? ServerModeName { get; set; }
 
-    [StringLength(64)]
+    public TitleEntity? Title { get; set; }
     public string? TitleId { get; set; }
 
     public DateTimeOffset StartedAt { get; set; }
