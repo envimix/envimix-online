@@ -123,7 +123,7 @@ public static class MapEndpoints
         var requestedPageSize = Math.Clamp(pageSize ?? 50, 10, 100);
         var includeAllRecords = showAll == true;
 
-        var cars = await db.Records
+        var carStats = await db.Records
             .Where(x => x.MapId == mapUid)
             .GroupBy(x => new { x.CarId, x.Car.Order })
             .Select(group => new
@@ -137,8 +137,41 @@ public static class MapEndpoints
             .OrderBy(x => x.Order == null)
             .ThenBy(x => x.Order)
             .ThenBy(x => x.Id)
-            .Select(x => new MapRecordCarInfo(x.Id, x.RecordCount))
             .ToArrayAsync(cancellationToken);
+
+        var validators = await db.Records
+            .Where(record => record.MapId == mapUid
+                && record.Map.Laps > 0
+                && record.Laps == record.Map.Laps
+                && record.Gravity == 0
+                && !record.Removed
+                && !db.Records.Any(other =>
+                    other.MapId == record.MapId
+                    && other.CarId == record.CarId
+                    && other.Laps == record.Laps
+                    && other.Gravity == record.Gravity
+                    && !other.Removed
+                    && (other.DrivenAt < record.DrivenAt
+                        || other.DrivenAt == record.DrivenAt && other.Id < record.Id)))
+            .Select(record => new
+            {
+                record.CarId,
+                Login = record.UserId,
+                record.User.Nickname
+            })
+            .ToDictionaryAsync(x => x.CarId, cancellationToken);
+
+        var cars = carStats
+            .Select(carInfo =>
+            {
+                validators.TryGetValue(carInfo.Id, out var validator);
+                return new MapRecordCarInfo(
+                    carInfo.Id,
+                    carInfo.RecordCount,
+                    validator?.Login,
+                    validator?.Nickname);
+            })
+            .ToArray();
 
         car = string.IsNullOrWhiteSpace(car) ? cars.FirstOrDefault()?.Id : car;
         var totalCount = cars.FirstOrDefault(x => x.Id == car)?.RecordCount ?? 0;

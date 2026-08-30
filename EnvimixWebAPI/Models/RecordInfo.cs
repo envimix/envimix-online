@@ -28,4 +28,8 @@ public sealed record MapRecordsPage(
     bool ShowAll,
     RecordInfo[] Records);
 
-public sealed record MapRecordCarInfo(string Id, int RecordCount);
+public sealed record MapRecordCarInfo(
+    string Id,
+    int RecordCount,
+    string? ValidatorLogin,
+    string? ValidatorNickname);

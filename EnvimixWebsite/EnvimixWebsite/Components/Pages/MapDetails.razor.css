@@ -65,12 +65,19 @@
     opacity: 0.65;
 }
 
-.car-tabs ::deep .car-tab > span:last-child {
+.car-tabs ::deep .record-count {
     opacity: 0.7;
+    font-variant-numeric: tabular-nums;
 }
 
 .map-records h4 {
     margin-block: 0;
+}
+
+.selected-car-validator {
+    margin-block: 0.15rem 0.8rem;
+    font-size: 0.85rem;
+    opacity: 0.7;
 }
 
 .map-records[aria-busy="true"] .records-scroll {

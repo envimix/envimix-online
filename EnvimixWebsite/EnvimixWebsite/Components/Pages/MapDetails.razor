@@ -79,13 +79,26 @@
                                Disabled="@recordsLoading"
                                OnClick="() => SelectCarAsync(car.Id)">
                         <CarDisplay CarId="@car.Id" Linked="false" />
-                        <span>@car.RecordCount</span>
+                        <span class="record-count" title="@car.RecordCount records">@car.RecordCount</span>
                     </ReuButton>
                 }
             </div>
 
             <section class="map-records" aria-busy="@recordsLoading">
                 <h4><CarDisplay CarId="@(recordsPage.Car ?? "")" Linked="false" IconSize="42" /></h4>
+                @if (SelectedCar is { } selectedCar)
+                {
+                    <p class="selected-car-validator">
+                        @if (selectedCar.ValidatorLogin is null)
+                        {
+                            <span>Unvalidated</span>
+                        }
+                        else
+                        {
+                            <span>Validated by </span><a href="@GetUserUrl(selectedCar.ValidatorLogin)"><FormattedText Text="@GetValidatorName(selectedCar)"></FormattedText></a>
+                        }
+                    </p>
+                }
 
                 @if (recordsLoadFailed)
                 {
@@ -210,6 +223,9 @@
         ? 1
         : Math.Max(1, (int)Math.Ceiling(recordsPage.TotalCount / (double)recordsPage.PageSize));
 
+    private MapRecordCarInfo? SelectedCar
+        => recordsPage?.Cars.FirstOrDefault(car => car.Id == recordsPage.Car);
+
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
@@ -237,6 +253,9 @@
 
     private static string GetMapName(MapDetailsInfo value)
         => string.IsNullOrWhiteSpace(value.Name) ? value.Uid : value.Name;
+
+    private static string GetValidatorName(MapRecordCarInfo car)
+        => string.IsNullOrWhiteSpace(car.ValidatorNickname) ? car.ValidatorLogin! : car.ValidatorNickname;
 
     private static bool ShouldShowLaps(int mapLaps)
         => mapLaps == 0 || mapLaps > 1;
