@@ -81,6 +81,7 @@ public static class MapEndpoints
             map.TitlePackId = request.TitleId;
             map.IsCampaignMap = true;
             map.Order = mapInfo.Order;
+            map.Laps = mapInfo.Laps;
             map.Campaign = campaigns!.GetValueOrDefault(mapInfo.Campaign);
             map.AuthorTime = mapInfo.AuthorTime;
             map.GoldTime = mapInfo.GoldTime;
