@@ -27,6 +27,9 @@ public sealed class RecordEntity
     public EnvimaniaSessionEntity? Session { get; set; } = null!;
     public Guid? SessionId { get; set; }
 
+    public TitleEntity? Title { get; set; }
+    public string? TitleId { get; set; }
+
     public required int Laps { get; set; }
 
     public GhostEntity? Ghost { get; set; }

@@ -637,22 +637,13 @@ public sealed class EnvimaniaService(
             return new ValidationFailureResponse("Invalid server token");
         }
 
-        var title = await db.Titles.FindAsync([request.TitleId], cancellationToken);
-        if (title is null)
-        {
-            title = new TitleEntity
-            {
-                Id = request.TitleId,
-                ReleasedAt = null
-            };
-            await db.Titles.AddAsync(title, cancellationToken);
-        }
+        var title = await GetOrCreateTitleAsync(request.TitleId, cancellationToken);
 
         logger.LogDebug("Generating new session token...");
 
         var sessionGuid = Guid.CreateVersion7();
 
-        var token = tokenService.GenerateEnvimaniaSessionToken(sessionGuid, request.Map.Uid, server.Id, out var startedAt, out var expiresAt);
+        var token = tokenService.GenerateEnvimaniaSessionToken(sessionGuid, request.Map.Uid, title.Id, server.Id, out var startedAt, out var expiresAt);
 
         logger.LogInformation("Adding/updating map {mapName}...", TextFormatter.Deformat(request.Map.Name));
 
@@ -806,6 +797,24 @@ public sealed class EnvimaniaService(
         return new EnvimaniaSessionClosedResponse();
     }
 
+    private async Task<TitleEntity> GetOrCreateTitleAsync(string titleId, CancellationToken cancellationToken)
+    {
+        var title = await db.Titles.FindAsync([titleId], cancellationToken);
+        if (title is not null)
+        {
+            return title;
+        }
+
+        title = new TitleEntity
+        {
+            Id = titleId,
+            ReleasedAt = null
+        };
+        await db.Titles.AddAsync(title, cancellationToken);
+
+        return title;
+    }
+
     public async Task<OneOf<EnvimaniaSessionStatusResponse, ActionForbiddenResponse>> CheckSessionStatusAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         // VALIDATION START
@@ -846,7 +855,12 @@ public sealed class EnvimaniaService(
             return new ActionForbiddenResponse("Session is closed");
         }
 
-        var token = tokenService.GenerateEnvimaniaSessionToken(session.Id, session.Map.Id, session.Server.Id, out _, out var expiresAt);
+        if (session.TitleId is null)
+        {
+            return new ActionForbiddenResponse("Session has no title");
+        }
+
+        var token = tokenService.GenerateEnvimaniaSessionToken(session.Id, session.Map.Id, session.TitleId, session.Server.Id, out _, out var expiresAt);
 
         var updatedCount = await db.EnvimaniaSessions
             .Where(x => x.Id == sessionGuid && x.EndedAt == null)
@@ -970,6 +984,7 @@ public sealed class EnvimaniaService(
         var ghostRawData = ms.ToArray();
 
         var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, cancellationToken);
+        var title = await GetOrCreateTitleAsync(ghost.Validate_TitleId!, cancellationToken);
 
         activity?.SetTag("map.uid", map.Id);
         activity?.SetTag("car.name", carName);
@@ -1044,6 +1059,7 @@ public sealed class EnvimaniaService(
             DrivenAt = timestamp, // + request.PreferenceNumber
             ServersideDrivenAt = serverTimestamp,
             SessionId = null,
+            Title = title,
             Laps = laps,
             Ghost = new GhostEntity { Data = ghostRawData },
             Time = newRecord.Time,
@@ -1300,9 +1316,19 @@ public sealed class EnvimaniaService(
 
         var sessionGuid = Guid.Parse(principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid) ?? throw new Exception("Session GUID is null"));
         var mapUid = principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid) ?? throw new Exception("Session MapUid is null");
+        var titleId = principal.FindFirstValue(EnvimaniaClaimTypes.SessionTitleId)
+            ?? await db.EnvimaniaSessions
+                .Where(x => x.Id == sessionGuid)
+                .Select(x => x.TitleId)
+                .FirstOrDefaultAsync(cancellationToken);
 
         var map = await mapService.GetAsync(mapUid, cancellationToken)
             ?? throw new Exception("Map not found but should have been found");
+
+        if (titleId is null)
+        {
+            return ("Session has no title", null);
+        }
 
         var car = await modService.GetOrAddCarAsync(request.Car, cancellationToken);
 
@@ -1378,6 +1404,7 @@ public sealed class EnvimaniaService(
             Gravity = gravity,
             DrivenAt = DateTimeOffset.UtcNow, // + request.PreferenceNumber
             SessionId = sessionGuid,
+            TitleId = titleId,
             Laps = request.Laps,
             Time = request.Record.Time,
             Score = request.Record.Score,
@@ -2180,6 +2207,7 @@ public sealed class EnvimaniaService(
                         Gravity = gravity,
                         DrivenAt = oldestLeaderboardRecordTimestamp.Value, // + request.PreferenceNumber
                         ServersideDrivenAt = oldestLeaderboardRecordTimestamp.Value,
+                        Title = map.TitlePack,
                         Laps = laps,
                         Time = oldestLeaderboardRecord.Score.TotalMilliseconds,
                         Score = ghost.StuntScore ?? -1,
@@ -2368,6 +2396,7 @@ public sealed class EnvimaniaService(
                             Gravity = gravity,
                             DrivenAt = lastModified.Value, // + request.PreferenceNumber
                             ServersideDrivenAt = lastModified.Value,
+                            Title = map.TitlePack,
                             Laps = laps,
                             Time = lbEntry.Score.TotalMilliseconds,
                             Score = ghost.StuntScore ?? -1,

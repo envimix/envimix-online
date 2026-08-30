@@ -9,18 +9,19 @@ namespace EnvimixWebAPI.Services;
 
 public interface ITokenService
 {
-    string GenerateEnvimaniaSessionToken(Guid sessionGuid, string mapUid, string serverLogin, out DateTimeOffset startedAt, out DateTimeOffset expiresAt);
+    string GenerateEnvimaniaSessionToken(Guid sessionGuid, string mapUid, string titleId, string serverLogin, out DateTimeOffset startedAt, out DateTimeOffset expiresAt);
     string GenerateManiaPlanetUserAccessToken(string login, bool isAdmin, out Guid tokenId);
 }
 
 public sealed class TokenService(IOptionsSnapshot<JwtOptions> jwtOptions) : ITokenService
 {
-    public string GenerateEnvimaniaSessionToken(Guid sessionGuid, string mapUid, string serverLogin, out DateTimeOffset startedAt, out DateTimeOffset expiresAt)
+    public string GenerateEnvimaniaSessionToken(Guid sessionGuid, string mapUid, string titleId, string serverLogin, out DateTimeOffset startedAt, out DateTimeOffset expiresAt)
     {
         var tokenDescriptor = GetDescriptor(Consts.EnvimaniaSession, [
             new Claim(JwtRegisteredClaimNames.UniqueName, serverLogin),
             new Claim(EnvimaniaClaimTypes.SessionGuid, sessionGuid.ToString()),
-            new Claim(EnvimaniaClaimTypes.SessionMapUid, mapUid)
+            new Claim(EnvimaniaClaimTypes.SessionMapUid, mapUid),
+            new Claim(EnvimaniaClaimTypes.SessionTitleId, titleId)
         ], validFor: TimeSpan.FromMinutes(20));
 
         var tokenHandler = new JwtSecurityTokenHandler();
