@@ -1572,7 +1572,7 @@ public sealed class EnvimaniaService(
                 Speed = rec.Checkpoints.Last().Speed,
                 Verified = true,
                 Projected = false,
-                GhostUrl = string.IsNullOrWhiteSpace(ghostBaseUrl) ? "" : $"{ghostBaseUrl}/ghosts/{rec.GhostId}/download",
+                GhostUrl = string.IsNullOrWhiteSpace(ghostBaseUrl) || rec.GhostId is null ? "" : $"{ghostBaseUrl}/ghosts/{rec.GhostId}/download",
                 DrivenAt = rec.DrivenAt.ToUnixTimeSeconds().ToString(),
                 Removed = rec.Removed
             });
