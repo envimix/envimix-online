@@ -51,36 +51,36 @@
                     {
                         <p>Don't see your server? Try <a href="login/maniaplanet?returnUrl=@(Uri.EscapeDataString(NavManager.Uri))">reconnecting the ManiaPlanet account</a>.</p>
                         <div class="server-table-scroll">
-                        <table class="server-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Server login</th>
-                                    <th scope="col">Last seen online</th>
-                                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            @foreach (var server in dedicatedServers)
-                            {
-                                <tr>
-                                    <td>
-                                        @if (registeredServers.Contains(server.Login))
-                                        {
-                                            <a href="@GetServerUrl(server.Login)">@server.Login</a>
-                                        }
-                                        else
-                                        {
-                                            @server.Login
-                                        }
-                                    </td>
-                                    <td>@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
-                                    <td class="server-action">
-                                        <ServerRegistrationButton ServerLogin="@server.Login" IsRegistered="@registeredServers.Contains(server.Login)" />
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
+                            <table class="server-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Server login</th>
+                                        <th scope="col">Last seen online</th>
+                                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var server in dedicatedServers)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (registeredServers.Contains(server.Login))
+                                            {
+                                                <a href="@GetServerUrl(server.Login)">@server.Login</a>
+                                            }
+                                            else
+                                            {
+                                                @server.Login
+                                            }
+                                        </td>
+                                        <td class="nowrap">@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
+                                        <td class="server-action nowrap">
+                                            <ServerRegistrationButton ServerLogin="@server.Login" IsRegistered="@registeredServers.Contains(server.Login)" />
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
                         </div>
                     }
                 }

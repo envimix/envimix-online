@@ -46,6 +46,11 @@
 
 .session-table th {
     font-weight: 600;
+    white-space: nowrap;
+}
+
+.nowrap {
+    white-space: nowrap;
 }
 
 .map-name,

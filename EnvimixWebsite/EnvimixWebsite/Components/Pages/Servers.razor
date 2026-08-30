@@ -24,42 +24,42 @@
     else
     {
         <div class="server-table-scroll">
-        <table class="server-table">
-            <thead>
-                <tr>
-                    <th scope="col">Server</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Sessions</th>
-                    <th scope="col">Last seen</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var server in servers)
-                {
+            <table class="server-table">
+                <thead>
                     <tr>
-                        <td>
-                            <a class="server-name" href="@GetServerUrl(server.ServerLogin)">
-                                @if (string.IsNullOrWhiteSpace(server.ServerName))
-                                {
-                                    @server.ServerLogin
-                                }
-                                else
-                                {
-                                    <FormattedText Text="@server.ServerName"></FormattedText>
-                                }
-                            </a>
-                            @if (!string.IsNullOrWhiteSpace(server.ServerName))
-                            {
-                                <small class="server-login">@server.ServerLogin</small>
-                            }
-                        </td>
-                        <td>@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</td>
-                        <td>@server.SessionCount</td>
-                        <td>@FormatDateTime(server.LastSeenAt)</td>
+                        <th scope="col">Server</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Sessions</th>
+                        <th scope="col">Last seen</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var server in servers)
+                    {
+                        <tr>
+                            <td>
+                                <a class="server-name" href="@GetServerUrl(server.ServerLogin)">
+                                    @if (string.IsNullOrWhiteSpace(server.ServerName))
+                                    {
+                                        @server.ServerLogin
+                                    }
+                                    else
+                                    {
+                                        <FormattedText Text="@server.ServerName"></FormattedText>
+                                    }
+                                </a>
+                                @if (!string.IsNullOrWhiteSpace(server.ServerName))
+                                {
+                                    <small class="server-login">@server.ServerLogin</small>
+                                }
+                            </td>
+                            <td class="nowrap">@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</td>
+                            <td class="nowrap">@server.SessionCount</td>
+                            <td class="nowrap">@FormatDateTime(server.LastSeenAt)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     }
 </ReuContainer>
