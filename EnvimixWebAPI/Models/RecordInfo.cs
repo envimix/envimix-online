@@ -38,6 +38,7 @@ public sealed record MapRecordsPage(
     int PageSize,
     int TotalCount,
     bool ShowAll,
+    bool WorldRecordHistory,
     RecordInfo[] Records);
 
 public sealed record MapRecordCarInfo(

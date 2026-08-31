@@ -120,6 +120,7 @@ public static class MapEndpoints
         int? page,
         int? pageSize,
         bool? showAll,
+        bool? worldRecordHistory,
         AppDbContext db,
         CancellationToken cancellationToken)
     {
@@ -140,15 +141,28 @@ public static class MapEndpoints
 
         var requestedPageSize = Math.Clamp(pageSize ?? 50, 10, 100);
         var includeAllRecords = showAll == true;
+        var includeWorldRecordHistory = worldRecordHistory == true;
 
-        var carStats = await db.Records
-            .Where(x => x.MapId == mapUid)
+        var mapRecordsQuery = db.Records.Where(record => record.MapId == mapUid);
+        var worldRecordHistoryQuery = mapRecordsQuery
+            .Where(record => !db.Records.Any(other =>
+                other.MapId == record.MapId
+                && other.CarId == record.CarId
+                && other.Gravity == record.Gravity
+                && other.Laps == record.Laps
+                && !other.Removed
+                && other.Time <= record.Time
+                && (other.DrivenAt < record.DrivenAt
+                    || other.DrivenAt == record.DrivenAt && other.Id < record.Id)));
+
+        var carStatsQuery = includeWorldRecordHistory ? worldRecordHistoryQuery : mapRecordsQuery;
+        var carStats = await carStatsQuery
             .GroupBy(x => new { x.CarId, x.Car.Order })
             .Select(group => new
             {
                 Id = group.Key.CarId,
                 Order = group.Key.Order,
-                RecordCount = includeAllRecords
+                RecordCount = includeAllRecords || includeWorldRecordHistory
                     ? group.Count()
                     : group.Select(record => record.UserId).Distinct().Count()
             })
@@ -200,13 +214,14 @@ public static class MapEndpoints
             })
             .ToArray();
 
-        car = string.IsNullOrWhiteSpace(car) ? cars.FirstOrDefault()?.Id : car;
+        car = string.IsNullOrWhiteSpace(car) || !cars.Any(x => x.Id == car)
+            ? cars.FirstOrDefault()?.Id
+            : car;
         var totalCount = cars.FirstOrDefault(x => x.Id == car)?.RecordCount ?? 0;
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)requestedPageSize));
         var requestedPage = Math.Clamp(page ?? 1, 1, totalPages);
 
-        var allRecordsQuery = db.Records
-            .Where(x => x.MapId == mapUid && x.CarId == car);
+        var allRecordsQuery = mapRecordsQuery.Where(x => x.CarId == car);
 
         var bestRecordsQuery = allRecordsQuery
             .Where(record => !db.Records.Any(other =>
@@ -217,7 +232,9 @@ public static class MapEndpoints
                     (other.Time == record.Time && other.DrivenAt > record.DrivenAt) ||
                     (other.Time == record.Time && other.DrivenAt == record.DrivenAt && other.Id > record.Id))));
 
-        var recordsQuery = includeAllRecords ? allRecordsQuery : bestRecordsQuery;
+        var recordsQuery = includeWorldRecordHistory
+            ? worldRecordHistoryQuery.Where(record => record.CarId == car)
+            : includeAllRecords ? allRecordsQuery : bestRecordsQuery;
 
         var orderedRecords = recordsQuery
             .OrderBy(x => x.Time)
@@ -233,7 +250,13 @@ public static class MapEndpoints
 
         RecordInfo[] records;
 
-        if (includeAllRecords && projectedRecords.Length > 0)
+        if (includeWorldRecordHistory)
+        {
+            records = projectedRecords
+                .Select(record => record.ToRecordInfo(null))
+                .ToArray();
+        }
+        else if (includeAllRecords && projectedRecords.Length > 0)
         {
             var rankedRecordIds = await bestRecordsQuery
                 .OrderBy(x => x.Time)
@@ -257,7 +280,7 @@ public static class MapEndpoints
                 .ToArray();
         }
 
-        return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, includeAllRecords, records));
+        return TypedResults.Ok(new MapRecordsPage(cars, car, requestedPage, requestedPageSize, totalCount, includeAllRecords, includeWorldRecordHistory, records));
     }
 
     private static async Task<Results<Ok<MapInfoResponse>, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> GetMap(

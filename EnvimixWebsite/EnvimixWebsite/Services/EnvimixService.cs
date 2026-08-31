@@ -22,7 +22,7 @@ public interface IEnvimixService
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
     Task<TitleDetailsInfo?> GetTitleAsync(string titleId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
-    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, CancellationToken cancellationToken = default);
+    Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, bool worldRecordHistory = false, CancellationToken cancellationToken = default);
     Task<GhostDownload?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
     string GetGhostDownloadUrl(Guid ghostId);
 }
@@ -283,14 +283,16 @@ public sealed class EnvimixService(
         int page = 1,
         int pageSize = 20,
         bool showAll = false,
+        bool worldRecordHistory = false,
         CancellationToken cancellationToken = default)
     {
         var carQuery = string.IsNullOrWhiteSpace(car)
             ? ""
             : $"&car={Uri.EscapeDataString(car)}";
+        var historyQuery = worldRecordHistory ? "&worldRecordHistory=true" : "";
 
         return GetDetailAsync<MapRecordsPage>(
-            $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}&showAll={showAll}{carQuery}",
+            $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}&showAll={showAll}{historyQuery}{carQuery}",
             cancellationToken);
     }
 
@@ -495,6 +497,7 @@ public sealed record MapRecordsPage(
     int PageSize,
     int TotalCount,
     bool ShowAll,
+    bool WorldRecordHistory,
     RecordInfo[] Records);
 
 public sealed record MapRecordCarInfo(

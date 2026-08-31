@@ -1,3 +1,7 @@
+::deep .reu-button {
+    padding-inline: 0.75rem;
+}
+
 .title-id {
     margin-top: -0.75rem;
     opacity: 0.7;

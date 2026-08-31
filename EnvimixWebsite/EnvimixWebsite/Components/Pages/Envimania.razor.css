@@ -1,3 +1,7 @@
+h2 {
+    margin: 2rem 0 0 0;
+}
+
 .server-table-scroll {
     max-width: 100%;
     overflow-x: auto;

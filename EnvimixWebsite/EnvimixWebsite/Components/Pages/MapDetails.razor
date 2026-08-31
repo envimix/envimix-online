@@ -109,12 +109,25 @@
 
         <div class="records-heading">
             <h3>Records</h3>
-            @if (recordsPage?.Cars.Length > 0)
+            @if (recordsPage is not null)
             {
-                <label>
-                    <input type="checkbox" @bind="ShowAllRecords" @bind:after="ChangeRecordModeAsync" disabled="@recordsLoading" />
-                    Show all records
-                </label>
+                <div class="record-options" role="radiogroup" aria-label="Record display mode">
+                    <ReuButton Active="@(CurrentRecordMode == RecordMode.Best)"
+                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.Best)"
+                               role="radio"
+                               aria-checked="@(CurrentRecordMode == RecordMode.Best)"
+                               OnClick="() => ChangeRecordModeAsync(RecordMode.Best)">Best records</ReuButton>
+                    <ReuButton Active="@(CurrentRecordMode == RecordMode.All)"
+                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.All)"
+                               role="radio"
+                               aria-checked="@(CurrentRecordMode == RecordMode.All)"
+                               OnClick="() => ChangeRecordModeAsync(RecordMode.All)">All records</ReuButton>
+                    <ReuButton Active="@(CurrentRecordMode == RecordMode.WorldRecordHistory)"
+                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.WorldRecordHistory)"
+                               role="radio"
+                               aria-checked="@(CurrentRecordMode == RecordMode.WorldRecordHistory)"
+                               OnClick="() => ChangeRecordModeAsync(RecordMode.WorldRecordHistory)">WR history</ReuButton>
+                </div>
             }
         </div>
         @if (recordsPage is null)
@@ -130,7 +143,7 @@
         }
         else if (recordsPage.Cars.Length == 0)
         {
-            <p>No records have been driven on this map yet.</p>
+            <p>@(WorldRecordHistory ? "No world record history is available for this map yet." : "No records have been driven on this map yet.")</p>
         }
         else
         {
@@ -276,6 +289,9 @@
     [SupplyParameterFromQuery(Name = "all")]
     public bool ShowAllRecords { get; set; }
 
+    [SupplyParameterFromQuery(Name = "history")]
+    public bool WorldRecordHistory { get; set; }
+
     private MapDetailsInfo? map;
     private MapRecordsPage? recordsPage;
     private bool isLoading = true;
@@ -283,6 +299,11 @@
     private bool loadFailed;
     private bool recordsLoadFailed;
     private bool appliedShowAllRecords;
+    private bool appliedWorldRecordHistory;
+
+    private RecordMode CurrentRecordMode => WorldRecordHistory
+        ? RecordMode.WorldRecordHistory
+        : ShowAllRecords ? RecordMode.All : RecordMode.Best;
 
     private int TotalPages => recordsPage is null
         ? 1
@@ -360,12 +381,21 @@
     private Task GoToPageAsync(int page)
         => LoadRecordsAsync(recordsPage?.Car, page, updateUrl: true);
 
-    private async Task ChangeRecordModeAsync()
+    private async Task ChangeRecordModeAsync(RecordMode mode)
     {
+        if (mode == CurrentRecordMode)
+        {
+            return;
+        }
+
+        ShowAllRecords = mode == RecordMode.All;
+        WorldRecordHistory = mode == RecordMode.WorldRecordHistory;
+
         await LoadRecordsAsync(recordsPage?.Car, 1, updateUrl: true);
         if (recordsLoadFailed)
         {
             ShowAllRecords = appliedShowAllRecords;
+            WorldRecordHistory = appliedWorldRecordHistory;
         }
     }
 
@@ -381,7 +411,12 @@
 
         try
         {
-            var result = await EnvimixService.GetMapRecordsAsync(MapUid, car, page, showAll: ShowAllRecords);
+            var result = await EnvimixService.GetMapRecordsAsync(
+                MapUid,
+                car,
+                page,
+                showAll: ShowAllRecords,
+                worldRecordHistory: WorldRecordHistory);
             if (result is null)
             {
                 recordsLoadFailed = true;
@@ -392,7 +427,9 @@
             RecordCar = result.Car;
             RecordPage = result.Page;
             ShowAllRecords = result.ShowAll;
+            WorldRecordHistory = result.WorldRecordHistory;
             appliedShowAllRecords = result.ShowAll;
+            appliedWorldRecordHistory = result.WorldRecordHistory;
 
             if (updateUrl)
             {
@@ -400,7 +437,8 @@
                     ? ""
                     : $"&car={Uri.EscapeDataString(result.Car)}";
                 var allQuery = result.ShowAll ? "&all=true" : "";
-                var url = $"/maps/{Uri.EscapeDataString(MapUid)}?page={result.Page}{carQuery}{allQuery}";
+                var historyQuery = result.WorldRecordHistory ? "&history=true" : "";
+                var url = $"/maps/{Uri.EscapeDataString(MapUid)}?page={result.Page}{carQuery}{allQuery}{historyQuery}";
                 await JS.InvokeVoidAsync("history.replaceState", null, "", url);
             }
         }
@@ -465,4 +503,11 @@
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
+
+    private enum RecordMode
+    {
+        Best,
+        All,
+        WorldRecordHistory
+    }
 }

@@ -2,6 +2,8 @@
 @using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
+@inject IWebHostEnvironment Env
+@inject HybridCache Cache
 @inject ILogger<TitleDetails> Logger
 @attribute [StreamRendering]
 
@@ -52,7 +54,7 @@
                 }
                 @if (string.Equals(title.Id, "Envimix_Turbo@bigbang1112", StringComparison.Ordinal))
                 {
-                    <ReuButton Href="@GetPreviewDownloadUrl(title.Id)" download>Download preview</ReuButton>
+                    <ReuButton Href="@GetPreviewDownloadUrl(title.Id)" Disabled="@(!hasPreview)" download>Download preview</ReuButton>
                 }
             </div>
         }
@@ -126,6 +128,7 @@
     private TitleDetailsInfo? title;
     private bool isLoading = true;
     private bool loadFailed;
+    private bool hasPreview;
 
     private string GetMetadataDescription()
         => title is null
@@ -136,10 +139,19 @@
     {
         isLoading = true;
         loadFailed = false;
+        hasPreview = false;
 
         try
         {
             title = await EnvimixService.GetTitleAsync(TitleId);
+            if (string.Equals(title?.Id, "Envimix_Turbo@bigbang1112", StringComparison.Ordinal))
+            {
+                hasPreview = await Cache.GetOrCreateAsync("turbo:hasPreview", async _ =>
+                {
+                    var fileInfo = Env.ContentRootFileProvider.GetFileInfo(Path.Combine("EnvimixTurboPreview", "Envimix_Turbo@bigbang1112.Title.Pack.Gbx"));
+                    return fileInfo.Exists && !fileInfo.IsDirectory && fileInfo.PhysicalPath is not null;
+                }, new() { Expiration = TimeSpan.FromMinutes(1) });
+            }
         }
         catch (Exception ex)
         {
