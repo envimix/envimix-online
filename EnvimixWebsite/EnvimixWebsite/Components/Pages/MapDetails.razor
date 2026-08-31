@@ -284,23 +284,24 @@
         isLoading = true;
         loadFailed = false;
 
+        await Task.WhenAll(
+            LoadMapAsync(),
+            LoadRecordsAsync(RecordCar, RecordPage, updateUrl: false));
+
+        isLoading = false;
+    }
+
+    private async Task LoadMapAsync()
+    {
         try
         {
             map = await EnvimixService.GetMapAsync(MapUid);
-            if (map is not null)
-            {
-                await LoadRecordsAsync(RecordCar, RecordPage, updateUrl: false);
-            }
         }
         catch (Exception ex)
         {
             map = null;
             loadFailed = true;
             Logger.LogError(ex, "Unable to load map {MapUid}", MapUid);
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 
