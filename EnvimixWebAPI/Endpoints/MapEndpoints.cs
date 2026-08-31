@@ -145,7 +145,7 @@ public static class MapEndpoints
 
         var mapRecordsQuery = db.Records.Where(record => record.MapId == mapUid);
         var worldRecordHistoryQuery = mapRecordsQuery
-            .Where(record => !db.Records.Any(other =>
+            .Where(record => !record.Removed && !db.Records.Any(other =>
                 other.MapId == record.MapId
                 && other.CarId == record.CarId
                 && other.Gravity == record.Gravity

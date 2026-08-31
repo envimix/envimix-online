@@ -113,17 +113,17 @@
             {
                 <div class="record-options" role="radiogroup" aria-label="Record display mode">
                     <ReuButton Active="@(CurrentRecordMode == RecordMode.Best)"
-                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.Best)"
+                               Disabled="@recordsLoading"
                                role="radio"
                                aria-checked="@(CurrentRecordMode == RecordMode.Best)"
                                OnClick="() => ChangeRecordModeAsync(RecordMode.Best)">Best records</ReuButton>
                     <ReuButton Active="@(CurrentRecordMode == RecordMode.All)"
-                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.All)"
+                               Disabled="@recordsLoading"
                                role="radio"
                                aria-checked="@(CurrentRecordMode == RecordMode.All)"
                                OnClick="() => ChangeRecordModeAsync(RecordMode.All)">All records</ReuButton>
                     <ReuButton Active="@(CurrentRecordMode == RecordMode.WorldRecordHistory)"
-                               Disabled="@(recordsLoading || CurrentRecordMode == RecordMode.WorldRecordHistory)"
+                               Disabled="@recordsLoading"
                                role="radio"
                                aria-checked="@(CurrentRecordMode == RecordMode.WorldRecordHistory)"
                                OnClick="() => ChangeRecordModeAsync(RecordMode.WorldRecordHistory)">WR history</ReuButton>

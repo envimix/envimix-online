@@ -3,6 +3,7 @@
 namespace EnvimixWebAPI.Entities;
 
 [Index(nameof(UserId), nameof(MapId), nameof(CarId), nameof(Gravity), nameof(Laps), nameof(Time), nameof(DrivenAt))]
+[Index(nameof(MapId), nameof(CarId), nameof(Gravity), nameof(Laps), nameof(Removed), nameof(DrivenAt), nameof(Time))]
 [Index(nameof(Gravity))]
 [Index(nameof(Laps))]
 [Index(nameof(MapId))]
