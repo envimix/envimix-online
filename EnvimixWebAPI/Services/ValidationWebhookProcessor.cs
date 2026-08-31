@@ -123,4 +123,10 @@ public sealed class ValidationWebhookProcessor : BackgroundService
         var url = $"https://envimix.gbx.tools/users/{Uri.EscapeDataString(user.Id)}";
         return $"[**{TextFormatter.Deformat(user.Nickname ?? user.Id)}**](<{url}>)";
     }
+
+    public static string GetRecordTimeLink(RecordEntity record)
+    {
+        var url = $"https://envimix.gbx.tools/records/{Uri.EscapeDataString(record.Map.Id)}/{Uri.EscapeDataString(record.CarId)}/{Uri.EscapeDataString(record.User.Id)}/{record.Time}";
+        return $"[**{new TimeInt32(record.Time)}**](<{url}>)";
+    }
 }
