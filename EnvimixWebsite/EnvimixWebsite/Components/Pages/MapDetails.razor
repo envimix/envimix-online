@@ -5,7 +5,6 @@
 @inject IEnvimixService EnvimixService
 @inject ILogger<MapDetails> Logger
 @inject IJSRuntime JS
-@attribute [StreamRendering]
 
 <PageTitle>@TextFormatter.Deformat(map is null ? MapUid : GetMapName(map)) - ENVIMIX map</PageTitle>
 <HeadContent>
@@ -72,10 +71,45 @@
             }
         </dl>
 
-        @if (map.AuthorTime > 0 || map.GoldTime > 0 || map.SilverTime > 0 || map.BronzeTime > 0)
+        @if (HasMedals(map))
         {
             <h3 class="medals-heading">Medals</h3>
             <dl class="medal-list">
+                @if (map.DuckTime is int duckTime)
+                {
+                    <div class="medal-time duck-medal">
+                        <dt>Duck</dt>
+                        <dd>@FormatTime(duckTime)</dd>
+                    </div>
+                }
+                @if (map.STMTime is int stmTime)
+                {
+                    <div class="medal-time stm-medal">
+                        <dt>STM</dt>
+                        <dd>@FormatTime(stmTime)</dd>
+                    </div>
+                }
+                @if (GetSuperMedalTime(map, 0.125) is int superGoldTime)
+                {
+                    <div class="medal-time super-gold-medal">
+                        <dt>Super Gold</dt>
+                        <dd>@FormatTime(superGoldTime)</dd>
+                    </div>
+                }
+                @if (GetSuperMedalTime(map, 0.25) is int superSilverTime)
+                {
+                    <div class="medal-time super-silver-medal">
+                        <dt>Super Silver</dt>
+                        <dd>@FormatTime(superSilverTime)</dd>
+                    </div>
+                }
+                @if (GetSuperMedalTime(map, 0.5) is int superBronzeTime)
+                {
+                    <div class="medal-time super-bronze-medal">
+                        <dt>Super Bronze</dt>
+                        <dd>@FormatTime(superBronzeTime)</dd>
+                    </div>
+                }
                 @if (map.AuthorTime > 0)
                 {
                     <div class="medal-time author-medal">
@@ -367,6 +401,19 @@
 
     private static string FormatMapLaps(int mapLaps)
         => mapLaps == 0 ? "Undefined" : mapLaps.ToString();
+
+    private static bool HasMedals(MapDetailsInfo value)
+        => value.DuckTime.HasValue
+            || value.STMTime.HasValue
+            || value.AuthorTime > 0
+            || value.GoldTime > 0
+            || value.SilverTime > 0
+            || value.BronzeTime > 0;
+
+    private static int? GetSuperMedalTime(MapDetailsInfo value, double factor)
+        => value.STMTime.HasValue && value.AuthorTime > 0
+            ? value.STMTime.Value - (int)Math.Floor((value.STMTime.Value - value.AuthorTime) * factor)
+            : null;
 
     private async Task SelectCarAsync(string car)
     {

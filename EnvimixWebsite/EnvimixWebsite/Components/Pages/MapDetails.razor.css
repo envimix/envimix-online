@@ -42,6 +42,26 @@
     border-inline-start: 0.2rem solid;
 }
 
+.duck-medal {
+    border-color: #58b85c;
+}
+
+.stm-medal {
+    border-color: #e85ea4;
+}
+
+.super-gold-medal {
+    border-color: #f1cc45;
+}
+
+.super-silver-medal {
+    border-color: #c3cbd3;
+}
+
+.super-bronze-medal {
+    border-color: #d38b55;
+}
+
 .author-medal {
     border-color: #55c7d9;
 }

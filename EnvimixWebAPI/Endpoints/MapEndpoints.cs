@@ -253,7 +253,8 @@ public static class MapEndpoints
         if (includeWorldRecordHistory)
         {
             records = projectedRecords
-                .Select(record => record.ToRecordInfo(null))
+                .Select((record, index) => record.ToRecordInfo(
+                    totalCount - (requestedPage - 1) * requestedPageSize - index))
                 .ToArray();
         }
         else if (includeAllRecords && projectedRecords.Length > 0)
@@ -290,6 +291,7 @@ public static class MapEndpoints
         IEnvimaniaService envimaniaService,
         IRatingService ratingService,
         IStarService starService,
+        IConfiguration configuration,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
@@ -308,7 +310,7 @@ public static class MapEndpoints
             return TypedResults.Forbid();
         }
 
-        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, principal, map, cancellationToken);
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, configuration, principal, map, cancellationToken);
         return TypedResults.Ok(mapResponse);
     }
 
@@ -344,6 +346,7 @@ public static class MapEndpoints
         IStarService starService,
         IMapService mapService,
         IUserService userService,
+        IConfiguration configuration,
         ClaimsPrincipal principal,
         HttpRequest request,
         CancellationToken cancellationToken)
@@ -427,7 +430,7 @@ public static class MapEndpoints
             VisitedAt = DateTimeOffset.UtcNow
         }, cancellationToken);
 
-        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, principal, map, cancellationToken);
+        var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, configuration, principal, map, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -439,6 +442,7 @@ public static class MapEndpoints
         IEnvimaniaService envimaniaService, 
         IRatingService ratingService, 
         IStarService starService, 
+        IConfiguration configuration,
         ClaimsPrincipal principal, 
         MapEntity map, 
         CancellationToken cancellationToken)
@@ -448,6 +452,7 @@ public static class MapEndpoints
         var ratings = await ratingService.GetAveragesByMapUidAsync(mapUid, cancellationToken);
 
         var userRatings = new List<FilteredRating>();
+        var medalInfo = configuration.GetSection("Medals").Get<Dictionary<string, MedalInfo>>()?.GetValueOrDefault(mapUid);
 
         if (principal.Identity?.IsAuthenticated == true && principal.Identity.Name is not null)
         {
@@ -475,6 +480,8 @@ public static class MapEndpoints
             GoldTime = map.GoldTime,
             SilverTime = map.SilverTime,
             BronzeTime = map.BronzeTime,
+            DuckTime = medalInfo?.Duck,
+            STMTime = medalInfo?.STM,
             TitlePack = map.TitlePack is null ? null : new()
             {
                 Id = map.TitlePack.Id,

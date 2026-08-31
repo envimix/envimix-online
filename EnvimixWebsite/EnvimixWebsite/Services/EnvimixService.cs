@@ -484,6 +484,8 @@ public sealed record MapDetailsInfo(
     int GoldTime,
     int SilverTime,
     int BronzeTime,
+    int? DuckTime,
+    int? STMTime,
     MapTitleInfo? TitlePack);
 
 public sealed record MapTitleInfo(
