@@ -1,12 +1,17 @@
 @page "/maps/{MapUid}"
 @rendermode InteractiveServer
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<MapDetails> Logger
 @inject IJSRuntime JS
 @attribute [StreamRendering]
 
-<PageTitle>@(map is null ? MapUid : GetMapName(map)) - ENVIMIX map</PageTitle>
+<PageTitle>@TextFormatter.Deformat(map is null ? MapUid : GetMapName(map)) - ENVIMIX map</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(TextFormatter.Deformat(map is null ? MapUid : GetMapName(map)) + " - ENVIMIX map")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     @if (isLoading)
@@ -65,35 +70,42 @@
                     <dd>@FormatMapLaps(map.Laps)</dd>
                 </div>
             }
-            @if (map.AuthorTime > 0)
-            {
-                <div class="medal-time author-medal">
-                    <dt>Author</dt>
-                    <dd>@FormatTime(map.AuthorTime)</dd>
-                </div>
-            }
-            @if (map.GoldTime > 0)
-            {
-                <div class="medal-time gold-medal">
-                    <dt>Gold</dt>
-                    <dd>@FormatTime(map.GoldTime)</dd>
-                </div>
-            }
-            @if (map.SilverTime > 0)
-            {
-                <div class="medal-time silver-medal">
-                    <dt>Silver</dt>
-                    <dd>@FormatTime(map.SilverTime)</dd>
-                </div>
-            }
-            @if (map.BronzeTime > 0)
-            {
-                <div class="medal-time bronze-medal">
-                    <dt>Bronze</dt>
-                    <dd>@FormatTime(map.BronzeTime)</dd>
-                </div>
-            }
         </dl>
+
+        @if (map.AuthorTime > 0 || map.GoldTime > 0 || map.SilverTime > 0 || map.BronzeTime > 0)
+        {
+            <h3 class="medals-heading">Medals</h3>
+            <dl class="medal-list">
+                @if (map.AuthorTime > 0)
+                {
+                    <div class="medal-time author-medal">
+                        <dt>Author</dt>
+                        <dd>@FormatTime(map.AuthorTime)</dd>
+                    </div>
+                }
+                @if (map.GoldTime > 0)
+                {
+                    <div class="medal-time gold-medal">
+                        <dt>Gold</dt>
+                        <dd>@FormatTime(map.GoldTime)</dd>
+                    </div>
+                }
+                @if (map.SilverTime > 0)
+                {
+                    <div class="medal-time silver-medal">
+                        <dt>Silver</dt>
+                        <dd>@FormatTime(map.SilverTime)</dd>
+                    </div>
+                }
+                @if (map.BronzeTime > 0)
+                {
+                    <div class="medal-time bronze-medal">
+                        <dt>Bronze</dt>
+                        <dd>@FormatTime(map.BronzeTime)</dd>
+                    </div>
+                }
+            </dl>
+        }
 
         <div class="records-heading">
             <h3>Records</h3>
@@ -310,6 +322,21 @@
 
     private static string GetAuthorName(MapDetailsInfo value)
         => string.IsNullOrWhiteSpace(value.AuthorNickname) ? value.AuthorLogin! : value.AuthorNickname;
+
+    private string GetMetadataDescription()
+    {
+        if (map is null)
+        {
+            return $"View map details and records for map {MapUid} in ENVIMIX.";
+        }
+
+        var mapName = TextFormatter.Deformat(GetMapName(map));
+        var environment = string.IsNullOrWhiteSpace(map.Collection) ? "an unknown environment" : map.Collection;
+
+        return string.IsNullOrWhiteSpace(map.AuthorLogin)
+            ? $"View map details and records for {mapName} ({environment})."
+            : $"View map details and records for {mapName} ({environment}) by {TextFormatter.Deformat(GetAuthorName(map))}.";
+    }
 
     private static string GetValidatorName(MapRecordCarInfo car)
         => string.IsNullOrWhiteSpace(car.ValidatorNickname) ? car.ValidatorLogin! : car.ValidatorNickname;

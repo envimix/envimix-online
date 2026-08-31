@@ -1,5 +1,6 @@
 @page "/envimania/servers/{ServerLogin}"
 @rendermode InteractiveServer
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<ServerDetails> Logger
@@ -7,6 +8,10 @@
 @attribute [StreamRendering]
 
 <PageTitle>@(server?.ServerLogin ?? ServerLogin) - ENVIMIX server</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(GetMetadataServerName() + " - ENVIMIX server")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     <p><a href="/envimania/servers">Registered servers</a></p>
@@ -233,6 +238,16 @@
     private bool isLoadingMore;
     private bool loadFailed;
     private bool appliedWithPlayersOnly;
+
+    private string GetMetadataServerName()
+        => TextFormatter.Deformat(server is null || string.IsNullOrWhiteSpace(server.ServerName)
+            ? ServerLogin
+            : server.ServerName);
+
+    private string GetMetadataDescription()
+        => server is null
+            ? $"View Envimania sessions hosted by in server {ServerLogin}."
+            : $"Browse {server.SessionCount} Envimania sessions in {GetMetadataServerName()}.";
 
     protected override async Task OnParametersSetAsync()
     {

@@ -1,10 +1,15 @@
 @page "/users/{UserLogin}"
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<UserDetails> Logger
 @attribute [StreamRendering]
 
 <PageTitle>@(user is null ? UserLogin : GetUserName(user)) - ENVIMIX player</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(TextFormatter.Deformat(user is null ? UserLogin : GetUserName(user)) + " - ENVIMIX player")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     @if (isLoading)
@@ -102,6 +107,11 @@
     private PlayerInfo? user;
     private bool isLoading = true;
     private bool loadFailed;
+
+    private string GetMetadataDescription()
+        => user is null
+            ? $"View records driven by {UserLogin} in ENVIMIX."
+            : $"Browse {user.RecordCount} records driven by {TextFormatter.Deformat(GetUserName(user))}.";
 
     protected override async Task OnParametersSetAsync()
     {

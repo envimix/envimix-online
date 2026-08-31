@@ -8,22 +8,35 @@
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem 3rem;
-    margin-block: 1rem 2rem;
+    margin-block: 1rem;
 }
 
 .map-summary div {
     min-width: 8rem;
 }
 
-.map-summary dt {
+.map-summary dt,
+.medal-list dt {
     font-weight: 600;
 }
 
-.map-summary dd {
+.map-summary dd,
+.medal-list dd {
     margin: 0.25rem 0 0;
 }
 
-.map-summary .medal-time {
+.medals-heading {
+    margin-block: 2rem 0.75rem;
+}
+
+.medal-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    margin-block: 0 2rem;
+}
+
+.medal-list .medal-time {
     min-width: 5.5rem;
     padding-inline-start: 0.65rem;
     border-inline-start: 0.2rem solid;

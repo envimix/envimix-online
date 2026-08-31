@@ -1,10 +1,15 @@
 @page "/titles/{TitleId}"
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<TitleDetails> Logger
 @attribute [StreamRendering]
 
-<PageTitle>@(title?.DisplayName ?? title?.Id ?? TitleId) - ENVIMIX title</PageTitle>
+<PageTitle>@TextFormatter.Deformat(title?.DisplayName ?? title?.Id ?? TitleId) - ENVIMIX project</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(TextFormatter.Deformat(title?.DisplayName ?? title?.Id ?? TitleId) + " - ENVIMIX project")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     @if (isLoading)
@@ -95,6 +100,11 @@
     private TitleDetailsInfo? title;
     private bool isLoading = true;
     private bool loadFailed;
+
+    private string GetMetadataDescription()
+        => title is null
+            ? $"View campaigns for Trackmania title {TitleId} in ENVIMIX."
+            : $"Browse campaigns for {TextFormatter.Deformat(title.DisplayName ?? title.Id)} in ENVIMIX.";
 
     protected override async Task OnParametersSetAsync()
     {

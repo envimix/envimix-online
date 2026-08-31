@@ -1,10 +1,15 @@
 @page "/records/{MapUid}/{Car}/{UserLogin}/{Time:int}"
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<RecordDetails> Logger
 @attribute [StreamRendering]
 
-<PageTitle>@FormatTime(Time) - ENVIMIX record</PageTitle>
+<PageTitle>@GetPageTitle() - ENVIMIX project</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(GetPageTitle() + " - ENVIMIX project")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     @if (isLoading)
@@ -186,6 +191,21 @@
 
     private static string GetMapName(RecordInfo value)
         => string.IsNullOrWhiteSpace(value.MapName) ? value.MapUid : value.MapName;
+
+    private string GetPageTitle()
+    {
+        var playerName = record is null || string.IsNullOrWhiteSpace(record.Nickname)
+            ? UserLogin
+            : record.Nickname;
+        var mapName = record is null ? MapUid : GetMapName(record);
+
+        return $"{FormatTime(record?.Time ?? Time)} by {TextFormatter.Deformat(playerName)} on {TextFormatter.Deformat(mapName)}";
+    }
+
+    private string GetMetadataDescription()
+        => record is null
+            ? $"View the {FormatTime(Time)} record by {UserLogin} on map {MapUid}."
+            : $"{FormatTime(record.Time)} driven by {TextFormatter.Deformat(string.IsNullOrWhiteSpace(record.Nickname) ? record.UserLogin : record.Nickname)} on {TextFormatter.Deformat(GetMapName(record))} with {record.Car}.";
 
     private static string GetUserUrl(string userLogin)
         => $"/users/{Uri.EscapeDataString(userLogin)}";

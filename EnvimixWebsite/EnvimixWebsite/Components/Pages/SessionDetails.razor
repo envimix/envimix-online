@@ -1,10 +1,15 @@
 @page "/envimania/sessions/{SessionId:guid}"
+@using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
 @inject ILogger<SessionDetails> Logger
 @attribute [StreamRendering]
 
 <PageTitle>@(session is null ? "Session" : GetMapName(session)) - ENVIMIX session</PageTitle>
+<HeadContent>
+    <MetadataTags Title="@(TextFormatter.Deformat(session is null ? "Session" : GetMapName(session)) + " - ENVIMIX session")"
+                  Description="@GetMetadataDescription()"></MetadataTags>
+</HeadContent>
 
 <ReuContainer>
     @if (isLoading)
@@ -187,6 +192,11 @@
     private EnvimaniaSessionInfo? session;
     private bool isLoading = true;
     private bool loadFailed;
+
+    private string GetMetadataDescription()
+        => session is null
+            ? $"View details and records for Envimania session {SessionId}."
+            : $"View {session.Records.Length} records from the {TextFormatter.Deformat(GetMapName(session))} session hosted on {TextFormatter.Deformat(string.IsNullOrWhiteSpace(session.ServerName) ? session.ServerLogin : session.ServerName)}.";
 
     protected override async Task OnParametersSetAsync()
     {
