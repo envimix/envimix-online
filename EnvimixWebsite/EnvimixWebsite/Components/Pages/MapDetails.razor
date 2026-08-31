@@ -534,7 +534,10 @@
         => $"/users/{Uri.EscapeDataString(userLogin)}";
 
     private static string GetTitleUrl(string titleId)
-        => $"/titles/{Uri.EscapeDataString(titleId)}";
+        => $"/titles/{EscapeTitleId(titleId)}";
+
+    private static string EscapeTitleId(string titleId)
+        => Uri.EscapeDataString(titleId).Replace("%40", "@", StringComparison.OrdinalIgnoreCase);
 
     private static string GetRecordUrl(RecordInfo record)
         => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";

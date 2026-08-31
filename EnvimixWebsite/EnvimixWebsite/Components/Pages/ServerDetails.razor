@@ -296,7 +296,10 @@
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
 
     private static string GetTitleUrl(string titleId)
-        => $"/titles/{Uri.EscapeDataString(titleId)}";
+        => $"/titles/{EscapeTitleId(titleId)}";
+
+    private static string EscapeTitleId(string titleId)
+        => Uri.EscapeDataString(titleId).Replace("%40", "@", StringComparison.OrdinalIgnoreCase);
 
     private Task GoToPageAsync(int page)
         => LoadSessionsPageAsync(page, WithPlayersOnly);

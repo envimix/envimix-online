@@ -172,10 +172,13 @@
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
 
     private static string GetDownloadUrl(string titleId)
-        => $"/titles/{Uri.EscapeDataString(titleId)}/download";
+        => $"/titles/{EscapeTitleId(titleId)}/download";
 
     private static string GetPreviewDownloadUrl(string titleId)
-        => $"/titles/{Uri.EscapeDataString(titleId)}/download/preview";
+        => $"/titles/{EscapeTitleId(titleId)}/download/preview";
+
+    private static string EscapeTitleId(string titleId)
+        => Uri.EscapeDataString(titleId).Replace("%40", "@", StringComparison.OrdinalIgnoreCase);
 
     private static string FormatVersion(string version)
     {

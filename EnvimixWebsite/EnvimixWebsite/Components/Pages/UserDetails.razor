@@ -5,7 +5,7 @@
 @inject ILogger<UserDetails> Logger
 @attribute [StreamRendering]
 
-<PageTitle>@(user is null ? UserLogin : GetUserName(user)) - ENVIMIX player</PageTitle>
+<PageTitle>@TextFormatter.Deformat(user is null ? UserLogin : GetUserName(user)) - ENVIMIX player</PageTitle>
 <HeadContent>
     <MetadataTags Title="@(TextFormatter.Deformat(user is null ? UserLogin : GetUserName(user)) + " - ENVIMIX player")"
                   Description="@GetMetadataDescription()"></MetadataTags>
