@@ -17,6 +17,34 @@
     overflow-wrap: anywhere;
 }
 
+.checkpoints-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.checkpoints-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.checkpoints-table th,
+.checkpoints-table td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.checkpoints-table th:first-child,
+.checkpoints-table td:first-child {
+    text-align: left;
+}
+
+.checkpoints-table th {
+    font-weight: 600;
+}
+
 .record-download,
 .record-actions {
     margin-block: 1.5rem;

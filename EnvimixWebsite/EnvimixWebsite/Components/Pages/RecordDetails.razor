@@ -85,10 +85,6 @@
                 </div>
             }
             <div>
-                <dt>Gravity</dt>
-                <dd>@record.Gravity</dd>
-            </div>
-            <div>
                 <dt>Score</dt>
                 <dd>@record.Score</dd>
             </div>
@@ -112,6 +108,43 @@
                 </div>
             }
         </dl>
+
+        <h3>Checkpoints</h3>
+        @if (record.Checkpoints is not { Length: > 0 } checkpoints)
+        {
+            <p>No checkpoint data is available for this record.</p>
+        }
+        else
+        {
+            <div class="checkpoints-scroll">
+                <table class="checkpoints-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Time</th>
+                            <th scope="col">Score</th>
+                            <th scope="col">Respawns</th>
+                            <th scope="col">Distance</th>
+                            <th scope="col">Speed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < checkpoints.Length; index++)
+                        {
+                            var checkpoint = checkpoints[index];
+                            <tr>
+                                <td>@(index + 1)</td>
+                                <td>@FormatTime(checkpoint.Time)</td>
+                                <td>@checkpoint.Score</td>
+                                <td>@checkpoint.NbRespawns</td>
+                                <td>@FormatMeasurement(checkpoint.Distance)</td>
+                                <td>@FormatMeasurement(checkpoint.Speed)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
 
         @if (record.GhostId is Guid ghostId)
         {
@@ -227,6 +260,9 @@
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
+
+    private static string FormatMeasurement(float value)
+        => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
     private static bool ShouldShowLaps(int mapLaps)
         => mapLaps == 0 || mapLaps > 1;

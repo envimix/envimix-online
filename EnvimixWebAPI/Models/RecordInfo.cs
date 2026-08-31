@@ -19,7 +19,17 @@ public sealed record RecordInfo(
     string? TitleDisplayName,
     Guid? GhostId,
     int? Rank,
-    bool Removed);
+    bool Removed)
+{
+    public RecordCheckpointInfo[]? Checkpoints { get; init; }
+}
+
+public sealed record RecordCheckpointInfo(
+    int Time,
+    int Score,
+    int NbRespawns,
+    float Distance,
+    float Speed);
 
 public sealed record MapRecordsPage(
     MapRecordCarInfo[] Cars,

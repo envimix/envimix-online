@@ -21,7 +21,7 @@ public static class RecordEndpoints
         AppDbContext db,
         CancellationToken cancellationToken)
     {
-        var record = await Project(db.Records
+        var record = await ProjectWithId(db.Records
             .Where(x =>
                 x.MapId == mapUid &&
                 x.CarId == car &&
@@ -30,7 +30,24 @@ public static class RecordEndpoints
             .OrderByDescending(x => x.DrivenAt))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return record is null ? TypedResults.NotFound() : TypedResults.Ok(record);
+        if (record is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var checkpoints = await db.Checkpoints
+            .Where(x => x.Record.Id == record.Id)
+            .OrderBy(x => x.Time)
+            .ThenBy(x => x.Id)
+            .Select(x => new RecordCheckpointInfo(
+                x.Time,
+                x.Score,
+                x.NbRespawns,
+                x.Distance,
+                x.Speed))
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(record.ToRecordInfo(null) with { Checkpoints = checkpoints });
     }
 
     internal static Task<RecordInfo[]> GetRecent(
