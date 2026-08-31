@@ -47,6 +47,7 @@ public static class MiddlewareConfiguration
         }).RequireAuthorization();
 
         TurboEndpoints.Map(app);
+        TitleEndpoints.Map(app);
         ServerEndpoints.Map(app);
         RecordEndpoints.Map(app);
         GhostEndpoints.Map(app);

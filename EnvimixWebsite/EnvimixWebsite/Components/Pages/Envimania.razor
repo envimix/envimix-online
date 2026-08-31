@@ -1,16 +1,22 @@
-@page "/envimania/servers"
+@page "/envimania"
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
-@inject ILogger<Servers> Logger
+@inject ILogger<Envimania> Logger
 @attribute [StreamRendering]
 
-<PageTitle>Registered servers - ENVIMIX project</PageTitle>
+<PageTitle>Envimania - ENVIMIX project</PageTitle>
 <HeadContent>
-    <MetadataTags Title="Registered servers - ENVIMIX project"
+    <MetadataTags Title="Envimania - ENVIMIX project"
                   Description="Browse Trackmania servers registered with Envimania."></MetadataTags>
 </HeadContent>
 
 <ReuContainer>
+    <h1>Envimania</h1>
+    <p><i>A Trackmania map was not ever meant to hold just one record per player...</i></p>
+    <p><i>Every solution, every plugin, every project expects just a single record type - the default car one...</i></p>
+    <p><i>No one tries to beat the tabu, as it would break those integral plugins and features...</i></p>
+    <p><b>That's why Envimania was made</b> - combinations per map, historical improvements, solo and multiplayer connected.</p>
+    <p>Envimania is the TM2's ENVIMIX leaderboard manager. Feels like leaderboards from the latest Trackmania, but also respects the default car. It is not perfect, but it works.</p>
     <h2>Registered servers</h2>
 
     @if (servers is null)

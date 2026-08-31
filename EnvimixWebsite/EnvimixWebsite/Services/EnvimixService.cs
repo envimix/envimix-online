@@ -15,7 +15,7 @@ public interface IEnvimixService
     Task RevertRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
-    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int sessionLimit = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
+    Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int page = 1, int pageSize = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
     Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
@@ -181,13 +181,14 @@ public sealed class EnvimixService(
 
     public async Task<EnvimaniaServerInfo?> GetServerAsync(
         string serverLogin,
-        int sessionLimit = 10,
+        int page = 1,
+        int pageSize = 10,
         bool withPlayersOnly = false,
         CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}?sessions={sessionLimit}&withPlayersOnly={withPlayersOnly}");
+            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}?page={page}&pageSize={pageSize}&withPlayersOnly={withPlayersOnly}");
         var accessToken = await GetAccessTokenAsync(required: false);
         if (!string.IsNullOrEmpty(accessToken))
         {
@@ -357,6 +358,8 @@ public sealed record EnvimaniaServerInfo(
     string? ServerName,
     int SessionCount,
     int MatchingSessionCount,
+    int Page,
+    int PageSize,
     DateTimeOffset RegisteredAt,
     DateTimeOffset? LastSeenAt,
     EnvimaniaServerSession[] RecentSessions,
@@ -423,6 +426,7 @@ public sealed record TitleDetailsInfo(
     string? DisplayName,
     string? Version,
     DateTimeOffset? ReleasedAt,
+    bool Downloadable,
     int MapCount,
     int RecordCount,
     int PlayerCount,

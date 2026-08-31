@@ -86,29 +86,24 @@
     cursor: pointer;
 }
 
-.show-more-sessions {
+.sessions-pagination {
     display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-    margin-block: 0.75rem 0;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
 }
 
-.show-more-sessions small {
-    opacity: 0.7;
+.sessions-pagination ::deep .reu-button {
+    min-width: 2.25rem;
 }
 
-.show-more-sessions button {
-    padding: 0;
-    border: 0;
-    color: inherit;
-    background: none;
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
+.sessions-pagination ::deep .reu-button:disabled:not(.active) {
+    opacity: 0.65;
 }
 
-.show-more-sessions button:disabled {
-    cursor: wait;
+.sessions-pagination small {
+    margin-inline-start: 0.35rem;
     opacity: 0.7;
 }
 

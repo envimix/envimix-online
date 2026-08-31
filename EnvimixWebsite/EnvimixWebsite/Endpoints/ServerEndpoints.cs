@@ -37,7 +37,7 @@ internal static class ServerEndpoints
         CancellationToken cancellationToken)
     {
         await envimixService.DeleteServerAsync(serverLogin, cancellationToken);
-        return TypedResults.LocalRedirect("/envimania/servers");
+        return TypedResults.LocalRedirect("/envimania");
     }
 
     private static async Task<IResult> WipeServer(
@@ -46,7 +46,7 @@ internal static class ServerEndpoints
         CancellationToken cancellationToken)
     {
         await envimixService.WipeServerAsync(serverLogin, cancellationToken);
-        return TypedResults.LocalRedirect("/envimania/servers");
+        return TypedResults.LocalRedirect("/envimania");
     }
 
     private static async Task<IResult> DeleteServerRecords(

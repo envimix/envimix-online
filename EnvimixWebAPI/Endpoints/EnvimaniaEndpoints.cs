@@ -221,7 +221,8 @@ public static class EnvimaniaEndpoints
 
     private static async Task<Results<Ok<EnvimaniaServerInfo>, NotFound>> GetServer(
         string serverLogin,
-        int sessions,
+        int? page,
+        int? pageSize,
         bool? withPlayersOnly,
         HttpRequest request,
         AppDbContext db,
@@ -259,10 +260,14 @@ public static class EnvimaniaEndpoints
             .Where(x => withPlayersOnly != true || db.Records.Any(record => record.SessionId == x.Id));
 
         var matchingSessionCount = await sessionsQuery.CountAsync(cancellationToken);
+        var normalizedPageSize = Math.Clamp(pageSize ?? 10, 10, 100);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(matchingSessionCount / (double)normalizedPageSize));
+        var normalizedPage = Math.Clamp(page ?? 1, 1, totalPages);
 
         var recentSessions = await sessionsQuery
             .OrderByDescending(x => x.StartedAt)
-            .Take(Math.Clamp(sessions, 10, 500))
+            .Skip((normalizedPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
             .Select(x => new EnvimaniaServerSession(
                 x.Id,
                 x.Map.Id,
@@ -299,6 +304,8 @@ public static class EnvimaniaEndpoints
             server.ServerName,
             server.SessionCount,
             matchingSessionCount,
+            normalizedPage,
+            normalizedPageSize,
             server.RegisteredAt,
             server.LastSeenAt,
             recentSessions,

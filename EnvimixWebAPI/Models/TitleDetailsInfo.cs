@@ -5,6 +5,7 @@ public sealed record TitleDetailsInfo(
     string? DisplayName,
     string? Version,
     DateTimeOffset? ReleasedAt,
+    bool Downloadable,
     int MapCount,
     int RecordCount,
     int PlayerCount,

@@ -43,6 +43,20 @@
             <p class="title-id">@title.Id</p>
         }
 
+        @if (title.Downloadable || string.Equals(title.Id, "Envimix_Turbo@bigbang1112", StringComparison.Ordinal))
+        {
+            <div class="title-actions">
+                @if (title.Downloadable)
+                {
+                    <ReuButton Href="@GetDownloadUrl(title.Id)" download>Download</ReuButton>
+                }
+                @if (string.Equals(title.Id, "Envimix_Turbo@bigbang1112", StringComparison.Ordinal))
+                {
+                    <ReuButton Href="@GetPreviewDownloadUrl(title.Id)" download>Download preview</ReuButton>
+                }
+            </div>
+        }
+
         <dl class="title-summary">
             <div><dt>Maps</dt><dd>@title.MapCount</dd></div>
             <div><dt>Records</dt><dd>@title.RecordCount</dd></div>
@@ -50,45 +64,57 @@
             <div><dt>Sessions</dt><dd>@title.SessionCount</dd></div>
             @if (!string.IsNullOrWhiteSpace(title.Version))
             {
-                <div><dt>Version</dt><dd>@title.Version</dd></div>
+                <div><dt>Version</dt><dd>@FormatVersion(title.Version)</dd></div>
             }
             <div><dt>Released</dt><dd>@FormatDateTime(title.ReleasedAt)</dd></div>
         </dl>
 
-        <h3>Maps</h3>
+        <h3>Campaigns</h3>
         @if (title.Maps.Length == 0)
         {
-            <p>No maps belong to this title yet.</p>
+            <p>No campaign maps belong to this title yet.</p>
         }
         else
         {
-            <div class="maps-scroll">
-                <table class="maps-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Map</th>
-                            <th scope="col">Environment</th>
-                            <th scope="col">Campaign</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var map in title.Maps)
-                        {
-                            <tr>
-                                <td>
-                                    <a class="map-name" href="@GetMapUrl(map.Uid)"><FormattedText Text="@GetMapName(map)"></FormattedText></a>
-                                    @if (!string.IsNullOrWhiteSpace(map.Name))
-                                    {
-                                        <small>@map.Uid</small>
-                                    }
-                                </td>
-                                <td class="nowrap">@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</td>
-                                <td>@(string.IsNullOrWhiteSpace(map.Campaign) ? "-" : map.Campaign)</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            @foreach (var campaign in title.Maps
+                .GroupBy(map => map.Campaign ?? "")
+                .OrderBy(campaign => string.IsNullOrWhiteSpace(campaign.Key) ? 0 : 1)
+                .ThenBy(campaign => campaign.Key))
+            {
+                <section class="campaign">
+                    @if (!string.IsNullOrWhiteSpace(campaign.Key))
+                    {
+                        <h4>
+                            <FormattedText Text="@campaign.Key"></FormattedText>
+                        </h4>
+                    }
+                    <div class="maps-scroll">
+                        <table class="maps-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Map</th>
+                                    <th scope="col">Environment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var map in campaign.OrderBy(map => map.Order is null).ThenBy(map => map.Order))
+                                {
+                                    <tr>
+                                        <td>
+                                            <a class="map-name" href="@GetMapUrl(map.Uid)"><FormattedText Text="@GetMapName(map)"></FormattedText></a>
+                                            @if (!string.IsNullOrWhiteSpace(map.Name))
+                                            {
+                                                <small>@map.Uid</small>
+                                            }
+                                        </td>
+                                        <td class="nowrap">@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
         }
     }
 </ReuContainer>
@@ -132,6 +158,18 @@
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";
+
+    private static string GetDownloadUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}/download";
+
+    private static string GetPreviewDownloadUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId)}/download/preview";
+
+    private static string FormatVersion(string version)
+    {
+        var hashStart = version.IndexOf(" (", StringComparison.Ordinal);
+        return hashStart < 0 ? version : version[..hashStart];
+    }
 
     private static string FormatDateTime(DateTimeOffset? dateTime)
         => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Unknown";

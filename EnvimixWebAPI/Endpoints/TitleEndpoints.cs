@@ -36,7 +36,8 @@ public static class TitleEndpoints
                 x.Id,
                 x.DisplayName,
                 x.Version,
-                x.ReleasedAt
+                x.ReleasedAt,
+                x.Downloadable
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -46,7 +47,7 @@ public static class TitleEndpoints
         }
 
         var maps = await db.Maps
-            .Where(x => x.TitlePackId == titleId)
+            .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
             .OrderBy(x => x.CampaignId == null)
             .ThenBy(x => x.Campaign!.Name)
             .ThenBy(x => x.Order == null)
@@ -73,6 +74,7 @@ public static class TitleEndpoints
             title.DisplayName,
             title.Version,
             title.ReleasedAt,
+            title.Downloadable,
             maps.Length,
             recordCount,
             playerCount,

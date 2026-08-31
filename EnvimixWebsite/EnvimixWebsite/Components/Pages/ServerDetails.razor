@@ -14,7 +14,7 @@
 </HeadContent>
 
 <ReuContainer>
-    <p><a href="/envimania/servers">Registered servers</a></p>
+    <p><a href="/envimania">Registered servers</a></p>
 
     @if (isLoading)
     {
@@ -69,7 +69,7 @@
         <div class="sessions-heading">
             <h3>Recent sessions</h3>
             <label>
-                <input type="checkbox" @bind="WithPlayersOnly" @bind:after="FilterSessionsAsync" disabled="@isLoadingMore" />
+                <input type="checkbox" @bind="WithPlayersOnly" @bind:after="FilterSessionsAsync" disabled="@sessionsLoading" />
                 With players only
             </label>
         </div>
@@ -137,15 +137,25 @@
             </table>
             </div>
 
-            @if (server.RecentSessions.Length < server.MatchingSessionCount && SessionLimit < 500)
-            {
-                <p class="show-more-sessions">
-                    <button type="button" @onclick="LoadMoreSessionsAsync" disabled="@isLoadingMore">
-                        @(isLoadingMore ? "Loading..." : $"Show {Math.Min(10, server.MatchingSessionCount - server.RecentSessions.Length)} more")
-                    </button>
-                    <small>Showing @server.RecentSessions.Length of @server.MatchingSessionCount</small>
-                </p>
-            }
+            <nav class="sessions-pagination" aria-label="Session pages">
+                <ReuButton Disabled="@(sessionsLoading || server.Page <= 1)" OnClick="() => GoToPageAsync(server.Page - 1)">Previous</ReuButton>
+                @foreach (var pageNumber in GetVisiblePages())
+                {
+                    @if (pageNumber == 0)
+                    {
+                        <span aria-hidden="true">...</span>
+                    }
+                    else
+                    {
+                        <ReuButton Active="@(pageNumber == server.Page)"
+                                   aria-current="@(pageNumber == server.Page ? "page" : null)"
+                                   Disabled="@(sessionsLoading || pageNumber == server.Page)"
+                                   OnClick="() => GoToPageAsync(pageNumber)">@pageNumber</ReuButton>
+                    }
+                }
+                <ReuButton Disabled="@(sessionsLoading || server.Page >= TotalPages)" OnClick="() => GoToPageAsync(server.Page + 1)">Next</ReuButton>
+                <small>@server.MatchingSessionCount sessions</small>
+            </nav>
         }
 
         @if (server.CanDelete)
@@ -227,17 +237,21 @@
     [Parameter]
     public string ServerLogin { get; set; } = "";
 
-    [SupplyParameterFromQuery(Name = "sessions")]
-    public int SessionLimit { get; set; } = 10;
+    [SupplyParameterFromQuery(Name = "page")]
+    public int SessionPage { get; set; } = 1;
 
     [SupplyParameterFromQuery(Name = "withPlayers")]
     public bool WithPlayersOnly { get; set; }
 
     private EnvimaniaServerInfo? server;
     private bool isLoading = true;
-    private bool isLoadingMore;
+    private bool sessionsLoading;
     private bool loadFailed;
     private bool appliedWithPlayersOnly;
+
+    private int TotalPages => server is null
+        ? 1
+        : Math.Max(1, (int)Math.Ceiling(server.MatchingSessionCount / (double)server.PageSize));
 
     private string GetMetadataServerName()
         => TextFormatter.Deformat(server is null || string.IsNullOrWhiteSpace(server.ServerName)
@@ -256,8 +270,8 @@
 
         try
         {
-            SessionLimit = Math.Clamp(SessionLimit, 10, 500);
-            server = await EnvimixService.GetServerAsync(ServerLogin, SessionLimit, WithPlayersOnly);
+            server = await EnvimixService.GetServerAsync(ServerLogin, SessionPage, withPlayersOnly: WithPlayersOnly);
+            SessionPage = server?.Page ?? 1;
             appliedWithPlayersOnly = WithPlayersOnly;
         }
         catch (Exception ex)
@@ -284,29 +298,34 @@
     private static string GetTitleUrl(string titleId)
         => $"/titles/{Uri.EscapeDataString(titleId)}";
 
-    private async Task LoadMoreSessionsAsync()
+    private Task GoToPageAsync(int page)
+        => LoadSessionsPageAsync(page, WithPlayersOnly);
+
+    private async Task LoadSessionsPageAsync(int page, bool withPlayersOnly)
     {
-        if (server is null || isLoadingMore)
+        if (server is null || sessionsLoading)
         {
             return;
         }
 
-        isLoadingMore = true;
+        sessionsLoading = true;
 
         try
         {
-            var sessionLimit = Math.Min(SessionLimit + 10, 500);
-            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, sessionLimit, WithPlayersOnly);
+            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, page, withPlayersOnly: withPlayersOnly);
             if (updatedServer is null)
             {
                 return;
             }
 
-            SessionLimit = sessionLimit;
+            SessionPage = updatedServer.Page;
+            appliedWithPlayersOnly = withPlayersOnly;
             server = server with
             {
                 SessionCount = updatedServer.SessionCount,
                 MatchingSessionCount = updatedServer.MatchingSessionCount,
+                Page = updatedServer.Page,
+                PageSize = updatedServer.PageSize,
                 RecentSessions = updatedServer.RecentSessions
             };
 
@@ -318,55 +337,63 @@
         }
         finally
         {
-            isLoadingMore = false;
+            sessionsLoading = false;
         }
     }
 
     private async Task FilterSessionsAsync()
     {
-        if (server is null || isLoadingMore)
+        if (server is null || sessionsLoading)
         {
             return;
         }
 
-        isLoadingMore = true;
-
         try
         {
-            var updatedServer = await EnvimixService.GetServerAsync(ServerLogin, 10, WithPlayersOnly);
-            if (updatedServer is null)
-            {
-                WithPlayersOnly = appliedWithPlayersOnly;
-                return;
-            }
-
-            SessionLimit = 10;
-            appliedWithPlayersOnly = WithPlayersOnly;
-            server = server with
-            {
-                SessionCount = updatedServer.SessionCount,
-                MatchingSessionCount = updatedServer.MatchingSessionCount,
-                RecentSessions = updatedServer.RecentSessions
-            };
-
-            await UpdateUrlAsync();
+            await LoadSessionsPageAsync(1, WithPlayersOnly);
         }
         catch (Exception ex)
         {
             WithPlayersOnly = appliedWithPlayersOnly;
             Logger.LogError(ex, "Unable to filter sessions for server {ServerLogin}", ServerLogin);
         }
-        finally
-        {
-            isLoadingMore = false;
-        }
     }
 
     private ValueTask UpdateUrlAsync()
     {
         var filterQuery = WithPlayersOnly ? "&withPlayers=true" : "";
-        var url = $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?sessions={SessionLimit}{filterQuery}";
+        var url = $"/envimania/servers/{Uri.EscapeDataString(ServerLogin)}?page={SessionPage}{filterQuery}";
         return JS.InvokeVoidAsync("history.replaceState", null, "", url);
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var currentPage = server?.Page ?? 1;
+        var start = Math.Max(1, currentPage - 2);
+        var end = Math.Min(TotalPages, currentPage + 2);
+
+        if (start > 1)
+        {
+            yield return 1;
+            if (start > 2)
+            {
+                yield return 0;
+            }
+        }
+
+        for (var page = start; page <= end; page++)
+        {
+            yield return page;
+        }
+
+        if (end < TotalPages)
+        {
+            if (end < TotalPages - 1)
+            {
+                yield return 0;
+            }
+            yield return TotalPages;
+        }
     }
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)

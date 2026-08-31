@@ -5,6 +5,8 @@ public sealed record EnvimaniaServerInfo(
     string? ServerName,
     int SessionCount,
     int MatchingSessionCount,
+    int Page,
+    int PageSize,
     DateTimeOffset RegisteredAt,
     DateTimeOffset? LastSeenAt,
     EnvimaniaServerSession[] RecentSessions,

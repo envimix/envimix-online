@@ -18,5 +18,7 @@ public sealed class TitleEntity
     [StringLength(byte.MaxValue)]
     public string? Version { get; set; }
 
+    public bool Downloadable { get; set; }
+
     public ICollection<CampaignEntity> Campaigns { get; set; } = [];
 }
