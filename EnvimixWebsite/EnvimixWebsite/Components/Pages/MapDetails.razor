@@ -270,7 +270,16 @@
                                             }
                                             else
                                             {
-                                                <a href="@GetServerUrl(record.ServerLogin)">@record.ServerLogin</a>
+                                                <a href="@GetServerOrSessionUrl(record)">
+                                                    @if (string.IsNullOrWhiteSpace(record.ServerName))
+                                                    {
+                                                        @record.ServerLogin
+                                                    }
+                                                    else
+                                                    {
+                                                        <FormattedText Text="@record.ServerName"></FormattedText>
+                                                    }
+                                                </a>
                                             }
                                         </td>
                                         <td>
@@ -542,8 +551,10 @@
     private static string GetRecordUrl(RecordInfo record)
         => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";
 
-    private static string GetServerUrl(string serverLogin)
-        => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
+    private static string GetServerOrSessionUrl(RecordInfo record)
+        => record.SessionId is Guid sessionId
+            ? $"/envimania/sessions/{sessionId}"
+            : $"/envimania/servers/{Uri.EscapeDataString(record.ServerLogin!)}";
 
     private static string FormatRecordLaps(int mapLaps, int recordLaps)
         => mapLaps == 0 ? "Undefined" : recordLaps.ToString();

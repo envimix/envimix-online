@@ -15,6 +15,7 @@ public sealed record RecordInfo(
     DateTimeOffset DrivenAt,
     Guid? SessionId,
     string? ServerLogin,
+    string? ServerName,
     string? TitleId,
     string? TitleDisplayName,
     Guid? GhostId,
