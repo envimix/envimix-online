@@ -39,7 +39,7 @@
             <div>
                 <dt>Player</dt>
                 <dd>
-                    <a href="@GetUserUrl(record.UserLogin)">
+                    <a class="user-nickname" href="@GetUserUrl(record.UserLogin)">
                         @if (string.IsNullOrWhiteSpace(record.Nickname))
                         {
                             @record.UserLogin

@@ -37,7 +37,7 @@
             {
                 <div>
                     <dt>Author</dt>
-                    <dd><a href="@GetUserUrl(map.AuthorLogin)"><FormattedText Text="@GetAuthorName(map)"></FormattedText></a></dd>
+                    <dd><a class="user-nickname" href="@GetUserUrl(map.AuthorLogin)"><FormattedText Text="@GetAuthorName(map)"></FormattedText></a></dd>
                 </div>
             }
             <div>
@@ -207,7 +207,7 @@
                         }
                         else
                         {
-                            <span>Validated by </span><a href="@GetUserUrl(selectedCar.ValidatorLogin)"><FormattedText Text="@GetValidatorName(selectedCar)"></FormattedText></a>
+                            <span>Validated by </span><a class="user-nickname" href="@GetUserUrl(selectedCar.ValidatorLogin)"><FormattedText Text="@GetValidatorName(selectedCar)"></FormattedText></a>
                         }
                     </p>
                 }
@@ -251,7 +251,7 @@
                                             }
                                             else
                                             {
-                                                <a class="player-name" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname"></FormattedText></a>
+                                                <a class="player-name user-nickname" href="@GetUserUrl(record.UserLogin)"><FormattedText Text="@record.Nickname"></FormattedText></a>
                                                 <small>@record.UserLogin</small>
                                             }
                                         </td>

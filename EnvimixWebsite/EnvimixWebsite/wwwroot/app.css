@@ -10,6 +10,12 @@ h1:focus {
     backdrop-filter: blur(5px);
 }
 
+a.user-nickname,
+a.user-nickname:hover {
+    color: #fff;
+    text-decoration-color: var(--color-link-hover);
+}
+
 .primary-buttons {
     display: flex;
     gap: 1rem;
