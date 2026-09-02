@@ -65,12 +65,17 @@
                             }
                             <th scope="col">Time</th>
                             <th scope="col">Driven</th>
+                            <th scope="col">Server</th>
+                            @if (canAdminister)
+                            {
+                                <th scope="col"><span class="visually-hidden">Actions</span></th>
+                            }
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var record in user.RecentRecords)
                         {
-                            <tr>
+                            <tr class="@(record.Removed ? "removed-record" : null)">
                                 <td>
                                     <a class="primary-value" href="@GetMapUrl(record.MapUid)"><FormattedText Text="@GetMapName(record)"></FormattedText></a>
                                     @if (!string.IsNullOrWhiteSpace(record.MapName))
@@ -91,6 +96,41 @@
                                     }
                                 </td>
                                 <td>@FormatDateTime(record.DrivenAt)</td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(record.ServerLogin))
+                                    {
+                                        <span>-</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@GetServerOrSessionUrl(record)">
+                                            @if (string.IsNullOrWhiteSpace(record.ServerName))
+                                            {
+                                                @record.ServerLogin
+                                            }
+                                            else
+                                            {
+                                                <FormattedText Text="@record.ServerName"></FormattedText>
+                                            }
+                                        </a>
+                                    }
+                                </td>
+                                @if (canAdminister)
+                                {
+                                    <td>
+                                        <form method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
+                                            <AntiforgeryToken />
+                                            <input type="hidden" name="redirectToUser" value="true" />
+                                            <input type="hidden" name="mapUid" value="@record.MapUid" />
+                                            <input type="hidden" name="login" value="@record.UserLogin" />
+                                            <input type="hidden" name="carId" value="@record.Car" />
+                                            <input type="hidden" name="gravity" value="@record.Gravity" />
+                                            <input type="hidden" name="laps" value="@record.Laps" />
+                                            <input type="hidden" name="time" value="@record.Time" />
+                                            <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
+                                        </form>
+                                    </td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -107,11 +147,24 @@
     private PlayerInfo? user;
     private bool isLoading = true;
     private bool loadFailed;
+    private bool canAdminister;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private string GetMetadataDescription()
         => user is null
             ? $"View records driven by {UserLogin} in ENVIMIX."
             : $"Browse {user.RecordCount} records driven by {TextFormatter.Deformat(GetUserName(user))}.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var authState = await AuthenticationStateTask;
+            canAdminister = authState.User.IsInRole(Roles.Admin);
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -145,6 +198,11 @@
 
     private static string GetRecordUrl(RecordInfo record)
         => $"/records/{Uri.EscapeDataString(record.MapUid)}/{Uri.EscapeDataString(record.Car)}/{Uri.EscapeDataString(record.UserLogin)}/{record.Time}";
+
+    private static string GetServerOrSessionUrl(RecordInfo record)
+        => record.SessionId is Guid sessionId
+            ? $"/envimania/sessions/{sessionId}"
+            : $"/envimania/servers/{Uri.EscapeDataString(record.ServerLogin!)}";
 
     private static string FormatDateTime(DateTimeOffset dateTime)
         => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");

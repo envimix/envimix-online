@@ -104,7 +104,18 @@
             {
                 <div>
                     <dt>Server</dt>
-                    <dd><a href="@GetServerUrl(record.ServerLogin)">@record.ServerLogin</a></dd>
+                    <dd>
+                        <a href="@GetServerUrl(record.ServerLogin)">
+                            @if (string.IsNullOrWhiteSpace(record.ServerName))
+                            {
+                                @record.ServerLogin
+                            }
+                            else
+                            {
+                                <FormattedText Text="@record.ServerName"></FormattedText>
+                            }
+                        </a>
+                    </dd>
                 </div>
             }
         </dl>

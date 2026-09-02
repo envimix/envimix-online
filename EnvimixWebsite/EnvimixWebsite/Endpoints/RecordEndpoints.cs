@@ -15,6 +15,7 @@ internal static class RecordEndpoints
 
     private static async Task<IResult> RemoveRecord(
         [FromForm] Guid? sessionId,
+        [FromForm] bool? redirectToUser,
         [FromForm] string mapUid,
         [FromForm] string login,
         [FromForm] string carId,
@@ -27,11 +28,14 @@ internal static class RecordEndpoints
         await envimixService.RemoveRecordAsync(mapUid, login, carId, gravity, laps, time, cancellationToken);
         return TypedResults.LocalRedirect(sessionId.HasValue
             ? $"/envimania/sessions/{sessionId}"
+            : redirectToUser == true
+                ? $"/users/{Uri.EscapeDataString(login)}"
             : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");
     }
 
     private static async Task<IResult> RevertRecord(
         [FromForm] Guid? sessionId,
+        [FromForm] bool? redirectToUser,
         [FromForm] string mapUid,
         [FromForm] string login,
         [FromForm] string carId,
@@ -44,6 +48,8 @@ internal static class RecordEndpoints
         await envimixService.RevertRecordAsync(mapUid, login, carId, gravity, laps, time, cancellationToken);
         return TypedResults.LocalRedirect(sessionId.HasValue
             ? $"/envimania/sessions/{sessionId}"
+            : redirectToUser == true
+                ? $"/users/{Uri.EscapeDataString(login)}"
             : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");
     }
 }
