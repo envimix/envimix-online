@@ -16,6 +16,7 @@ internal static class RecordEndpoints
     private static async Task<IResult> RemoveRecord(
         [FromForm] Guid? sessionId,
         [FromForm] bool? redirectToUser,
+        [FromForm] bool? redirectToMap,
         [FromForm] string mapUid,
         [FromForm] string login,
         [FromForm] string carId,
@@ -30,12 +31,15 @@ internal static class RecordEndpoints
             ? $"/envimania/sessions/{sessionId}"
             : redirectToUser == true
                 ? $"/users/{Uri.EscapeDataString(login)}"
+            : redirectToMap == true
+                ? $"/maps/{Uri.EscapeDataString(mapUid)}"
             : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");
     }
 
     private static async Task<IResult> RevertRecord(
         [FromForm] Guid? sessionId,
         [FromForm] bool? redirectToUser,
+        [FromForm] bool? redirectToMap,
         [FromForm] string mapUid,
         [FromForm] string login,
         [FromForm] string carId,
@@ -50,6 +54,8 @@ internal static class RecordEndpoints
             ? $"/envimania/sessions/{sessionId}"
             : redirectToUser == true
                 ? $"/users/{Uri.EscapeDataString(login)}"
+            : redirectToMap == true
+                ? $"/maps/{Uri.EscapeDataString(mapUid)}"
             : $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(carId)}/{Uri.EscapeDataString(login)}/{time}");
     }
 }

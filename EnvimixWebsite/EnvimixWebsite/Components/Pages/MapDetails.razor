@@ -232,6 +232,10 @@
                                     <th scope="col">Driven</th>
                                     <th scope="col">Server</th>
                                     <th scope="col"><span class="visually-hidden">Download</span></th>
+                                    @if (canAdminister)
+                                    {
+                                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody>
@@ -288,6 +292,22 @@
                                                 <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" CssClass="ghost-download" download>Download</ReuButton>
                                             }
                                         </td>
+                                        @if (canAdminister)
+                                        {
+                                            <td>
+                                                <form method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
+                                                    <AntiforgeryToken />
+                                                    <input type="hidden" name="redirectToMap" value="true" />
+                                                    <input type="hidden" name="mapUid" value="@record.MapUid" />
+                                                    <input type="hidden" name="login" value="@record.UserLogin" />
+                                                    <input type="hidden" name="carId" value="@record.Car" />
+                                                    <input type="hidden" name="gravity" value="@record.Gravity" />
+                                                    <input type="hidden" name="laps" value="@record.Laps" />
+                                                    <input type="hidden" name="time" value="@record.Time" />
+                                                    <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
+                                                </form>
+                                            </td>
+                                        }
                                     </tr>
                                 }
                             </tbody>
@@ -343,6 +363,10 @@
     private bool recordsLoadFailed;
     private bool appliedShowAllRecords;
     private bool appliedWorldRecordHistory;
+    private bool canAdminister;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private RecordMode CurrentRecordMode => WorldRecordHistory
         ? RecordMode.WorldRecordHistory
@@ -354,6 +378,15 @@
 
     private MapRecordCarInfo? SelectedCar
         => recordsPage?.Cars.FirstOrDefault(car => car.Id == recordsPage.Car);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var authState = await AuthenticationStateTask;
+            canAdminister = authState.User.IsInRole(Roles.Admin);
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
