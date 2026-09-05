@@ -72,12 +72,12 @@
             </div>
             <div>
                 <dt>Started</dt>
-                <dd>@FormatDateTime(session.StartedAt)</dd>
+                <dd><LocalDateTime Value="@session.StartedAt" /></dd>
             </div>
             <div>
                 <dt>Ended</dt>
                 <dd>
-                    @FormatDateTime(session.EndedAt, "Not closed")
+                    <LocalDateTime Value="@session.EndedAt" EmptyText="Not closed" />
                     @if (IsExpired(session))
                     {
                         <small class="expired-note">(expired)</small>
@@ -156,7 +156,7 @@
                                                     <small>(removed)</small>
                                                 }
                                             </td>
-                                            <td>@FormatDateTime(record.DrivenAt)</td>
+                                            <td><LocalDateTime Value="@record.DrivenAt" /></td>
                                             @if (session.CanAdminister)
                                             {
                                                 <td>
@@ -239,9 +239,6 @@
 
     private static string GetRecordUrl(string mapUid, string car, string userLogin, int time)
         => $"/records/{Uri.EscapeDataString(mapUid)}/{Uri.EscapeDataString(car)}/{Uri.EscapeDataString(userLogin)}/{time}";
-
-    private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
-        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;
 
     private static string FormatDuration(DateTimeOffset startedAt, DateTimeOffset? endedAt)
         => endedAt is null ? "In progress" : (endedAt.Value - startedAt).ToString(@"d\.hh\:mm\:ss");

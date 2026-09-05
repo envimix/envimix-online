@@ -1,0 +1,32 @@
+@using System.Globalization
+
+@if (Value is DateTimeOffset value)
+{
+    <time class="@CssClass"
+          datetime="@value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)"
+          data-local-date-time
+          data-precision="@Precision">@FormatUtcFallback(value)</time>
+}
+else
+{
+    @EmptyText
+}
+
+@code {
+    [Parameter]
+    public DateTimeOffset? Value { get; set; }
+
+    [Parameter]
+    public string EmptyText { get; set; } = "Never";
+
+    [Parameter]
+    public string Precision { get; set; } = "second";
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    private string FormatUtcFallback(DateTimeOffset value)
+        => value.UtcDateTime.ToString(
+            Precision == "minute" ? "yyyy-MM-dd HH:mm 'UTC'" : "yyyy-MM-dd HH:mm:ss 'UTC'",
+            CultureInfo.InvariantCulture);
+}

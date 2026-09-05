@@ -266,7 +266,7 @@
                                                 <small>(removed)</small>
                                             }
                                         </td>
-                                        <td>@FormatDateTime(record.DrivenAt)</td>
+                                        <td><LocalDateTime Value="@record.DrivenAt" /></td>
                                         <td>
                                             @if (string.IsNullOrWhiteSpace(record.ServerLogin))
                                             {
@@ -591,9 +591,6 @@
 
     private static string FormatRecordLaps(int mapLaps, int recordLaps)
         => mapLaps == 0 ? "Independent laps" : recordLaps.ToString();
-
-    private static string FormatDateTime(DateTimeOffset dateTime)
-        => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");

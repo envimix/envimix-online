@@ -68,7 +68,7 @@
             {
                 <div><dt>Version</dt><dd>@FormatVersion(title.Version)</dd></div>
             }
-            <div><dt>Released</dt><dd>@FormatDateTime(title.ReleasedAt)</dd></div>
+            <div><dt>Released</dt><dd><LocalDateTime Value="@title.ReleasedAt" EmptyText="Unknown" /></dd></div>
         </dl>
 
         <h3>Campaign</h3>
@@ -186,6 +186,5 @@
         return hashStart < 0 ? version : version[..hashStart];
     }
 
-    private static string FormatDateTime(DateTimeOffset? dateTime)
-        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Unknown";
 }
+

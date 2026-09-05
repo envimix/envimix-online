@@ -58,11 +58,11 @@
             </div>
             <div>
                 <dt>Registered at</dt>
-                <dd>@FormatDateTime(server.RegisteredAt)</dd>
+                <dd><LocalDateTime Value="@server.RegisteredAt" /></dd>
             </div>
             <div>
                 <dt>Last seen</dt>
-                <dd>@FormatDateTime(server.LastSeenAt)</dd>
+                <dd><LocalDateTime Value="@server.LastSeenAt" /></dd>
             </div>
         </dl>
 
@@ -123,9 +123,9 @@
                                 }
                             </td>
                             <td class="nowrap">@session.PlayerCount</td>
-                            <td class="nowrap"><a href="@GetSessionUrl(session.Id)">@FormatDateTime(session.StartedAt)</a></td>
+                            <td class="nowrap"><a href="@GetSessionUrl(session.Id)"><LocalDateTime Value="@session.StartedAt" /></a></td>
                             <td class="nowrap">
-                                @FormatDateTime(session.EndedAt, "Not closed")
+                                <LocalDateTime Value="@session.EndedAt" EmptyText="Not closed" />
                                 @if (IsExpired(session.EndedAt, session.FinishedGracefully))
                                 {
                                     <small class="expired-note">(expired)</small>
@@ -285,9 +285,6 @@
             isLoading = false;
         }
     }
-
-    private static string FormatDateTime(DateTimeOffset? dateTime, string emptyText = "Never")
-        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? emptyText;
 
     private static string GetSessionUrl(Guid sessionId)
         => $"/envimania/sessions/{sessionId}";

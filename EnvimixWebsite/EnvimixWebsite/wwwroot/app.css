@@ -8,7 +8,7 @@ h1:focus {
 
 .reu-button {
     backdrop-filter: blur(5px);
-    padding-inline: 0.75rem;
+    padding-inline: 0.75rem !important;
 }
 
 a.user-nickname,

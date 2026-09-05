@@ -65,7 +65,7 @@
                             </td>
                             <td class="nowrap">@(server.IsHidden ? "Hidden" : server.IsBanned ? "Banned" : "Registered")</td>
                             <td class="nowrap">@server.SessionCount</td>
-                            <td class="nowrap">@FormatDateTime(server.LastSeenAt)</td>
+                            <td class="nowrap"><LocalDateTime Value="@server.LastSeenAt" /></td>
                         </tr>
                     }
                 </tbody>
@@ -94,7 +94,4 @@
 
     private static string GetServerUrl(string serverLogin)
         => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";
-
-    private static string FormatDateTime(DateTimeOffset? dateTime)
-        => dateTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Never";
 }

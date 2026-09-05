@@ -18,7 +18,7 @@
         <div>Online players: <span class="count">@(title?.OnlinePlayers.ToString() ?? "?")</span></div>
         <div>Players last 24h: <span class="count">@(title?.PlayersLast24h.ToString() ?? "?")</span></div>
         <div>Registrations: <span class="count">@(title?.Registrations.ToString() ?? "?")</span></div>
-        <div>Last update: <span class="count">@(title?.LastUpdate.ToString("yyyy-MM-dd") ?? "????-??-??")</span> @(title?.LastUpdate.ToString("HH:mm") ?? "??:??") UTC</div>
+        <div>Last update: <LocalDateTime Value="@title?.LastUpdate" EmptyText="????-??-?? ??:??" Precision="minute" CssClass="count" /></div>
     </div>
     <h2 class="punchline">Play any Trackmania Turbo map with any car in Trackmania 2!</h2>
     <div class="primary-buttons">

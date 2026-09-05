@@ -77,7 +77,9 @@
                                                 @server.Login
                                             }
                                         </td>
-                                        <td class="nowrap">@(server.LastUsedAt is null ? "Never" : DateTimeOffset.FromUnixTimeSeconds(server.LastUsedAt.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</td>
+                                        <td class="nowrap">
+                                            <LocalDateTime Value="@(server.LastUsedAt is long lastUsedAt ? DateTimeOffset.FromUnixTimeSeconds(lastUsedAt) : null)" />
+                                        </td>
                                         <td class="server-action nowrap">
                                             <ServerRegistrationButton ServerLogin="@server.Login" IsRegistered="@registeredServers.Contains(server.Login)" />
                                         </td>

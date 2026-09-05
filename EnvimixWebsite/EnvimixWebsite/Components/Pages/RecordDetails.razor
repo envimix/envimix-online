@@ -94,7 +94,7 @@
             </div>
             <div>
                 <dt>Driven</dt>
-                <dd>@FormatDateTime(record.DrivenAt)</dd>
+                <dd><LocalDateTime Value="@record.DrivenAt" /></dd>
             </div>
             <div>
                 <dt>Status</dt>
@@ -268,9 +268,6 @@
 
     private static string GetSessionUrl(Guid sessionId)
         => $"/envimania/sessions/{sessionId}";
-
-    private static string FormatDateTime(DateTimeOffset dateTime)
-        => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
 
     private static string FormatTime(int milliseconds)
         => TimeSpan.FromMilliseconds(milliseconds).ToString(milliseconds >= 3_600_000 ? @"h\:mm\:ss\.fff" : @"m\:ss\.fff");
