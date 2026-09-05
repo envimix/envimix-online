@@ -78,10 +78,6 @@
     border-color: #b87543;
 }
 
-::deep .reu-button {
-    padding-inline: 0.75rem;
-}
-
 .car-tabs {
     display: flex;
     gap: 0.4rem;
