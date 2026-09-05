@@ -590,7 +590,7 @@
             : $"/envimania/servers/{Uri.EscapeDataString(record.ServerLogin!)}";
 
     private static string FormatRecordLaps(int mapLaps, int recordLaps)
-        => mapLaps == 0 ? "Undefined" : recordLaps.ToString();
+        => mapLaps == 0 ? "Independent laps" : recordLaps.ToString();
 
     private static string FormatDateTime(DateTimeOffset dateTime)
         => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
