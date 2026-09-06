@@ -96,7 +96,16 @@
                     {
                         <tr>
                             <td>
-                                <a class="map-name" href="@GetMapUrl(session.MapUid)">@(string.IsNullOrWhiteSpace(session.MapName) ? session.MapUid : session.MapName)</a>
+                                <a class="map-name" href="@GetMapUrl(session.MapUid)">
+                                    @if (string.IsNullOrWhiteSpace(session.MapName))
+                                    {
+                                        @session.MapUid
+                                    }
+                                    else
+                                    {
+                                        <FormattedText Text="@session.MapName"></FormattedText>
+                                    }
+                                </a>
                                 @if (!string.IsNullOrWhiteSpace(session.MapName))
                                 {
                                     <small class="map-uid nowrap">@session.MapUid</small>
