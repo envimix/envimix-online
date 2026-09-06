@@ -651,6 +651,16 @@ public sealed class EnvimaniaService(
 
         server.Name = request.ServerName;
 
+        var unclosedSessions = await db.EnvimaniaSessions
+            .Where(x => x.Server.Id == server.Id && x.EndedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var unclosedSession in unclosedSessions)
+        {
+            unclosedSession.EndedAt = startedAt;
+            unclosedSession.FinishedGracefully = false;
+        }
+
         var session = new EnvimaniaSessionEntity
         {
             Id = sessionGuid,
