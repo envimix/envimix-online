@@ -742,6 +742,7 @@ public sealed class EnvimaniaService(
         return new EnvimaniaSessionResponse
         {
             ServerLogin = request.ServerLogin,
+            SessionId = sessionGuid,
             SessionToken = token,
             ExpiresAt = expiresAt.ToUnixTimeSeconds(),
             Ratings = ratings,

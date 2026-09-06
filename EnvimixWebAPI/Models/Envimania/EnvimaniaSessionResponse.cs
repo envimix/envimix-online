@@ -5,6 +5,7 @@ namespace EnvimixWebAPI.Models.Envimania;
 public sealed class EnvimaniaSessionResponse
 {
     [JsonPropertyName(nameof(ServerLogin))] public required string ServerLogin { get; set; }
+    [JsonPropertyName(nameof(SessionId))] public required Guid SessionId { get; init; }
     [JsonPropertyName(nameof(SessionToken))] public required string SessionToken { get; set; }
     [JsonPropertyName(nameof(ExpiresAt))] public required long ExpiresAt { get; init; }
     [JsonPropertyName(nameof(Ratings))] public required List<FilteredRating> Ratings { get; init; }
