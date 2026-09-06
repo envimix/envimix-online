@@ -440,7 +440,8 @@ public sealed record TitleMapInfo(
     string Name,
     string Collection,
     string? Campaign,
-    int? Order);
+    int? Order,
+    string? DefaultCar);
 
 public sealed record RecordInfo(
     string UserLogin,
@@ -485,6 +486,7 @@ public sealed record MapDetailsInfo(
     int GoldTime,
     int SilverTime,
     int BronzeTime,
+    string? DefaultCar,
     int? DuckTime,
     int? STMTime,
     MapTitleInfo? TitlePack);

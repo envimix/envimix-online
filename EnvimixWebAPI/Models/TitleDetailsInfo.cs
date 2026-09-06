@@ -17,4 +17,5 @@ public sealed record TitleMapInfo(
     string Name,
     string Collection,
     string? Campaign,
-    int? Order);
+    int? Order,
+    string? DefaultCar);

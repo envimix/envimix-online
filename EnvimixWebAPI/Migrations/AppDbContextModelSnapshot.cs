@@ -231,6 +231,9 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<int?>("DataId")
                         .HasColumnType("int");
 
+                    b.Property<string>("DefaultCarId")
+                        .HasColumnType("varchar(16)");
+
                     b.Property<string>("FirstAppearedOnServerId")
                         .HasColumnType("varchar(64)");
 
@@ -262,6 +265,8 @@ namespace EnvimixWebAPI.Migrations
                     b.HasIndex("CampaignId");
 
                     b.HasIndex("DataId");
+
+                    b.HasIndex("DefaultCarId");
 
                     b.HasIndex("FirstAppearedOnServerId");
 
@@ -686,6 +691,10 @@ namespace EnvimixWebAPI.Migrations
                         .WithMany()
                         .HasForeignKey("DataId");
 
+                    b.HasOne("EnvimixWebAPI.Entities.CarEntity", "DefaultCar")
+                        .WithMany()
+                        .HasForeignKey("DefaultCarId");
+
                     b.HasOne("EnvimixWebAPI.Entities.ServerEntity", "FirstAppearedOnServer")
                         .WithMany()
                         .HasForeignKey("FirstAppearedOnServerId");
@@ -697,6 +706,8 @@ namespace EnvimixWebAPI.Migrations
                     b.Navigation("Campaign");
 
                     b.Navigation("Data");
+
+                    b.Navigation("DefaultCar");
 
                     b.Navigation("FirstAppearedOnServer");
 

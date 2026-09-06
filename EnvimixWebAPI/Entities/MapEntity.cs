@@ -40,6 +40,9 @@ public sealed class MapEntity
     public int SilverTime { get; set; }
     public int BronzeTime { get; set; }
 
+    public CarEntity? DefaultCar { get; set; }
+    public string? DefaultCarId { get; set; }
+
     // cycle issues when caching
     //public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     //public ICollection<RecordEntity> Records { get; } = [];

@@ -88,6 +88,10 @@ public sealed class MapService(AppDbContext db) : IMapService
         map.GoldTime = mapInfo.GoldTime;
         map.SilverTime = mapInfo.SilverTime;
         map.BronzeTime = mapInfo.BronzeTime;
+        if (!string.IsNullOrWhiteSpace(mapInfo.DefaultCar))
+        {
+            map.DefaultCarId = mapInfo.DefaultCar;
+        }
 
         await db.SaveChangesAsync(cancellationToken);
 

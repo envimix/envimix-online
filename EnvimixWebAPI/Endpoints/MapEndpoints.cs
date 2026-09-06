@@ -98,6 +98,7 @@ public static class MapEndpoints
             map.GoldTime = mapInfo.GoldTime;
             map.SilverTime = mapInfo.SilverTime;
             map.BronzeTime = mapInfo.BronzeTime;
+            map.DefaultCarId = mapInfo.DefaultCar;
         }
 
         // unset campaign maps that are not in the submitted list
@@ -480,6 +481,7 @@ public static class MapEndpoints
             GoldTime = map.GoldTime,
             SilverTime = map.SilverTime,
             BronzeTime = map.BronzeTime,
+            DefaultCar = map.DefaultCarId,
             DuckTime = medalInfo?.Duck,
             STMTime = medalInfo?.STM,
             TitlePack = map.TitlePack is null ? null : new()

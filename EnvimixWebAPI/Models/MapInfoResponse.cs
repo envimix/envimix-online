@@ -15,6 +15,7 @@ public sealed class MapInfoResponse
     [JsonPropertyName(nameof(GoldTime))] public required int GoldTime { get; set; }
     [JsonPropertyName(nameof(SilverTime))] public required int SilverTime { get; set; }
     [JsonPropertyName(nameof(BronzeTime))] public required int BronzeTime { get; set; }
+    [JsonPropertyName(nameof(DefaultCar))] public required string? DefaultCar { get; set; }
     [JsonPropertyName(nameof(DuckTime))] public required int? DuckTime { get; set; }
     [JsonPropertyName(nameof(STMTime))] public required int? STMTime { get; set; }
     [JsonPropertyName(nameof(TitlePack))] public required TitleInfo? TitlePack { get; set; }

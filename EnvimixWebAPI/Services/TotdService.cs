@@ -44,7 +44,8 @@ public sealed class TotdService(AppDbContext db) : ITotdService
             Name = map.Name,
             Collection = map.Collection,
             Uid = map.Id,
-            Order = map.Order
+            Order = map.Order,
+            DefaultCar = map.DefaultCarId
         };
     }
 

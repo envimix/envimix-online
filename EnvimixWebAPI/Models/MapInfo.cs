@@ -16,4 +16,5 @@ public sealed class MapInfo
     [JsonPropertyName(nameof(GoldTime))] public int GoldTime { get; set; }
     [JsonPropertyName(nameof(SilverTime))] public int SilverTime { get; set; }
     [JsonPropertyName(nameof(BronzeTime))] public int BronzeTime { get; set; }
+    [JsonPropertyName(nameof(DefaultCar))] public string? DefaultCar { get; set; }
 }
