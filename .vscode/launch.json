@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Envimix Website",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Envimix Website",
+            "program": "${workspaceFolder}/EnvimixWebsite/EnvimixWebsite/bin/Debug/net10.0/EnvimixWebsite.dll",
+            "cwd": "${workspaceFolder}/EnvimixWebsite/EnvimixWebsite",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7053;http://localhost:5035"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            }
+        },
+        {
+            "name": "Debug Envimix Web API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Envimix Web API",
+            "program": "${workspaceFolder}/EnvimixWebAPI/bin/Debug/net10.0/EnvimixWebAPI.dll",
+            "cwd": "${workspaceFolder}/EnvimixWebAPI",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7083;http://localhost:5118"
+            }
+        },
+        {
+            "name": "Attach Blazor WebAssembly",
+            "type": "blazorwasm",
+            "request": "attach",
+            "url": "https://localhost:7053"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Website and Web API",
+            "configurations": [
+                "Debug Envimix Website",
+                "Debug Envimix Web API"
+            ],
+            "stopAll": true
+        }
+    ]
+}
