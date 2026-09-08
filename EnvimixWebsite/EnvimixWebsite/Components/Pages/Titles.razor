@@ -1,0 +1,84 @@
+@page "/titles"
+@using TmEssentials.Razor
+@inject IEnvimixService EnvimixService
+@inject ILogger<Titles> Logger
+
+<PageTitle>Title packs - ENVIMIX project</PageTitle>
+<HeadContent>
+    <MetadataTags Title="ENVIMIX title packs" Description="Browse all ENVIMIX title packs and their campaigns."></MetadataTags>
+</HeadContent>
+
+<ReuContainer>
+    <h1>Title packs</h1>
+    <p>Browse ENVIMIX title packs, campaigns, maps, and records.</p>
+
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <section class="admin-registration" aria-labelledby="register-title-heading">
+                <h2 id="register-title-heading">Register or update title pack</h2>
+                <form method="post" action="/titles/register">
+                    <AntiforgeryToken />
+                    <label for="title-id">Title pack UID:</label>
+                    <div class="admin-registration-control">
+                        <input class="text" id="title-id" name="titleId" required autocomplete="off" placeholder="Enter a title pack UID" />
+                        <ReuButton type="submit">Register</ReuButton>
+                    </div>
+                </form>
+            </section>
+        </Authorized>
+    </AuthorizeView>
+
+    @if (loadFailed)
+    {
+        <p>Title packs are temporarily unavailable.</p>
+    }
+    else if (titles is null || titles.Length == 0)
+    {
+        <p>No title packs are available yet.</p>
+    }
+    else
+    {
+        <div class="titles" aria-label="Title packs">
+            @foreach (var title in titles)
+            {
+                <a href="@GetTitleUrl(title.Id)">
+                    <h2>
+                        @if (string.IsNullOrWhiteSpace(title.DisplayName))
+                        {
+                            @title.Id
+                        }
+                        else
+                        {
+                            <FormattedText Text="@title.DisplayName"></FormattedText>
+                        }
+                    </h2>
+                    @if (!string.IsNullOrWhiteSpace(title.DisplayName))
+                    {
+                        <p>@title.Id</p>
+                    }
+                </a>
+            }
+        </div>
+    }
+</ReuContainer>
+
+@code {
+    private TitleSummaryInfo[]? titles;
+    private bool loadFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            titles = await EnvimixService.GetTitlesAsync();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            Logger.LogError(ex, "Unable to load title packs");
+        }
+    }
+
+    private static string GetTitleUrl(string titleId)
+        => $"/titles/{Uri.EscapeDataString(titleId).Replace("%40", "@", StringComparison.OrdinalIgnoreCase)}";
+}

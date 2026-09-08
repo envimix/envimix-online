@@ -5,6 +5,7 @@ namespace EnvimixWebsite.Services;
 public interface IEnvimixService
 {
     Task RegisterServerAsync(string serverLogin, CancellationToken cancellationToken = default);
+    Task RegisterTitleAsync(string titleId, CancellationToken cancellationToken = default);
     Task DeleteServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task WipeServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task DeleteServerRecordsAsync(string serverLogin, CancellationToken cancellationToken = default);
@@ -20,6 +21,7 @@ public interface IEnvimixService
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
+    Task<TitleSummaryInfo[]> GetTitlesAsync(CancellationToken cancellationToken = default);
     Task<TitleDetailsInfo?> GetTitleAsync(string titleId, CancellationToken cancellationToken = default);
     Task<MapDetailsInfo?> GetMapAsync(string mapUid, CancellationToken cancellationToken = default);
     Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, bool worldRecordHistory = false, CancellationToken cancellationToken = default);
@@ -54,6 +56,19 @@ public sealed class EnvimixService(
         {
             logger.LogWarning("Failed to register server {ServerLogin}. Status: {StatusCode}", serverLogin, response.StatusCode);
         }
+    }
+
+    public async Task RegisterTitleAsync(string titleId, CancellationToken cancellationToken = default)
+    {
+        var accessToken = await GetAccessTokenAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{config["EnvimixApi"]}/titles/register")
+        {
+            Content = JsonContent.Create(new { TitleId = titleId })
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task DeleteServerAsync(string serverLogin, CancellationToken cancellationToken = default)
@@ -249,6 +264,11 @@ public sealed class EnvimixService(
         CancellationToken cancellationToken = default)
         => GetDetailAsync<CarInfo>($"cars/{Uri.EscapeDataString(carId)}", cancellationToken);
 
+    public async Task<TitleSummaryInfo[]> GetTitlesAsync(CancellationToken cancellationToken = default)
+        => await httpClient.GetFromJsonAsync<TitleSummaryInfo[]>(
+            $"{config["EnvimixApi"]}/titles",
+            cancellationToken) ?? [];
+
     public Task<TitleDetailsInfo?> GetTitleAsync(
         string titleId,
         CancellationToken cancellationToken = default)
@@ -426,6 +446,8 @@ public sealed record CarInfo(
     int RecordCount,
     int PlayerCount,
     RecordInfo[] RecentRecords);
+
+public sealed record TitleSummaryInfo(string Id, string? DisplayName);
 
 public sealed record TitleDetailsInfo(
     string Id,

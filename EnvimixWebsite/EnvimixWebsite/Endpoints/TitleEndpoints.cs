@@ -1,5 +1,8 @@
 using EnvimixWebsite.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Hybrid;
+using Octokit;
 using System.Security;
 
 namespace EnvimixWebsite.Endpoints;
@@ -11,6 +14,48 @@ internal static class TitleEndpoints
         app.MapGet("/titles/{titleId}/download", DownloadTitleFile);
         app.MapGet("/titles/{titleId}/download/preview", DownloadTitlePreviewFile);
         app.MapGet("/titles/{titleId}/maniacode", GetTitleManiaCode);
+        app.MapPost("/titles/register", RegisterTitle)
+            .RequireAuthorization(Policies.AdminPolicy);
+        app.MapGet("/tm2/scripts/download/{titleId}/latest", DownloadLatestTm2Script);
+    }
+
+    private static async Task<IResult> RegisterTitle(
+        [FromForm] string titleId,
+        IEnvimixService envimixService,
+        CancellationToken cancellationToken)
+    {
+        await envimixService.RegisterTitleAsync(titleId, cancellationToken);
+        return TypedResults.LocalRedirect("/titles");
+    }
+
+    private static async Task<Results<RedirectHttpResult, NotFound>> DownloadLatestTm2Script(
+        string titleId,
+        IGitHubClient gitHubClient,
+        HybridCache cache)
+    {
+        var downloadUrl = await cache.GetOrCreateAsync($"tm2:scripts:download:{titleId}:latest", async _ =>
+        {
+            var releases = await gitHubClient.Repository.Release.GetAll("envimix", "envimix");
+            var release = releases
+                .Where(release => !release.Draft && !release.Prerelease)
+                .OrderByDescending(release => release.PublishedAt ?? release.CreatedAt)
+                .FirstOrDefault();
+
+            if (release is null)
+            {
+                return null;
+            }
+
+            var expectedPrefix = $"ENVIMIX.{titleId}.";
+            var asset = (await gitHubClient.Repository.Release.GetAllAssets("envimix", "envimix", release.Id))
+                .FirstOrDefault(asset => asset.Name.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase)
+                    && asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+            return asset?.BrowserDownloadUrl;
+        }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+
+        return string.IsNullOrEmpty(downloadUrl)
+            ? TypedResults.NotFound()
+            : TypedResults.Redirect(downloadUrl, permanent: false);
     }
 
     private static async Task<Results<RedirectHttpResult, NotFound>> DownloadTitleFile(

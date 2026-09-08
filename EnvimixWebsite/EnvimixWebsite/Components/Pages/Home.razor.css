@@ -38,7 +38,7 @@ h2 {
 }
 
 .tm2 {
-    background: linear-gradient(to bottom, #555A, #222A), url(img/cards/tm2.jpg);
+    background: url(img/cards/tm2.jpg);
 }
 
 .tmuf {

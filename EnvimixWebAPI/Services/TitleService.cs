@@ -2,6 +2,7 @@
 using EnvimixWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using ManiaAPI.ManiaPlanetAPI;
 using System.Diagnostics;
 using System.Security.Claims;
 
@@ -13,20 +14,12 @@ public interface ITitleService
     Task<DateTimeOffset?> GetTitleReleaseDateAsync(string titleId, CancellationToken cancellationToken);
     Task<Dictionary<string, DateTimeOffset>> GetCampaignReleaseDatesAsync(string titleId, CancellationToken cancellationToken);
     Task<bool> SubmitTitleAsync(TitleSubmitRequest request, CancellationToken cancellationToken);
+    Task<bool> RegisterTitleAsync(TitleRegistrationRequest request, CancellationToken cancellationToken);
 }
 
-public sealed class TitleService : ITitleService
+public sealed class TitleService(AppDbContext db, HybridCache cache, ManiaPlanetIngameAPI mpIngameApi) : ITitleService
 {
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.TitleService");
-
-    private readonly AppDbContext db;
-    private readonly HybridCache cache;
-
-    public TitleService(AppDbContext db, HybridCache cache)
-    {
-        this.db = db;
-        this.cache = cache;
-    }
 
     public async Task<TitleReleaseInfo?> GetTitleReleaseInfoAsync(string titleId, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
@@ -112,6 +105,32 @@ public sealed class TitleService : ITitleService
 
         title.DisplayName = request.Name;
         title.Version = request.Version;
+
+        return await db.SaveChangesAsync(cancellationToken) > 0;
+    }
+
+    public async Task<bool> RegisterTitleAsync(TitleRegistrationRequest request, CancellationToken cancellationToken)
+    {
+        var titleInfo = await mpIngameApi.GetTitleByUidAsync(request.TitleId, cancellationToken);
+        
+        if (titleInfo is null)
+        {
+            return false;
+        }
+        
+        var title = await db.Titles.FirstOrDefaultAsync(t => t.Id == titleInfo.Uid, cancellationToken);
+
+        if (title is null)
+        {
+            title = new TitleEntity
+            {
+                Id = titleInfo.Uid,
+                ReleasedAt =  null
+            };
+            await db.Titles.AddAsync(title, cancellationToken);
+        }
+
+        title.DisplayName = titleInfo.Name;
 
         return await db.SaveChangesAsync(cancellationToken) > 0;
     }

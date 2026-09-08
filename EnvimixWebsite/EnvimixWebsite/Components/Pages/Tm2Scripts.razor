@@ -1,0 +1,282 @@
+@page "/tm2/scripts"
+@using Octokit
+@using TmEssentials.Razor
+@inject HybridCache Cache
+@inject IEnvimixService EnvimixService
+@inject IGitHubClient GitHubClient
+@inject ILogger<Tm2Scripts> Logger
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>ENVIMIX scripts - ENVIMIX project</PageTitle>
+<HeadContent>
+    <MetadataTags Title="ENVIMIX TM2 scripts" Description="Download and install ENVIMIX scripts for your Trackmania 2 servers."></MetadataTags>
+</HeadContent>
+
+<ReuContainer>
+    <p class="eyebrow">Trackmania 2</p>
+    <h1>ENVIMIX scripts</h1>
+    <p>Want to experience ENVIMIX on a different title pack?</p>
+    <p>Download and install ENVIMIX scripts on your Trackmania 2 server! Works for dedicated servers and ManiaPlanet clients.</p>
+
+    @if (loadFailed)
+    {
+        <p>Downloads are temporarily unavailable. You can find the releases on <a href="https://github.com/envimix/envimix/releases">GitHub</a>.</p>
+    }
+    else if (assets is null || assets.Count == 0)
+    {
+        <p>No title-pack script archives are available in the latest release yet.</p>
+    }
+    else
+    {
+        <header class="release-version">
+            <span>Latest release</span>
+            <h2>@releaseName</h2>
+            @if (releasePublishedAt is DateTimeOffset publishedAt)
+            {
+                <p>@RelativeTimeFormatter.Format(publishedAt)</p>
+            }
+        </header>
+
+        <section aria-labelledby="downloads-heading">
+            <div class="section-heading">
+                <div>
+                    <h2 id="downloads-heading">Downloads</h2>
+                    <p>Choose the archive that matches the title pack where you want to run ENVIMIX. <a href="turbo#installation">(installation guide)</a></p>
+                </div>
+                @if (releaseUrl is not null)
+                {
+                    <a href="@releaseUrl">GitHub</a>
+                }
+            </div>
+            <div class="downloads">
+                @foreach (var asset in assets)
+                {
+                    <a class="download" href="@GetLatestDownloadUrl(asset.TitlePack)" data-enhance="false" download>
+                        <h3><FormattedText Text="@asset.DisplayName"></FormattedText></h3>
+                        <p class="filename" title="@asset.FileName">@asset.FileName</p>
+                        <div class="download-footer">
+                            <span>@FormatFileSize(asset.Size)</span>
+                        </div>
+                    </a>
+                }
+            </div>
+            <p class="license-notice">Released under GNU General Public License v3.0 or later.</p>
+        </section>
+    }
+
+    <section class="installation" id="installation" aria-labelledby="installation-heading">
+        <h2 id="installation-heading">Installation guide</h2>
+        <p>Choose one setup path. Each title-pack ZIP contains a <code>UserData</code> folder and can coexist with the others.</p>
+        @if (selectedAsset is not null)
+        {
+            <div class="title-pack-selector" role="group" aria-label="Title pack">
+                @foreach (var asset in assets ?? [])
+                {
+                    <ReuButton Active="@(asset == selectedAsset)"
+                               CssClass="title-pack-selector-button"
+                               role="radio"
+                               aria-checked="@(asset == selectedAsset)"
+                               OnClick="() => selectedAsset = asset">
+                           <FormattedText Text="@asset.DisplayName"></FormattedText>
+                    </ReuButton>
+                }
+            </div>
+            <div class="install-options">
+            <section>
+                <h3>1. Docker Compose with ManiaServerManager</h3>
+                <p>Use <a href="https://hub.docker.com/r/bigbang1112/mania-server-manager">ManiaServerManager</a> to download the dedicated server, title pack, and ENVIMIX files when the container starts. It will automatically handle updates for you.</p>
+                <p>Replace account values and server name, then run <code>docker compose up -d</code>.</p>
+                <div class="compose-sample">
+                    <ReuButton OnClick="CopyComposeAsync">Copy</ReuButton>
+                    <pre><code>@GetComposeFile(selectedAsset)</code></pre>
+                </div>
+                <p>See full list of environment variables and options in the <a href="https://hub.docker.com/r/bigbang1112/mania-server-manager">ManiaServerManager documentation</a>.</p>
+            </section>
+            <section>
+                <h3>2. Manual dedicated server</h3>
+                <ol>
+                    <li>Download <a href="@GetLatestDownloadUrl(selectedAsset.TitlePack)" data-enhance="false" download>@selectedAsset.FileName</a>.</li>
+                    <li>Install or prepare ManiaPlanet dedicated server with the <FormattedText Text="@selectedAsset.DisplayName"></FormattedText> title pack.</li>
+                    <li>Extract <code>UserData</code> folder from the ZIP into dedicated server directory and merge it.</li>
+                    <li>Run <code>./ManiaPlanetServer /title=@selectedAsset.TitlePack /dedicated_cfg=dedicated_cfg.txt /game_settings=MatchSettings/EnvimixTimeAttack.@(selectedAsset.TitlePack).txt</code></li>
+                </ol>
+            </section>
+            <section>
+                <h3>3. ManiaPlanet client</h3>
+                <ol>
+                    <li>Download <a href="@GetLatestDownloadUrl(selectedAsset.TitlePack)" data-enhance="false" download>@selectedAsset.FileName</a>.</li>
+                    <li>Extract <b>contents</b> of the ZIP's <code>UserData</code> folder into <code>Documents\ManiaPlanet</code>.</li>
+                    <li>Start ManiaPlanet and <FormattedText Text="@selectedAsset.DisplayName"></FormattedText>.</li>
+                    <li>Create a server and choose one of the gamemodes and the <code>EnvimixTimeAttack.@(selectedAsset.TitlePack).txt</code> MatchSettings.</li>
+                </ol>
+            </section>
+            </div>
+        }
+        else
+        {
+            <p>Title-pack-specific instructions load with downloads.</p>
+        }
+        <p class="interop-note"><strong>Using more than one title pack?</strong> Repeat the same process with each matching ZIP. The title-pack-specific MatchSettings and skins live alongside one another, so you can switch title packs without reinstalling the others.</p>
+    </section>
+</ReuContainer>
+
+@code {
+    private List<ScriptAsset>? assets;
+    private bool loadFailed;
+    private string? releaseName;
+    private string? releaseNotes;
+    private DateTimeOffset? releasePublishedAt;
+    private string? releaseUrl;
+    private ScriptAsset? selectedAsset;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var latestRelease = await Cache.GetOrCreateAsync("tm2:scripts:latest-release", async _ =>
+            {
+                var titleDisplayNamesTask = GetTitleDisplayNamesAsync();
+                var releases = await GitHubClient.Repository.Release.GetAll("envimix", "envimix");
+                var release = releases
+                    .Where(release => !release.Draft && !release.Prerelease)
+                    .OrderByDescending(release => release.PublishedAt ?? release.CreatedAt)
+                    .FirstOrDefault();
+
+                if (release is null)
+                {
+                    await titleDisplayNamesTask;
+                    return new ScriptRelease(null, null, null, null, []);
+                }
+
+                var releaseAssets = await GitHubClient.Repository.Release.GetAllAssets("envimix", "envimix", release.Id);
+                var titleDisplayNames = await titleDisplayNamesTask;
+
+                var scriptAssets = releaseAssets
+                    .Where(asset => asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    .Select(asset => CreateScriptAsset(asset, titleDisplayNames))
+                    .ToArray();
+
+                return new ScriptRelease(
+                    release.Name ?? release.TagName,
+                    release.Body,
+                    release.PublishedAt,
+                    release.HtmlUrl,
+                    scriptAssets
+                        .OrderBy(asset => GetTitlePackOrder(asset.TitlePack))
+                        .ThenBy(asset => asset.TitlePack)
+                        .ToList());
+            }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+
+            releaseName = latestRelease?.Name;
+            releaseNotes = latestRelease?.Notes;
+            releasePublishedAt = latestRelease?.PublishedAt;
+            releaseUrl = latestRelease?.Url;
+            assets = latestRelease?.Assets ?? [];
+            selectedAsset = assets.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            loadFailed = true;
+            assets = [];
+            Logger.LogError(ex, "Unable to load ENVIMIX TM2 script releases from GitHub");
+        }
+    }
+
+    private static string GetTitlePackName(string fileName)
+    {
+        const string prefix = "ENVIMIX.";
+        var titlePackName = Path.GetFileNameWithoutExtension(fileName);
+
+        if (titlePackName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            titlePackName = titlePackName[prefix.Length..];
+        }
+
+        var buildSeparator = titlePackName.LastIndexOf('.');
+        return buildSeparator > 0 ? titlePackName[..buildSeparator] : titlePackName;
+    }
+
+    private static string FormatFileSize(int bytes)
+        => bytes >= 1024 * 1024
+            ? $"{bytes / 1024d / 1024d:0.0} MB"
+            : $"{bytes / 1024d:0.0} KB";
+
+    private static string GetLatestDownloadUrl(string titlePack)
+        => $"/tm2/scripts/download/{titlePack}/latest";
+
+        private static string GetComposeFile(ScriptAsset asset)
+            => $"""
+services:
+  envimix:
+    image: bigbang1112/mania-server-manager:alpine
+    restart: unless-stopped
+    environment:
+      MSM_SERVER_TYPE: ManiaPlanet
+      MSM_SERVER_NAME: My ENVIMIX server
+      MSM_ACCOUNT_LOGIN: your_server_login
+      MSM_ACCOUNT_PASSWORD: your_server_password
+      MSM_TITLE: {asset.TitlePack}
+      MSM_USERDATA_DOWNLOAD_URLS: https://envimix.gbx.tools{GetLatestDownloadUrl(asset.TitlePack)}
+      MSM_MATCH_SETTINGS: EnvimixTimeAttack.{asset.TitlePack}.txt
+    ports:
+      - "2350:2350/tcp"
+      - "2350:2350/udp"
+      - "3450:3450/tcp"
+      - "3450:3450/udp"
+    volumes:
+      - ./servers:/app/data/servers
+      - msm_archives:/app/data/archives
+volumes:
+  msm_archives:
+""";
+
+        private async Task CopyComposeAsync()
+        {
+                if (selectedAsset is not null)
+                {
+                        await JS.InvokeVoidAsync("navigator.clipboard.writeText", GetComposeFile(selectedAsset));
+                }
+        }
+
+    private async Task<Dictionary<string, string?>> GetTitleDisplayNamesAsync()
+    {
+        try
+        {
+            var titles = await EnvimixService.GetTitlesAsync();
+            return titles.ToDictionary(title => title.Id, title => title.DisplayName, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            Logger.LogWarning(ex, "Unable to load ENVIMIX title display names");
+            return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private static int GetTitlePackOrder(string titlePack)
+        => titlePack switch
+        {
+            "TM2U_Island@adamkooo" => 0,
+            "TMOneBay@unbitn" => 1,
+            "TMOneSpeed@unbitn" => 2,
+            "TMOneAlpine@unbitn" => 3,
+            "TMAll@domino54" => 4,
+            "TMCanyon@nadeo" => 5,
+            "TMValley@nadeo" => 6,
+            "TMLagoon@nadeo" => 7,
+            _ => int.MaxValue
+        };
+
+    private static ScriptAsset CreateScriptAsset(
+        ReleaseAsset asset,
+        IReadOnlyDictionary<string, string?> titleDisplayNames)
+    {
+        var titlePack = GetTitlePackName(asset.Name);
+        var displayName = titleDisplayNames.GetValueOrDefault(titlePack);
+        return new ScriptAsset(titlePack, displayName ?? titlePack, asset.Name, asset.BrowserDownloadUrl, asset.Size);
+    }
+
+    private sealed record ScriptAsset(string TitlePack, string DisplayName, string FileName, string DownloadUrl, int Size);
+
+    private sealed record ScriptRelease(string? Name, string? Notes, DateTimeOffset? PublishedAt, string? Url, List<ScriptAsset> Assets);
+}

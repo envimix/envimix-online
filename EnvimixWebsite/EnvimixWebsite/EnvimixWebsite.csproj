@@ -17,6 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Octokit" Version="14.0.0" />
 		<ProjectReference Include="..\EnvimixWebsite.Client\EnvimixWebsite.Client.csproj" />
 		<PackageReference Include="ManiaAPI.ManiaPlanetAPI.Extensions.Hosting" Version="2.9.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.11" />

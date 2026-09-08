@@ -1,5 +1,7 @@
 namespace EnvimixWebAPI.Models;
 
+public sealed record TitleSummaryInfo(string Id, string? DisplayName);
+
 public sealed record TitleDetailsInfo(
     string Id,
     string? DisplayName,

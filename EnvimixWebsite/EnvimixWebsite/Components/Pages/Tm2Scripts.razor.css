@@ -1,0 +1,188 @@
+.section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.release-version {
+    margin: 2.5rem 0 1.5rem;
+}
+
+.release-version span {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.release-version h2 {
+    margin: 0.2rem 0 0;
+    font-size: 1.75rem;
+}
+
+.release-version p {
+    margin: 0.25rem 0 0;
+    color: #bbb;
+}
+
+.release-notes summary {
+    padding: 0.75rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.release-notes div {
+    padding: 0 0.75rem 1rem;
+    white-space: pre-line;
+}
+
+.downloads {
+    border-top: 1px solid #555;
+}
+
+.license-notice {
+    margin: 1rem 0 0;
+    color: #bbb;
+    font-size: 0.9rem;
+}
+
+.download {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr) 4.5rem;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #555;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 0.15s;
+}
+
+.download:hover {
+    background: #ffffff12;
+}
+
+.download:focus-visible {
+    outline: 2px solid #ba4545;
+    outline-offset: -2px;
+}
+
+.download:hover .download-action {
+    text-decoration: underline;
+}
+
+.download h3 {
+    margin: 0;
+}
+
+.filename {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #bbb;
+    font-size: 0.9rem;
+}
+
+.download-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.download-action {
+    color: #ba4545;
+    font-weight: bold;
+}
+
+.installation {
+    margin: 3rem 0;
+}
+
+:not(pre) > code {
+    background-color: #4444;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.title-pack-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.5rem 0 2rem;
+}
+
+.title-pack-selector-button {
+    border: 1px solid #666;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.45rem 0.65rem;
+}
+
+.title-pack-selector-button:hover,
+.title-pack-selector-button.active {
+    border-color: #ba4545;
+    background: #ba4545;
+    color: #fff;
+}
+
+.install-options {
+    display: grid;
+    gap: 1rem;
+}
+
+.install-options h3 {
+    margin: 0 0 0.75rem;
+}
+
+.install-options ol li {
+    margin-bottom: 0.35rem;
+}
+
+.install-options pre {
+    overflow-x: auto;
+    padding: 1rem;
+    border: 1px solid #555;
+    background: #171717;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.compose-sample {
+    position: relative;
+}
+
+::deep .compose-sample > .reu-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.interop-note {
+    margin-top: 2rem;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid #ba4545;
+    background: #272727;
+}
+
+@media (max-width: 700px) {
+    .section-heading {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .download {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .install-options {
+        gap: 2rem;
+    }
+}

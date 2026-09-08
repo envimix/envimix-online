@@ -14,7 +14,9 @@ public static class TitleEndpoints
     {
         group.WithTags("Title Pack");
 
-        group.MapPost("", SubmitTitle);
+        group.MapPost("", SubmitTitle).RequireAuthorization(Policies.AdminPolicy);
+        group.MapPost("register", RegisterTitle).RequireAuthorization(Policies.AdminPolicy);
+        group.MapGet("", GetTitles).CacheOutput(x => x.Expire(TimeSpan.FromHours(1)));
         group.MapGet("{titleId}", GetTitle);
         group.MapGet("{titleId}/release", GetTitleRelease);
         group.MapGet("{titleId}/stats", GetTitleStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
@@ -22,6 +24,16 @@ public static class TitleEndpoints
         group.MapGet("{titleId}/stats/skillpoints", GetSkillpointStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/activity-points", GetActivityPointStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
         group.MapGet("{titleId}/stats/completion", GetCompletionStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
+    }
+
+    private static async Task<TitleSummaryInfo[]> GetTitles(
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        return await db.Titles
+            .OrderBy(x => x.DisplayName ?? x.Id)
+            .Select(x => new TitleSummaryInfo(x.Id, x.DisplayName))
+            .ToArrayAsync(cancellationToken);
     }
 
     private static async Task<Results<Ok<TitleDetailsInfo>, NotFound>> GetTitle(
@@ -89,6 +101,15 @@ public static class TitleEndpoints
         CancellationToken cancellationToken)
     {
         await titleService.SubmitTitleAsync(request, cancellationToken);
+        return TypedResults.Ok();
+    }
+
+    private static async Task<Ok> RegisterTitle(
+        TitleRegistrationRequest request,
+        ITitleService titleService,
+        CancellationToken cancellationToken)
+    {
+        await titleService.RegisterTitleAsync(request, cancellationToken);
         return TypedResults.Ok();
     }
 

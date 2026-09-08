@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using System.Net;
 using EnvimixWebsite.Services;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
+using Octokit;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -43,6 +44,7 @@ public static class WebConfiguration
         services.AddHealthChecks();
 
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IGitHubClient>(_ => new GitHubClient(new ProductHeaderValue("envimix-gbx-tools")));
 
         services.AddHttpContextAccessor();
         services.AddHttpClient<IIdentityService, IdentityService>();
