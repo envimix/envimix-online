@@ -60,6 +60,13 @@
                 <dt>Registered at</dt>
                 <dd><LocalDateTime Value="@server.RegisteredAt" /></dd>
             </div>
+            @if (!string.IsNullOrWhiteSpace(server.RegisteredByLogin))
+            {
+                <div>
+                    <dt>Registered by</dt>
+                    <dd><a class="user-nickname" href="@GetUserUrl(server.RegisteredByLogin)">@(server.RegisteredByNickname ?? server.RegisteredByLogin)</a></dd>
+                </div>
+            }
             <div>
                 <dt>Last seen</dt>
                 <dd><LocalDateTime Value="@server.LastSeenAt" /></dd>
@@ -297,6 +304,9 @@
 
     private static string GetSessionUrl(Guid sessionId)
         => $"/envimania/sessions/{sessionId}";
+
+    private static string GetUserUrl(string userLogin)
+        => $"/users/{Uri.EscapeDataString(userLogin)}";
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";

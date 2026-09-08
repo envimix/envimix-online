@@ -363,6 +363,8 @@ public sealed record EnvimaniaServerInfo(
     int Page,
     int PageSize,
     DateTimeOffset RegisteredAt,
+    string? RegisteredByLogin,
+    string? RegisteredByNickname,
     DateTimeOffset? LastSeenAt,
     EnvimaniaServerSession[] RecentSessions,
     bool IsHidden,

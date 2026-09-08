@@ -241,6 +241,8 @@ public static class EnvimaniaEndpoints
                 ServerName = x.Name,
                 SessionCount = x.EnvimaniaSessions.Count,
                 x.RegisteredAt,
+                RegisteredByLogin = x.RegisteredById,
+                RegisteredByNickname = x.RegisteredBy == null ? null : x.RegisteredBy.Nickname,
                 LastSeenAt = x.EnvimaniaSessions
                     .OrderByDescending(session => session.StartedAt)
                     .Select(session => (DateTimeOffset?)session.StartedAt)
@@ -307,6 +309,8 @@ public static class EnvimaniaEndpoints
             normalizedPage,
             normalizedPageSize,
             server.RegisteredAt,
+            server.RegisteredByLogin,
+            server.RegisteredByNickname,
             server.LastSeenAt,
             recentSessions,
             server.IsHidden,
