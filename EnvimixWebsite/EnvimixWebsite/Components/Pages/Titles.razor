@@ -22,37 +22,50 @@
     }
     else
     {
-        <div class="titles" aria-label="Title packs">
-            @foreach (var title in titles)
-            {
-                <div class="title-list-item">
-                    <a class="title-link" href="@GetTitleUrl(title.Id)">
-                        <h2>
-                            @if (string.IsNullOrWhiteSpace(title.DisplayName))
-                            {
-                                @title.Id
-                            }
-                            else
-                            {
-                                <FormattedText Text="@title.DisplayName"></FormattedText>
-                            }
-                        </h2>
-                        @if (!string.IsNullOrWhiteSpace(title.DisplayName))
-                        {
-                            <p>@title.Id</p>
-                        }
-                    </a>
-                    <AuthorizeView Roles="@Roles.Admin">
-                        <Authorized>
-                            <form method="post" action="/titles/register">
-                                <AntiforgeryToken />
-                                <input type="hidden" name="titleId" value="@title.Id" />
-                                <ReuButton type="submit">Update</ReuButton>
-                            </form>
-                        </Authorized>
-                    </AuthorizeView>
-                </div>
-            }
+        <div class="titles-scroll">
+            <table class="titles-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Title pack</th>
+                        <AuthorizeView Roles="@Roles.Admin">
+                            <Authorized>
+                                <th class="title-action" scope="col">Actions</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var title in titles)
+                    {
+                        <tr>
+                            <td>
+                                <a class="title-link" href="@GetTitleUrl(title.Id)">
+                                    @if (string.IsNullOrWhiteSpace(title.DisplayName))
+                                    {
+                                        @title.Id
+                                    }
+                                    else
+                                    {
+                                        <FormattedText Text="@title.DisplayName"></FormattedText>
+                                        <small>@title.Id</small>
+                                    }
+                                </a>
+                            </td>
+                            <AuthorizeView Roles="@Roles.Admin">
+                                <Authorized>
+                                    <td class="title-action">
+                                        <form method="post" action="/titles/register">
+                                            <AntiforgeryToken />
+                                            <input type="hidden" name="titleId" value="@title.Id" />
+                                            <ReuButton type="submit">Update</ReuButton>
+                                        </form>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     }
 
