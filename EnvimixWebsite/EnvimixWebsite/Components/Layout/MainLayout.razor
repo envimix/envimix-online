@@ -37,7 +37,7 @@
         <a href="/privacy">Privacy Policy</a>
         <AuthorizeView>
             <Authorized>
-                <a href="logout">Logout</a>
+                <a href="@($"logout?returnUrl={Uri.EscapeDataString(NavManager.Uri)}")">Logout</a>
             </Authorized>
         </AuthorizeView>
     </LinkContent>
