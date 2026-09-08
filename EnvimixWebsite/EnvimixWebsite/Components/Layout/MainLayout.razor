@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager NavManager
 
+@using Microsoft.AspNetCore.Authorization
 @using SimplestGitSourceGenerator
 
 <ReuNavMenu Brand="envimix.gbx.tools">
@@ -37,7 +38,7 @@
         <a href="/privacy">Privacy Policy</a>
         <AuthorizeView>
             <Authorized>
-                <a href="@($"logout?returnUrl={Uri.EscapeDataString(NavManager.Uri)}")">Logout</a>
+                <a href="@($"logout?returnUrl={Uri.EscapeDataString(GetLogoutReturnUrl())}")">Logout</a>
             </Authorized>
         </AuthorizeView>
     </LinkContent>
@@ -73,3 +74,13 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    [CascadingParameter]
+    private RouteData? RouteData { get; set; }
+
+    private string GetLogoutReturnUrl()
+        => RouteData?.PageType.IsDefined(typeof(AuthorizeAttribute), inherit: true) == true
+            ? NavManager.BaseUri
+            : NavManager.Uri;
+}
