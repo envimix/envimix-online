@@ -39,7 +39,9 @@ public sealed class ValidationWebhookProcessor : BackgroundService
                     continue;
                 }
 
-                if (webhook.Gravity != 0 || !webhook.Map.IsCampaignMap)
+                if (webhook.Gravity != 0
+                    || !webhook.Map.IsCampaignMap
+                    || webhook.Map.TitlePackId != "Envimix_Turbo@bigbang1112")
                 {
                     logger.LogWarning("Skipping validation webhook for map {MapId} with gravity {Gravity}", webhook.Map.Id, webhook.Gravity);
                     continue;

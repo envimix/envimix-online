@@ -1875,15 +1875,18 @@ public sealed class EnvimaniaService(
 
         record.Removed = true;
 
-        using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+        if (record.Map.TitlePackId == "Envimix_Turbo@bigbang1112")
+        {
+            using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
 
-        var envEmote = ValidationWebhookProcessor.GetEnvEmote(record.Map);
-        var carEmote = ValidationWebhookProcessor.GetCarEmote(record.Car.Id);
-        var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(record.Map, record.Car.Id);
-        var recordTimeLink = ValidationWebhookProcessor.GetRecordTimeLink(record);
-        var userLink = ValidationWebhookProcessor.GetUserLink(record.User);
+            var envEmote = ValidationWebhookProcessor.GetEnvEmote(record.Map);
+            var carEmote = ValidationWebhookProcessor.GetCarEmote(record.Car.Id);
+            var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(record.Map, record.Car.Id);
+            var recordTimeLink = ValidationWebhookProcessor.GetRecordTimeLink(record);
+            var userLink = ValidationWebhookProcessor.GetUserLink(record.User);
 
-        record.RemovedMessageDiscordSnowflake = await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} record of {recordTimeLink} by {userLink} was **removed**");
+            record.RemovedMessageDiscordSnowflake = await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} record of {recordTimeLink} by {userLink} was **removed**");
+        }
 
         var hasChanges = await db.SaveChangesAsync(cancellationToken) > 0;
 
@@ -2252,28 +2255,31 @@ public sealed class EnvimaniaService(
                         await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(map.Id, carName, gravity, laps, "World"), cancellationToken);
                     }
 
-                    using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
-
-                    var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
-                    var carEmote = ValidationWebhookProcessor.GetCarEmote(carName);
-                    var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(map, car);
-                    var userLink = ValidationWebhookProcessor.GetUserLink(userModel);
-
-                    var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
-                        ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
-                        : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
-
-                    var messageId = await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} validation by {userLink} has been restored ({dateTag})");
-
-                    await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
+                    if (map.TitlePackId == "Envimix_Turbo@bigbang1112")
                     {
-                        Id = messageId,
-                        Record = record,
-                    }, cancellationToken);
+                        using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
 
-                    await db.SaveChangesAsync(cancellationToken);
+                        var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
+                        var carEmote = ValidationWebhookProcessor.GetCarEmote(carName);
+                        var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(map, car);
+                        var userLink = ValidationWebhookProcessor.GetUserLink(userModel);
 
-                    logger.LogInformation("Sent validation webhook for map {MapId}, message ID {MessageId}", mapUid, messageId);
+                        var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
+                            ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
+                            : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
+
+                        var messageId = await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} validation by {userLink} has been restored ({dateTag})");
+
+                        await db.ValidationDiscordMessages.AddAsync(new ValidationDiscordMessageEntity
+                        {
+                            Id = messageId,
+                            Record = record,
+                        }, cancellationToken);
+
+                        await db.SaveChangesAsync(cancellationToken);
+
+                        logger.LogInformation("Sent validation webhook for map {MapId}, message ID {MessageId}", mapUid, messageId);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2439,19 +2445,22 @@ public sealed class EnvimaniaService(
                             validation = record;
                         }
 
-                        using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+                        if (map.TitlePackId == "Envimix_Turbo@bigbang1112")
+                        {
+                            using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
 
-                        var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
-                        var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
-                        var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(map, car);
-                        var recordTimeLink = ValidationWebhookProcessor.GetRecordTimeLink(record);
-                        var userLink = ValidationWebhookProcessor.GetUserLink(record.User);
+                            var envEmote = ValidationWebhookProcessor.GetEnvEmote(map);
+                            var carEmote = ValidationWebhookProcessor.GetCarEmote(car);
+                            var mapCarLink = ValidationWebhookProcessor.GetMapCarLink(map, car);
+                            var recordTimeLink = ValidationWebhookProcessor.GetRecordTimeLink(record);
+                            var userLink = ValidationWebhookProcessor.GetUserLink(record.User);
 
-                        var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
-                            ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
-                            : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
+                            var dateTag = DateTimeOffset.UtcNow - record.DrivenAt < TimeSpan.FromDays(1)
+                                ? TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortTime)
+                                : TimestampTag.FromDateTimeOffset(record.DrivenAt, TimestampTagStyles.ShortDateTime);
 
-                        await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} record of {recordTimeLink} by {userLink} has been restored ({dateTag})");
+                            await client.SendMessageAsync($"{envEmote} {mapCarLink} {carEmote} record of {recordTimeLink} by {userLink} has been restored ({dateTag})");
+                        }
                     }
 
                     if (laps == -1)
@@ -2460,7 +2469,7 @@ public sealed class EnvimaniaService(
                         continue;
                     }
 
-                    if (validation is not null)
+                    if (validation is not null && map.TitlePackId == "Envimix_Turbo@bigbang1112")
                     {
                         using var client = new DiscordWebhookClient(config["DiscordValidationWebhook"]);
 

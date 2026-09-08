@@ -29,7 +29,8 @@ public sealed class WorldRecordWebhookProcessor : BackgroundService
         {
             try
             {
-                if (!webhook.NewRecord.Map.IsCampaignMap)
+                if (!webhook.NewRecord.Map.IsCampaignMap
+                    || webhook.NewRecord.Map.TitlePackId != "Envimix_Turbo@bigbang1112")
                 {
                     continue;
                 }
