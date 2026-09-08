@@ -15,7 +15,7 @@ public static class TitleEndpoints
         group.WithTags("Title Pack");
 
         group.MapPost("", SubmitTitle).RequireAuthorization(Policies.AdminPolicy);
-        group.MapPost("register", RegisterTitle).RequireAuthorization(Policies.AdminPolicy);
+        group.MapPost("register", RegisterTitle);
         group.MapGet("", GetTitles).CacheOutput(x => x.Expire(TimeSpan.FromHours(1)));
         group.MapGet("{titleId}", GetTitle);
         group.MapGet("{titleId}/release", GetTitleRelease);
@@ -104,11 +104,24 @@ public static class TitleEndpoints
         return TypedResults.Ok();
     }
 
-    private static async Task<Ok> RegisterTitle(
+    private static async Task<Results<Ok, ForbidHttpResult>> RegisterTitle(
         TitleRegistrationRequest request,
         ITitleService titleService,
+        IEnvimaniaService envimaniaService,
+        HttpRequest httpRequest,
+        ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
+        var accessToken = httpRequest.Headers.Authorization.ToString();
+        var identityAccessToken = accessToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? accessToken["Bearer ".Length..].Trim()
+            : null;
+
+        if (!await envimaniaService.HasAdminAccessAsync(principal, identityAccessToken, cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
         await titleService.RegisterTitleAsync(request, cancellationToken);
         return TypedResults.Ok();
     }

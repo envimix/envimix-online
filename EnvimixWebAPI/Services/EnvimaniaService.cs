@@ -54,6 +54,9 @@ public interface IEnvimaniaService
     Task<EnvimaniaServerAccess> GetServerAccessAsync(
         string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
+    Task<bool> HasAdminAccessAsync(
+        ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
     Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>>
         BanAsync(EnvimaniaBanRequest request, ClaimsPrincipal principal, CancellationToken cancellationToken);
 
@@ -431,6 +434,20 @@ public sealed class EnvimaniaService(
         var isAdmin = await IsEnvimixAdminAsync(identityUser, cancellationToken);
 
         return new EnvimaniaServerAccess(ownsServer || isAdmin, isAdmin);
+    }
+
+    public async Task<bool> HasAdminAccessAsync(
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        if (principal.IsInRole(Roles.Admin) || principal.IsInRole(Roles.SuperAdmin))
+        {
+            return true;
+        }
+
+        var identityUser = await GetIdentityUserAsync(identityAccessToken, cancellationToken);
+        return identityUser is not null && await IsEnvimixAdminAsync(identityUser, cancellationToken);
     }
 
     private async Task<bool> IsEnvimixAdminAsync(IdentityUser identityUser, CancellationToken cancellationToken)

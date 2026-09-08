@@ -19,34 +19,40 @@
     margin-top: 1.5rem;
 }
 
-.titles a {
-    display: block;
+.title-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     padding: 1rem 0.75rem;
     border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.title-link {
+    flex: 1;
     color: inherit;
     text-decoration: none;
     transition: background-color 0.15s;
 }
 
-.titles a:hover {
+.title-list-item:hover {
     background-color: #ffffff12;
 }
 
-.titles a:focus-visible {
+.title-link:focus-visible {
     outline: 2px solid #ba4545;
     outline-offset: -2px;
 }
 
-.titles h2,
-.titles p {
+.title-link h2,
+.title-link p {
     margin: 0;
 }
 
-.titles h2 {
+.title-link h2 {
     font-size: 1.15rem;
 }
 
-.titles p {
+.title-link p {
     margin-top: 0.3rem;
     color: #bbb;
     font-size: 0.9rem;

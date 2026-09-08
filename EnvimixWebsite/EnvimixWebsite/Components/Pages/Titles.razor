@@ -12,6 +12,50 @@
     <h1>Title packs</h1>
     <p>Browse ENVIMIX title packs, campaigns, maps, and records.</p>
 
+    @if (loadFailed)
+    {
+        <p>Title packs are temporarily unavailable.</p>
+    }
+    else if (titles is null || titles.Length == 0)
+    {
+        <p>No title packs are available yet.</p>
+    }
+    else
+    {
+        <div class="titles" aria-label="Title packs">
+            @foreach (var title in titles)
+            {
+                <div class="title-list-item">
+                    <a class="title-link" href="@GetTitleUrl(title.Id)">
+                        <h2>
+                            @if (string.IsNullOrWhiteSpace(title.DisplayName))
+                            {
+                                @title.Id
+                            }
+                            else
+                            {
+                                <FormattedText Text="@title.DisplayName"></FormattedText>
+                            }
+                        </h2>
+                        @if (!string.IsNullOrWhiteSpace(title.DisplayName))
+                        {
+                            <p>@title.Id</p>
+                        }
+                    </a>
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <form method="post" action="/titles/register">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="titleId" value="@title.Id" />
+                                <ReuButton type="submit">Update</ReuButton>
+                            </form>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            }
+        </div>
+    }
+
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <section class="admin-registration" aria-labelledby="register-title-heading">
@@ -27,39 +71,6 @@
             </section>
         </Authorized>
     </AuthorizeView>
-
-    @if (loadFailed)
-    {
-        <p>Title packs are temporarily unavailable.</p>
-    }
-    else if (titles is null || titles.Length == 0)
-    {
-        <p>No title packs are available yet.</p>
-    }
-    else
-    {
-        <div class="titles" aria-label="Title packs">
-            @foreach (var title in titles)
-            {
-                <a href="@GetTitleUrl(title.Id)">
-                    <h2>
-                        @if (string.IsNullOrWhiteSpace(title.DisplayName))
-                        {
-                            @title.Id
-                        }
-                        else
-                        {
-                            <FormattedText Text="@title.DisplayName"></FormattedText>
-                        }
-                    </h2>
-                    @if (!string.IsNullOrWhiteSpace(title.DisplayName))
-                    {
-                        <p>@title.Id</p>
-                    }
-                </a>
-            }
-        </div>
-    }
 </ReuContainer>
 
 @code {
