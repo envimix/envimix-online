@@ -1,6 +1,7 @@
 ﻿using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using System.Diagnostics;
@@ -16,7 +17,7 @@ public static class TitleEndpoints
 
         group.MapPost("", SubmitTitle).RequireAuthorization(Policies.AdminPolicy);
         group.MapPost("register", RegisterTitle);
-        group.MapGet("", GetTitles).CacheOutput(x => x.Expire(TimeSpan.FromHours(1)));
+        group.MapGet("", GetTitles).CacheOutput(x => x.Expire(TimeSpan.FromHours(1)).Tag("titles"));
         group.MapGet("{titleId}", GetTitle);
         group.MapGet("{titleId}/release", GetTitleRelease);
         group.MapGet("{titleId}/stats", GetTitleStats).CacheOutput(x => x.Expire(TimeSpan.FromMinutes(1)).Tag("title-stats"));
@@ -108,6 +109,7 @@ public static class TitleEndpoints
         TitleRegistrationRequest request,
         ITitleService titleService,
         IEnvimaniaService envimaniaService,
+        IOutputCacheStore outputCache,
         HttpRequest httpRequest,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
@@ -122,7 +124,11 @@ public static class TitleEndpoints
             return TypedResults.Forbid();
         }
 
-        await titleService.RegisterTitleAsync(request, cancellationToken);
+        if (await titleService.RegisterTitleAsync(request, cancellationToken))
+        {
+            await outputCache.EvictByTagAsync("titles", cancellationToken);
+        }
+
         return TypedResults.Ok();
     }
 
