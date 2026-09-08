@@ -64,7 +64,18 @@
             {
                 <div>
                     <dt>Registered by</dt>
-                    <dd><a class="user-nickname" href="@GetUserUrl(server.RegisteredByLogin)">@(server.RegisteredByNickname ?? server.RegisteredByLogin)</a></dd>
+                    <dd>
+                        <a class="user-nickname" href="@GetUserUrl(server.RegisteredByLogin)">
+                            @if (string.IsNullOrWhiteSpace(server.RegisteredByNickname))
+                            {
+                                @server.RegisteredByLogin
+                            }
+                            else
+                            {
+                                <FormattedText Text="@server.RegisteredByNickname"></FormattedText>
+                            }
+                        </a>
+                    </dd>
                 </div>
             }
             <div>

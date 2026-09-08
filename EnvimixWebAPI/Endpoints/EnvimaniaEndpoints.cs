@@ -208,6 +208,8 @@ public static class EnvimaniaEndpoints
                 x.Id,
                 x.Name,
                 x.EnvimaniaSessions.Count,
+                x.RegisteredById,
+                x.RegisteredBy == null ? null : x.RegisteredBy.Nickname,
                 x.EnvimaniaSessions
                     .OrderByDescending(session => session.StartedAt)
                     .Select(session => (DateTimeOffset?)session.StartedAt)
