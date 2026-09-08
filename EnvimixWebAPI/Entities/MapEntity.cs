@@ -43,6 +43,19 @@ public sealed class MapEntity
     public CarEntity? DefaultCar { get; set; }
     public string? DefaultCarId { get; set; }
 
+    public bool IsDefaultCar(string carId)
+    {
+        if (!string.IsNullOrWhiteSpace(DefaultCarId))
+        {
+            return DefaultCarId == carId;
+        }
+
+        return (Collection == "Canyon" && carId == "CanyonCar") ||
+               (Collection == "Stadium" && carId == "StadiumCar") ||
+               (Collection == "Valley" && carId == "ValleyCar") ||
+               (Collection == "Lagoon" && carId == "LagoonCar");
+    }
+
     // cycle issues when caching
     //public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
     //public ICollection<RecordEntity> Records { get; } = [];

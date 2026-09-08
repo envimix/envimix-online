@@ -30,11 +30,7 @@ public sealed class ValidationWebhookProcessor : BackgroundService
         {
             try
             {
-                // hack but works for majority of maps
-                if (webhook.Map.Collection == "Canyon" && webhook.Car == "CanyonCar"
-                    || webhook.Map.Collection == "Valley" && webhook.Car == "ValleyCar"
-                    || webhook.Map.Collection == "Lagoon" && webhook.Car == "LagoonCar"
-                    || webhook.Map.Collection == "Stadium" && webhook.Car == "StadiumCar")
+                if (webhook.Map.IsDefaultCar(webhook.Car))
                 {
                     continue;
                 }

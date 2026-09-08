@@ -2341,11 +2341,7 @@ public sealed class EnvimaniaService(
                     var scoreContext = car;
 
                     // default car uses a different score context
-                    var isDefaultCar =
-                        (map.Collection == "Canyon" && car == "CanyonCar") ||
-                        (map.Collection == "Stadium" && car == "StadiumCar") ||
-                        (map.Collection == "Valley" && car == "ValleyCar") ||
-                        (map.Collection == "Lagoon" && car == "LagoonCar");
+                    var isDefaultCar = map.IsDefaultCar(car);
                     if (isDefaultCar)
                     {
                         scoreContext = "";
@@ -2576,14 +2572,16 @@ public sealed class EnvimaniaService(
         var records = await db.Records
             .Include(x => x.Map)
             .Where(x => x.Map.TitlePackId == titleId && x.Map.IsCampaignMap && !x.Removed
-                && ((x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
-                    (x.Map.Collection == "Stadium" && x.CarId != "StadiumCar") ||
-                    (x.Map.Collection == "Valley" && x.CarId != "ValleyCar") ||
-                    (x.Map.Collection == "Lagoon" && x.CarId != "LagoonCar") ||
-                    (x.Map.Collection != "Canyon" &&
-                     x.Map.Collection != "Stadium" &&
-                     x.Map.Collection != "Valley" &&
-                     x.Map.Collection != "Lagoon")))
+                && ((!string.IsNullOrWhiteSpace(x.Map.DefaultCarId) && x.CarId != x.Map.DefaultCarId) ||
+                    (string.IsNullOrWhiteSpace(x.Map.DefaultCarId) &&
+                        ((x.Map.Collection == "Canyon" && x.CarId != "CanyonCar") ||
+                         (x.Map.Collection == "Stadium" && x.CarId != "StadiumCar") ||
+                         (x.Map.Collection == "Valley" && x.CarId != "ValleyCar") ||
+                         (x.Map.Collection == "Lagoon" && x.CarId != "LagoonCar") ||
+                         (x.Map.Collection != "Canyon" &&
+                          x.Map.Collection != "Stadium" &&
+                          x.Map.Collection != "Valley" &&
+                          x.Map.Collection != "Lagoon")))))
             .GroupBy(x => new { x.UserId, x.MapId, x.CarId, x.Gravity, x.Laps })
             .Select(g => g
                 .OrderBy(x => x.Time)

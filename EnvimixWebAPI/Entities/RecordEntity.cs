@@ -55,9 +55,6 @@ public sealed class RecordEntity
 
     public bool IsDefaultCar()
     {
-        return (Map.Collection == "Canyon" && CarId == "CanyonCar") ||
-               (Map.Collection == "Stadium" && CarId == "StadiumCar") ||
-               (Map.Collection == "Valley" && CarId == "ValleyCar") ||
-               (Map.Collection == "Lagoon" && CarId == "LagoonCar");
+        return Map.IsDefaultCar(CarId);
     }
 }

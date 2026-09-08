@@ -130,6 +130,7 @@ public static class MapEndpoints
             .Select(x => new
             {
                 x.Collection,
+                x.DefaultCarId,
                 x.AuthorLogin,
                 x.AuthorNickname
             })
@@ -198,14 +199,16 @@ public static class MapEndpoints
             .Select(carInfo =>
             {
                 validators.TryGetValue(carInfo.Id, out var validator);
-                var isDefaultCar = mapInfo.Collection switch
-                {
-                    "Canyon" => carInfo.Id == "CanyonCar",
-                    "Stadium" => carInfo.Id == "StadiumCar",
-                    "Valley" => carInfo.Id == "ValleyCar",
-                    "Lagoon" => carInfo.Id == "LagoonCar",
-                    _ => false
-                };
+                var isDefaultCar = !string.IsNullOrWhiteSpace(mapInfo.DefaultCarId)
+                    ? carInfo.Id == mapInfo.DefaultCarId
+                    : mapInfo.Collection switch
+                    {
+                        "Canyon" => carInfo.Id == "CanyonCar",
+                        "Stadium" => carInfo.Id == "StadiumCar",
+                        "Valley" => carInfo.Id == "ValleyCar",
+                        "Lagoon" => carInfo.Id == "LagoonCar",
+                        _ => false
+                    };
 
                 return new MapRecordCarInfo(
                     carInfo.Id,
