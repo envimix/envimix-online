@@ -47,9 +47,12 @@
                                     else
                                     {
                                         <FormattedText Text="@title.DisplayName"></FormattedText>
-                                        <small>@title.Id</small>
                                     }
                                 </a>
+                                @if (!string.IsNullOrWhiteSpace(title.DisplayName))
+                                {
+                                    <small>@title.Id</small>
+                                }
                             </td>
                             <AuthorizeView Roles="@Roles.Admin">
                                 <Authorized>

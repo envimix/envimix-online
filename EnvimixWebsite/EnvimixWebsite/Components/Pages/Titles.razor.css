@@ -41,7 +41,7 @@
 }
 
 .title-link,
-.title-link small {
+.titles-table small {
     display: block;
 }
 
@@ -49,7 +49,7 @@
     color: inherit;
 }
 
-.title-link small {
+.titles-table small {
     margin-top: 0.3rem;
     opacity: 0.7;
     overflow-wrap: anywhere;
