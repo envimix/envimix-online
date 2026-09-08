@@ -218,7 +218,8 @@ services:
       MSM_ACCOUNT_PASSWORD: your_server_password
       MSM_TITLE: {asset.TitlePack}
       MSM_USERDATA_DOWNLOAD_URLS: https://envimix.gbx.tools{GetLatestDownloadUrl(asset.TitlePack)}
-      MSM_MATCH_SETTINGS: EnvimixTimeAttack.{asset.TitlePack}.txt
+      MSM_MATCH_SETTINGS_BASE: EnvimixTimeAttack.{asset.TitlePack}.txt
+      MSM_MATCH_SETTINGS: MapList.txt
     ports:
       - "2350:2350/tcp"
       - "2350:2350/udp"
