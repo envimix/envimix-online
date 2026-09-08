@@ -166,9 +166,15 @@ public sealed class EnvimaniaService(
             return new ActionUnprocessableResponse("Server login already registered");
         }
 
+        string? registeredById = null;
+
         if (principal.Identity?.IsAuthenticated == true)
         {
-            if (!principal.IsInRole(Roles.Admin) && !principal.IsInRole(Roles.SuperAdmin))
+            var registeredBy = await db.Users.FindAsync([principal.GetName()], cancellationToken);
+            registeredById = registeredBy?.Id;
+
+            var isAdminRegistration = principal.IsInRole(Roles.Admin) || principal.IsInRole(Roles.SuperAdmin);
+            if (!isAdminRegistration)
             {
                 if (string.IsNullOrWhiteSpace(request.ServerToken))
                 {
@@ -193,8 +199,15 @@ public sealed class EnvimaniaService(
                 return new ActionForbiddenResponse("Unable to verify identity");
             }
 
-            var isAdmin = await IsEnvimixAdminAsync(identityUser, cancellationToken);
-            if (!isAdmin && !IdentityUserOwnsServer(identityUser, request.ServerLogin))
+            var isAdminRegistration = await IsEnvimixAdminAsync(identityUser, cancellationToken);
+            if (identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser))
+            {
+                registeredById = await db.Users.FindAsync([maniaPlanetUser.Id], cancellationToken) is null
+                    ? null
+                    : maniaPlanetUser.Id;
+            }
+
+            if (!isAdminRegistration && !IdentityUserOwnsServer(identityUser, request.ServerLogin))
             {
                 return new ActionForbiddenResponse("Server login not owned by user");
             }
@@ -205,13 +218,15 @@ public sealed class EnvimaniaService(
         if (server is not null)
         {
             server.DeletedAt = null;
+            server.RegisteredById = registeredById;
         }
         else
         {
             server = new ServerEntity
             {
                 Id = request.ServerLogin,
-                RegisteredAt = DateTimeOffset.UtcNow
+                RegisteredAt = DateTimeOffset.UtcNow,
+                RegisteredById = registeredById
             };
             await db.Servers.AddAsync(server, cancellationToken);
         }
@@ -443,32 +458,7 @@ public sealed class EnvimaniaService(
             return null;
         }
 
-        var identityUser = await identityResponse.Content.ReadFromJsonAsync<IdentityUser>(cancellationToken);
-        if (identityUser?.IsAdmin == true
-            && identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser))
-        {
-            var envimixUser = await db.Users.FirstOrDefaultAsync(x => x.Id == maniaPlanetUser.Id, cancellationToken);
-            if (envimixUser is null)
-            {
-                envimixUser = new UserEntity
-                {
-                    Id = maniaPlanetUser.Id,
-                    IsAdmin = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                };
-                await db.Users.AddAsync(envimixUser, cancellationToken);
-            }
-            else if (!envimixUser.IsAdmin)
-            {
-                envimixUser.IsAdmin = true;
-                envimixUser.UpdatedAt = DateTimeOffset.UtcNow;
-            }
-
-            await db.SaveChangesAsync(cancellationToken);
-        }
-
-        return identityUser;
+        return await identityResponse.Content.ReadFromJsonAsync<IdentityUser>(cancellationToken);
     }
 
     private static bool IdentityUserOwnsServer(IdentityUser identityUser, string serverLogin)
@@ -615,7 +605,9 @@ public sealed class EnvimaniaService(
             }
         }
 
-        var server = await db.Servers.FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
+        var server = await db.Servers
+            .Include(x => x.RegisteredBy)
+            .FirstOrDefaultAsync(x => x.Id == request.ServerLogin, cancellationToken);
 
         if (server is null)
         {
@@ -625,6 +617,12 @@ public sealed class EnvimaniaService(
         if (server.BanReason is not null)
         {
             return ActionForbiddenResponse.ServerLoginBanned;
+        }
+
+        if (request.TitleId != "Envimix_Turbo@bigbang1112"
+            && (server.RegisteredById is null || server.RegisteredBy?.IsAdmin != true))
+        {
+            return new ActionForbiddenResponse("Sessions for this title pack require a server registered by an admin");
         }
 
         // VALIDATION END

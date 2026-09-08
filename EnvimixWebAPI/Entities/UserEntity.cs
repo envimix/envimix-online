@@ -48,4 +48,5 @@ public sealed class UserEntity
     public string? BanReason { get; set; }
 
     public ICollection<RecordEntity> Records { get; } = [];
+    public ICollection<ServerEntity> RegisteredServers { get; } = [];
 }

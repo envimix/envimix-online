@@ -462,6 +462,12 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<DateTimeOffset>("RegisteredAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("RegisteredById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.HasIndex("RegisteredById");
+
                     b.HasKey("Id");
 
                     b.ToTable("Servers");
@@ -679,6 +685,15 @@ namespace EnvimixWebAPI.Migrations
                     b.Navigation("Server");
 
                     b.Navigation("Title");
+                });
+
+            modelBuilder.Entity("EnvimixWebAPI.Entities.ServerEntity", b =>
+                {
+                    b.HasOne("EnvimixWebAPI.Entities.UserEntity", "RegisteredBy")
+                        .WithMany("RegisteredServers")
+                        .HasForeignKey("RegisteredById");
+
+                    b.Navigation("RegisteredBy");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapEntity", b =>

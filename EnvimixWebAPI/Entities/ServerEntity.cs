@@ -15,6 +15,10 @@ public sealed class ServerEntity
 
     public DateTimeOffset RegisteredAt { get; set; }
 
+    [StringLength(64)]
+    public string? RegisteredById { get; set; }
+    public UserEntity? RegisteredBy { get; set; }
+
     public DateTimeOffset? DeletedAt { get; set; }
 
     public ICollection<EnvimaniaSessionEntity> EnvimaniaSessions { get; } = [];
