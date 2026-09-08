@@ -75,7 +75,7 @@ public static class TitleEndpoints
                 x.DefaultCarId))
             .ToArrayAsync(cancellationToken);
 
-        var recordCount = await db.Records.CountAsync(x => x.TitleId == titleId, cancellationToken);
+        var recordCount = await db.Records.CountAsync(x => x.TitleId == titleId && !x.Removed, cancellationToken);
         var playerCount = await db.Records
             .Where(x => x.TitleId == titleId)
             .Select(x => x.UserId)
