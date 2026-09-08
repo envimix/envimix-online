@@ -11,11 +11,11 @@
     <h1>Privacy Policy</h1>
 
     <div class="legal-document">
-        <p class="last-updated">Last updated: 3 January 2026</p>
+        <p class="last-updated">Last updated: 8 September 2026</p>
 
         <h2>1. Overview</h2>
         <p>
-            ENVIMIX project ("the Service," "we," "us," or "our") is a community-driven platform for TrackMania and ManiaPlanet players that provides record tracking, leaderboards, and title pack distribution services.
+            ENVIMIX project ("the Service," "we," "us," or "our") is a community-driven platform for TrackMania and ManiaPlanet players that provides record tracking, leaderboards, registered-server and session information, and title pack distribution services.
         </p>
         <p>
             The Service is part of the gbx.tools ecosystem and relies on <a href="https://identity.gbx.tools">identity.gbx.tools</a> for user authentication and identity management. We do not operate our own account system and do not store credentials.
@@ -37,8 +37,9 @@
         </p>
         <ul>
             <li>User ID (for account association)</li>
-            <li>ManiaPlanet login, nickname, and zone information</li>
-            <li>Dedicated server logins (for server operators)</li>
+            <li>ManiaPlanet login, nickname, zone, avatar URL, language, profile description, colour, Steam user ID, and game profile statistics made available to the Service</li>
+            <li>Discord account ID, username, nickname, and avatar information when linked to the Service</li>
+            <li>Account creation, update, authorization-interest, and moderation status information</li>
         </ul>
 
         <h3>3.2 Game Records</h3>
@@ -46,11 +47,11 @@
             When you play on registered servers or submit records, we store:
         </p>
         <ul>
-            <li>Race times, scores, and checkpoint data</li>
-            <li>Map information and title pack details</li>
-            <li>Vehicle/car used for the record</li>
+            <li>Race times, scores, respawns, lap count, gravity setting, and checkpoint data</li>
+            <li>Map, campaign, title pack, author, vehicle, and medal information</li>
             <li>Ghost data for verification</li>
-            <li>Timestamp and session information</li>
+            <li>Gameplay, submission, session, and source-server timestamps and identifiers</li>
+            <li>Record status and history, including validation, world-record, removal, and restoration status</li>
         </ul>
 
         <h3>3.3 Server Data</h3>
@@ -58,9 +59,14 @@
             For registered dedicated servers, we maintain:
         </p>
         <ul>
-            <li>Server login and authentication tokens</li>
-            <li>Server configuration and settings</li>
+            <li>Server login, display name, registration time, deletion status, and moderation status</li>
+            <li>The account that registered a server and the server's session, mode, map, title, start, expiry, and end information</li>
         </ul>
+
+        <h3>3.4 Service Operation Data</h3>
+        <p>
+            We store title pack versions, downloadable map and title pack data, and identifiers for Discord messages created by the Service so that those messages can be managed when appropriate.
+        </p>
 
         <h2>4. How We Use Your Data</h2>
         <p>
@@ -72,6 +78,7 @@
             <li>Enable server integration and API services</li>
             <li>Improve service performance and user experience</li>
             <li>Ensure fair play and community standards</li>
+            <li>Administer server registration, session operation, record moderation, and title pack access</li>
         </ul>
 
         <h2>5. Data Sharing</h2>
@@ -79,12 +86,13 @@
             We may share data in the following circumstances:
         </p>
         <ul>
-            <li>Publicly displaying leaderboards, validators, and player statistics</li>
+            <li>Publicly displaying leaderboards, validators, player profiles, records, record status, map and title information, registered servers, and sessions</li>
+            <li>Publishing Envimix Turbo validation, world-record, record-removal, and record-restoration notices through Discord webhooks; these notices may include player, map, vehicle, record time, and event-time information</li>
             <li>When required by law or to protect our rights</li>
             <li>With your explicit consent</li>
         </ul>
         <p>
-            Player records and leaderboard data are publicly visible as part of the competitive gaming experience.
+            Player records, leaderboard data, and related server and session information are publicly visible as part of the competitive gaming experience. Discord processes webhook content under its own policies.
         </p>
 
         <h2>6. Data Retention and Deletion</h2>
@@ -92,10 +100,11 @@
             Deleting your account through identity.gbx.tools will restrict your access to the Service, but some game-related data will continue being stored to maintain leaderboard integrity. This includes:
         </p>
         <ul>
-            <li>Historical records and race times</li>
+            <li>Historical records, race times, ghost data, checkpoints, and record status history</li>
             <li>User ID from identity manager (anonymized reference)</li>
-            <li>ManiaPlanet login, nickname, and zone (for record attribution)</li>
-            <li>Server registration data (if applicable)</li>
+            <li>ManiaPlanet login, nickname, zone, and other public profile data used for record attribution</li>
+            <li>Server registration and session data, including its association with the registering account (if applicable)</li>
+            <li>Discord message identifiers required to manage published notices</li>
         </ul>
         <p>
             After account deletion, you cannot manage this data until creating a new account that can associate to this data. You have the right to request complete data deletion or remove server integrations by contacting us.
