@@ -28,6 +28,16 @@ formatWithin(document);
 
 new MutationObserver(mutations => {
     for (const mutation of mutations) {
+        if (mutation.type === "attributes") {
+            formatLocalDateTime(mutation.target);
+            continue;
+        }
+
         mutation.addedNodes.forEach(formatWithin);
     }
-}).observe(document.body, { childList: true, subtree: true });
+}).observe(document.body, {
+    attributes: true,
+    attributeFilter: ["datetime"],
+    childList: true,
+    subtree: true
+});
