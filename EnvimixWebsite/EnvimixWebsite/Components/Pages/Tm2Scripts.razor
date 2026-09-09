@@ -78,7 +78,7 @@
                                role="radio"
                                aria-checked="@(asset == selectedAsset)"
                                OnClick="() => selectedAsset = asset">
-                           <FormattedText Text="@asset.DisplayName"></FormattedText>
+                           <span><FormattedText Text="@asset.DisplayName"></FormattedText></span>
                     </ReuButton>
                 }
             </div>
