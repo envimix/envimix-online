@@ -445,7 +445,7 @@
         }
 
         var action = server.HasControllerCode ? "regenerate" : "generate";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{char.ToUpperInvariant(action[0])}{action[1..]} this controller code?"))
+        if (!await JS.InvokeAsync<bool>("confirm", $"{char.ToUpperInvariant(action[0])}{action[1..]} the controller code?"))
         {
             return;
         }

@@ -4,6 +4,7 @@ using EnvimixWebAPI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnvimixWebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911233059_AddRecordReplay")]
+    partial class AddRecordReplay
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -417,9 +420,6 @@ namespace EnvimixWebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(64)");
 
-                    b.Property<Guid?>("ValidationGhostId")
-                        .HasColumnType("char(36)");
-
                     b.Property<ulong?>("WorldRecordMessageDiscordSnowflake")
                         .HasColumnType("bigint unsigned");
 
@@ -442,8 +442,6 @@ namespace EnvimixWebAPI.Migrations
                     b.HasIndex("TitleId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("ValidationGhostId");
 
                     b.HasIndex("MapId", "CarId", "Gravity", "Laps", "Removed", "DrivenAt", "Time");
 
@@ -840,10 +838,6 @@ namespace EnvimixWebAPI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EnvimixWebAPI.Entities.GhostEntity", "ValidationGhost")
-                        .WithMany()
-                        .HasForeignKey("ValidationGhostId");
-
                     b.Navigation("Car");
 
                     b.Navigation("Ghost");
@@ -857,8 +851,6 @@ namespace EnvimixWebAPI.Migrations
                     b.Navigation("Title");
 
                     b.Navigation("User");
-
-                    b.Navigation("ValidationGhost");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.ServerEntity", b =>

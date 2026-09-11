@@ -21,9 +21,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
-using System.Security.Cryptography;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
@@ -147,7 +145,6 @@ public sealed class EnvimaniaService(
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Meter Meter = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Counter<int> NewRecordsCounter = Meter.CreateCounter<int>("envimania_new_records_total", description: "Total number of new records submitted");
-    private const string ControllerCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
@@ -439,19 +436,8 @@ public sealed class EnvimaniaService(
             return false;
         }
 
-        var controllerCode = string.Create(8, 0, static (characters, _) =>
-        {
-            for (var index = 0; index < characters.Length; index++)
-            {
-                characters[index] = ControllerCodeAlphabet[RandomNumberGenerator.GetInt32(ControllerCodeAlphabet.Length)];
-            }
-        });
-        var salt = RandomNumberGenerator.GetBytes(32);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(
-            Encoding.UTF8.GetBytes(controllerCode), salt, 210_000, HashAlgorithmName.SHA512, 32);
-
-        server.ControllerCodeSalt = Convert.ToBase64String(salt);
-        server.ControllerCodeHash = Convert.ToBase64String(hash);
+        var controllerCode = ControllerCodeHasher.GenerateCode();
+        (server.ControllerCodeHash, server.ControllerCodeSalt) = ControllerCodeHasher.Hash(controllerCode);
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Controller code generated for dedicated server {ServerLogin}.", serverLogin);
@@ -1203,23 +1189,9 @@ public sealed class EnvimaniaService(
         return hasChanges;
     }
 
-    private static bool ValidateGhost(CGameCtnGhost ghost, [NotNullWhen(true)] out string? carName, out int laps, [NotNullWhen(false)] out ValidationFailureResponse? validationFailure)
+    private bool ValidateGhost(CGameCtnGhost ghost, [NotNullWhen(true)] out string? carName, out int laps, [NotNullWhen(false)] out ValidationFailureResponse? validationFailure)
     {
-        carName = ghost.PlayerModel?.Id switch
-        {
-            "CanyonCar" or "Vehicles\\CanyonCar.Item.Gbx" or "Vehicles\\CanyonCarTurbo.Item.Gbx" => "CanyonCar",
-            "StadiumCar" or "Vehicles\\StadiumCar.Item.Gbx" or "Vehicles\\StadiumCarTurbo.Item.Gbx" => "StadiumCar",
-            "ValleyCar" or "Vehicles\\ValleyCar.Item.Gbx" or "Vehicles\\ValleyCarTurbo.Item.Gbx" => "ValleyCar",
-            "LagoonCar" or "Vehicles\\LagoonCar.Item.Gbx" or "Vehicles\\LagoonCarTurbo.Item.Gbx" => "LagoonCar",
-            "Vehicles\\TrafficCar.Item.Gbx" => "TrafficCar",
-            "Vehicles\\DesertCar.Item.Gbx" => "DesertCar",
-            "Vehicles\\RallyCar.Item.Gbx" => "RallyCar",
-            "Vehicles\\SnowCar.Item.Gbx" => "SnowCar",
-            "Vehicles\\IslandCar.Item.Gbx" => "IslandCar",
-            "Vehicles\\BayCar.Item.Gbx" => "BayCar",
-            "Vehicles\\CoastCar.Item.Gbx" => "CoastCar",
-            _ => null
-        };
+        carName = modService.GetCarIdFromPlayerModel(ghost.PlayerModel?.Id);
 
         laps = 0;
 

@@ -19,6 +19,8 @@ public sealed record RecordInfo(
     string? TitleId,
     string? TitleDisplayName,
     Guid? GhostId,
+    Guid? ValidationGhostId,
+    Guid? ReplayId,
     int? Rank,
     bool Removed)
 {

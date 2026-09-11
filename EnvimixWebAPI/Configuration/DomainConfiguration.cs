@@ -12,8 +12,12 @@ public static class DomainConfiguration
         services.AddHostedService<SessionTimeoutBackgroundService>();
         services.AddHostedService<ValidationWebhookProcessor>();
         services.AddHostedService<WorldRecordWebhookProcessor>();
+        services.AddHostedService<PendingGhostProcessor>();
+        services.AddHostedService<PendingReplayProcessor>();
 
         services.AddScoped<IEnvimaniaService, EnvimaniaService>();
+        services.AddScoped<IGhostSubmissionService, GhostSubmissionService>();
+        services.AddScoped<IReplaySubmissionService, ReplaySubmissionService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMapService, MapService>();
         services.AddScoped<IModService, ModService>();
@@ -27,5 +31,15 @@ public static class DomainConfiguration
 
         services.AddSingleton(_ => Channel.CreateUnbounded<ValidationWebhookDispatch>());
         services.AddSingleton(_ => Channel.CreateUnbounded<WorldRecordWebhookDispatch>());
+        services.AddSingleton(_ => Channel.CreateBounded<PendingGhostSubmission>(new BoundedChannelOptions(100)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true
+        }));
+        services.AddSingleton(_ => Channel.CreateBounded<PendingReplaySubmission>(new BoundedChannelOptions(100)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true
+        }));
     }
 }

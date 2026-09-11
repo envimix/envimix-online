@@ -36,6 +36,12 @@ public sealed class RecordEntity
     public GhostEntity? Ghost { get; set; }
     public Guid? GhostId { get; set; }
 
+    public GhostEntity? ValidationGhost { get; set; }
+    public Guid? ValidationGhostId { get; set; }
+
+    public ReplayEntity? Replay { get; set; }
+    public Guid? ReplayId { get; set; }
+
     public DateTimeOffset? ServersideDrivenAt { get; set; }
 
     // final time, score, and nb respawns to allow easier grouping
