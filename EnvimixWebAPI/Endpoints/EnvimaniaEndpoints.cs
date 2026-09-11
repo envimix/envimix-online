@@ -21,6 +21,7 @@ public static class EnvimaniaEndpoints
         group.MapDelete("servers/{serverLogin}/ratings", DeleteServerRatings);
         group.MapPost("servers/{serverLogin}/ban", BanServer);
         group.MapPost("servers/{serverLogin}/unban", UnbanServer);
+        group.MapPost("servers/{serverLogin}/controller-code", GenerateControllerCode);
         group.MapGet("registered", GetRegistered);
         group.MapGet("servers", GetServers);
         group.MapGet("servers/{serverLogin}", GetServer);
@@ -191,6 +192,22 @@ public static class EnvimaniaEndpoints
             _ => TypedResults.Forbid());
     }
 
+    private static async Task<Results<Ok<EnvimaniaControllerCodeResponse>, NotFound, ForbidHttpResult>> GenerateControllerCode(
+        string serverLogin,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var result = await envimaniaService.GenerateControllerCodeAsync(
+            serverLogin, principal, GetBearerToken(request), cancellationToken);
+
+        return result.Match<Results<Ok<EnvimaniaControllerCodeResponse>, NotFound, ForbidHttpResult>>(
+            response => TypedResults.Ok(response),
+            _ => TypedResults.NotFound(),
+            _ => TypedResults.Forbid());
+    }
+
     private static async Task<Ok<EnvimaniaServerSummary[]>> GetServers(
         HttpRequest request,
         AppDbContext db,
@@ -245,6 +262,7 @@ public static class EnvimaniaEndpoints
                 x.RegisteredAt,
                 RegisteredByLogin = x.RegisteredById,
                 RegisteredByNickname = x.RegisteredBy == null ? null : x.RegisteredBy.Nickname,
+                HasControllerCode = x.ControllerCodeHash != null,
                 LastSeenAt = x.EnvimaniaSessions
                     .OrderByDescending(session => session.StartedAt)
                     .Select(session => (DateTimeOffset?)session.StartedAt)
@@ -318,7 +336,8 @@ public static class EnvimaniaEndpoints
             server.IsHidden,
             server.IsBanned,
             access.CanDelete,
-            access.CanAdminister));
+            access.CanAdminister,
+            access.CanDelete && server.HasControllerCode));
     }
 
     private static async Task<Results<Ok<EnvimaniaSessionInfo>, NotFound>> GetSession(

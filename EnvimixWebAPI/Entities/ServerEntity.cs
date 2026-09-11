@@ -13,6 +13,12 @@ public sealed class ServerEntity
     [StringLength(255)]
     public string? BanReason { get; set; }
 
+    [StringLength(64)]
+    public string? ControllerCodeHash { get; set; }
+
+    [StringLength(64)]
+    public string? ControllerCodeSalt { get; set; }
+
     public DateTimeOffset RegisteredAt { get; set; }
 
     [StringLength(64)]

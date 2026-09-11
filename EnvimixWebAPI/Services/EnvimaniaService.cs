@@ -21,7 +21,9 @@ using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
+using System.Security.Cryptography;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using TmEssentials;
@@ -50,6 +52,9 @@ public interface IEnvimaniaService
 
     Task<OneOf<bool, ActionForbiddenResponse>>
         UnbanServerAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<OneOf<EnvimaniaControllerCodeResponse, bool, ActionForbiddenResponse>>
+        GenerateControllerCodeAsync(string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
     Task<EnvimaniaServerAccess> GetServerAccessAsync(
         string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
@@ -142,6 +147,7 @@ public sealed class EnvimaniaService(
     private static readonly ActivitySource ActivitySource = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Meter Meter = new("EnvimixWebAPI.Services.EnvimaniaService");
     private static readonly Counter<int> NewRecordsCounter = Meter.CreateCounter<int>("envimania_new_records_total", description: "Total number of new records submitted");
+    private const string ControllerCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
     public async Task<OneOf<EnvimaniaServer, ValidationFailureResponse, ActionUnprocessableResponse, ActionForbiddenResponse>> RegisterAsync(
         EnvimaniaRegistrationRequest request,
@@ -411,6 +417,45 @@ public sealed class EnvimaniaService(
 
         logger.LogInformation("Dedicated server {ServerLogin} has been unbanned.", serverLogin);
         return true;
+    }
+
+    public async Task<OneOf<EnvimaniaControllerCodeResponse, bool, ActionForbiddenResponse>> GenerateControllerCodeAsync(
+        string serverLogin,
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        var access = await GetServerAccessAsync(serverLogin, principal, identityAccessToken, cancellationToken);
+        if (!access.CanDelete)
+        {
+            return new ActionForbiddenResponse("Server login not owned by user");
+        }
+
+        var server = await db.Servers.FirstOrDefaultAsync(
+            x => x.Id == serverLogin && x.DeletedAt == null,
+            cancellationToken);
+        if (server is null)
+        {
+            return false;
+        }
+
+        var controllerCode = string.Create(8, 0, static (characters, _) =>
+        {
+            for (var index = 0; index < characters.Length; index++)
+            {
+                characters[index] = ControllerCodeAlphabet[RandomNumberGenerator.GetInt32(ControllerCodeAlphabet.Length)];
+            }
+        });
+        var salt = RandomNumberGenerator.GetBytes(32);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(
+            Encoding.UTF8.GetBytes(controllerCode), salt, 210_000, HashAlgorithmName.SHA512, 32);
+
+        server.ControllerCodeSalt = Convert.ToBase64String(salt);
+        server.ControllerCodeHash = Convert.ToBase64String(hash);
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Controller code generated for dedicated server {ServerLogin}.", serverLogin);
+        return new EnvimaniaControllerCodeResponse(controllerCode);
     }
 
     public async Task<EnvimaniaServerAccess> GetServerAccessAsync(

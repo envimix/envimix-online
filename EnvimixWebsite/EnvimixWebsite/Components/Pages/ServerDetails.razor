@@ -208,6 +208,8 @@
                         </form>
                     }
 
+                    <ReuButton Disabled="@controllerCodeGenerating" OnClick="GenerateControllerCodeAsync">@(server.HasControllerCode ? "Regenerate controller code" : "Generate controller code")</ReuButton>
+
                     @if (server.CanAdminister)
                     {
                         @if (!server.IsBanned)
@@ -229,6 +231,10 @@
                         }
                     }
                 </div>
+                @if (!string.IsNullOrEmpty(controllerCode))
+                {
+                    <p><strong>Controller code:</strong> <code>@controllerCode</code></p>
+                }
             </section>
 
             <section class="danger-zone">
@@ -275,6 +281,8 @@
     private bool sessionsLoading;
     private bool loadFailed;
     private bool appliedWithPlayersOnly;
+    private bool controllerCodeGenerating;
+    private string? controllerCode;
 
     private int TotalPages => server is null
         ? 1
@@ -428,4 +436,33 @@
 
     private static bool IsExpired(DateTimeOffset? endedAt, bool finishedGracefully)
         => endedAt is not null && !finishedGracefully;
+
+    private async Task GenerateControllerCodeAsync()
+    {
+        if (server is null || controllerCodeGenerating)
+        {
+            return;
+        }
+
+        var action = server.HasControllerCode ? "regenerate" : "generate";
+        if (!await JS.InvokeAsync<bool>("confirm", $"{char.ToUpperInvariant(action[0])}{action[1..]} this controller code?"))
+        {
+            return;
+        }
+
+        controllerCodeGenerating = true;
+        try
+        {
+            controllerCode = await EnvimixService.GenerateControllerCodeAsync(ServerLogin);
+            server = server with { HasControllerCode = true };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to {Action} controller code for server {ServerLogin}", action, ServerLogin);
+        }
+        finally
+        {
+            controllerCodeGenerating = false;
+        }
+    }
 }

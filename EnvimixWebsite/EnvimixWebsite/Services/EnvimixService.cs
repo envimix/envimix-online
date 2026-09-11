@@ -10,6 +10,7 @@ public interface IEnvimixService
     Task WipeServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task DeleteServerRecordsAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task DeleteServerRatingsAsync(string serverLogin, CancellationToken cancellationToken = default);
+    Task<string> GenerateControllerCodeAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task BanServerAsync(string serverLogin, string reason, CancellationToken cancellationToken = default);
     Task UnbanServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task RemoveRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
@@ -82,6 +83,20 @@ public sealed class EnvimixService(
 
     public async Task DeleteServerRatingsAsync(string serverLogin, CancellationToken cancellationToken = default)
         => await SendServerCommandAsync(HttpMethod.Delete, serverLogin, "ratings", cancellationToken);
+
+    public async Task<string> GenerateControllerCodeAsync(string serverLogin, CancellationToken cancellationToken = default)
+    {
+        var accessToken = await GetAccessTokenAsync();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{config["EnvimixApi"]}/envimania/servers/{Uri.EscapeDataString(serverLogin)}/controller-code");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var controllerCode = await response.Content.ReadFromJsonAsync<EnvimaniaControllerCodeResponse>(cancellationToken);
+        return controllerCode?.ControllerCode ?? throw new InvalidOperationException("Controller-code response was empty.");
+    }
 
     public async Task BanServerAsync(
         string serverLogin,
@@ -392,7 +407,10 @@ public sealed record EnvimaniaServerInfo(
     bool IsHidden,
     bool IsBanned,
     bool CanDelete,
-    bool CanAdminister);
+    bool CanAdminister,
+    bool HasControllerCode);
+
+public sealed record EnvimaniaControllerCodeResponse(string ControllerCode);
 
 public sealed record EnvimaniaServerSession(
     Guid Id,

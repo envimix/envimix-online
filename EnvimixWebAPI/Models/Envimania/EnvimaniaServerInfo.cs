@@ -15,4 +15,5 @@ public sealed record EnvimaniaServerInfo(
     bool IsHidden,
     bool IsBanned,
     bool CanDelete,
-    bool CanAdminister);
+    bool CanAdminister,
+    bool HasControllerCode);
