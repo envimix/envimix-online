@@ -42,7 +42,7 @@
             <div class="section-heading">
                 <div>
                     <h2 id="downloads-heading">Downloads</h2>
-                    <p>Choose the archive that matches the title pack where you want to run ENVIMIX. <a href="turbo#installation">(installation guide)</a></p>
+                    <p>Choose the archive that matches the title pack where you want to run ENVIMIX. <a href="#installation">(installation guide)</a></p>
                 </div>
                 @if (releaseUrl is not null)
                 {
@@ -220,6 +220,9 @@ services:
       MSM_USERDATA_DOWNLOAD_URLS: https://envimix.gbx.tools{GetLatestDownloadUrl(asset.TitlePack)}
       MSM_MATCH_SETTINGS_BASE: EnvimixTimeAttack.{asset.TitlePack}.txt
       MSM_MATCH_SETTINGS: MapList.txt
+      MSM_CFG_SERVER_CALLVOTE_RATIOS: Ban=-1;SetModeScriptSettingsAndCommands=-1
+      MSM_CFG_CONFIG_SERVER_PORT: 2350
+      MSM_CFG_CONFIG_SERVER_P2P_PORT: 3450
     ports:
       - "2350:2350/tcp"
       - "2350:2350/udp"
