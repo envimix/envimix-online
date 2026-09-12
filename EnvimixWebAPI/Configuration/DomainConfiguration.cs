@@ -19,6 +19,7 @@ public static class DomainConfiguration
         services.AddScoped<IEnvimaniaService, EnvimaniaService>();
         services.AddScoped<IGhostSubmissionService, GhostSubmissionService>();
         services.AddScoped<IReplaySubmissionService, ReplaySubmissionService>();
+        services.AddScoped<ISessionReplaySubmissionService, SessionReplaySubmissionService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMapService, MapService>();
         services.AddScoped<IModService, ModService>();

@@ -14,4 +14,5 @@ public sealed record EnvimaniaSessionInfo(
     DateTimeOffset? EndedAt,
     bool FinishedGracefully,
     bool CanAdminister,
+    Guid? ReplayId,
     EnvimaniaSessionRecord[] Records);

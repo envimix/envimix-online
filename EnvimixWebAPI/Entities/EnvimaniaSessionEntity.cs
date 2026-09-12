@@ -14,6 +14,9 @@ public sealed class EnvimaniaSessionEntity
     public TitleEntity? Title { get; set; }
     public string? TitleId { get; set; }
 
+    public ReplayEntity? Replay { get; set; }
+    public Guid? ReplayId { get; set; }
+
     public DateTimeOffset StartedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }

@@ -50,6 +50,7 @@ public static class EnvimaniaEndpoints
         group.MapPost("extend", SessionExtend).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("record", SessionRecord).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("records", SessionRecordsPost).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
+        group.MapPost("replay", SessionReplay).DisableAntiforgery();
         group.MapGet("records/{car}", SessionRecordsGet).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("rate", SessionRate).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
         group.MapPost("user", SessionUser).RequireAuthorization(Policies.EnvimaniaSessionPolicy);
@@ -364,7 +365,8 @@ public static class EnvimaniaEndpoints
                 MapLaps = x.Map.Laps,
                 x.StartedAt,
                 x.EndedAt,
-                x.FinishedGracefully
+                x.FinishedGracefully,
+                x.ReplayId
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -411,6 +413,7 @@ public static class EnvimaniaEndpoints
             session.EndedAt,
             session.FinishedGracefully,
             access.CanAdminister,
+            session.ReplayId,
             records));
     }
 
@@ -531,6 +534,42 @@ public static class EnvimaniaEndpoints
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
         );
+    }
+
+    private static async Task<IResult> SessionReplay(
+        HttpRequest request,
+        ISessionReplaySubmissionService sessionReplaySubmissionService,
+        CancellationToken cancellationToken)
+    {
+        if (!request.HasFormContentType)
+        {
+            return TypedResults.BadRequest("Expected multipart form data.");
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var serverLogin = form["serverLogin"].ToString();
+        var controllerCode = form["controllerCode"].ToString();
+        var replayFile = form.Files.GetFile("replay");
+        if (string.IsNullOrWhiteSpace(serverLogin)
+            || string.IsNullOrWhiteSpace(controllerCode)
+            || replayFile is null
+            || replayFile.Length is 0 or > ReplaySubmissionService.MaxReplaySize)
+        {
+            return TypedResults.BadRequest("Server login, controller code, and a valid replay file are required.");
+        }
+
+        await using var replayStream = replayFile.OpenReadStream();
+        var result = await sessionReplaySubmissionService.SubmitAsync(
+            replayStream, serverLogin, controllerCode, cancellationToken);
+
+        return result switch
+        {
+            SessionReplaySubmissionResult.Submitted => TypedResults.Ok(new { Status = "submitted" }),
+            SessionReplaySubmissionResult.Unauthorized => TypedResults.Unauthorized(),
+            SessionReplaySubmissionResult.SessionNotFound => TypedResults.NotFound(),
+            SessionReplaySubmissionResult.AlreadySubmitted => TypedResults.Conflict("A replay has already been submitted for this session."),
+            _ => TypedResults.BadRequest("The uploaded replay file is invalid.")
+        };
     }
 
     private static async Task<Results<Ok<EnvimaniaRecordsResponse>, ForbidHttpResult>> SessionRecordsGet(
