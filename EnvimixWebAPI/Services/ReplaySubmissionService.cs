@@ -208,14 +208,13 @@ public sealed class ReplaySubmissionService(
 
         var ghost = matchingGhosts[0];
         var carId = modService.GetCarIdFromPlayerModel(ghost.PlayerModel?.Id);
-        if (carId is null || ghost.RaceTime is null || string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
+        if (carId is null || string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
         {
             logger.LogDebug(
-                "Rejected replay metadata for player {PlayerLogin} on map {MapUid}. Car recognized: {HasCarId}, Race time present: {HasRaceTime}, race settings present: {HasRaceSettings}.",
+                "Rejected replay metadata for player {PlayerLogin} on map {MapUid}. Car recognized: {HasCarId}, race settings present: {HasRaceSettings}.",
                 replay.PlayerLogin,
                 replay.MapInfo.Id,
                 carId is not null,
-                ghost.RaceTime is not null,
                 !string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings));
             metadata = default;
             return false;
@@ -226,7 +225,7 @@ public sealed class ReplaySubmissionService(
             replay.MapInfo.Id,
             carId,
             (int?)raceXml.Descendants("laps").FirstOrDefault() ?? 0,
-            ghost.RaceTime.Value.TotalMilliseconds,
+            ghost.EventsDuration.TotalMilliseconds, // RaceTime for some reason gives random race times
             ghost.StuntScore ?? 0,
             ghost.Respawns ?? -1);
         if (metadata.Time <= 0)
