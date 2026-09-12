@@ -22,6 +22,13 @@ public sealed class PendingReplayProcessor(
             while (pending.Count < MaxPendingCount && pendingReplayChannel.Reader.TryRead(out var submission))
             {
                 pending.Add(submission);
+                logger.LogInformation(
+                    "Enqueued pending {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid}; it expires at {ExpiresAt}.",
+                    submission.IsValidation ? "validation" : "main",
+                    submission.ServerLogin,
+                    submission.PlayerLogin,
+                    submission.MapUid,
+                    submission.ExpiresAt);
             }
 
             for (var index = pending.Count - 1; index >= 0; index--)

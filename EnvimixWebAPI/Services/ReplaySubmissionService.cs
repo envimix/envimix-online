@@ -103,6 +103,12 @@ public sealed class ReplaySubmissionService(
         PendingReplaySubmission submission,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation(
+            "Looking for a record to attach the {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid}.",
+            submission.IsValidation ? "validation" : "main",
+            submission.ServerLogin,
+            submission.PlayerLogin,
+            submission.MapUid);
         var record = await db.Records
             .Where(x => !x.Removed
                 && x.Session != null
@@ -118,6 +124,12 @@ public sealed class ReplaySubmissionService(
             .FirstOrDefaultAsync(cancellationToken);
         if (record is null)
         {
+            logger.LogInformation(
+                "No matching record exists for the {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid}.",
+                submission.IsValidation ? "validation" : "main",
+                submission.ServerLogin,
+                submission.PlayerLogin,
+                submission.MapUid);
             return ReplayAttachmentResult.RecordNotFound;
         }
 
@@ -131,11 +143,21 @@ public sealed class ReplaySubmissionService(
             cancellationToken);
         if (hasBetterRecord)
         {
+            logger.LogInformation(
+                "Did not attach the {ReplayKind} replay from server {ServerLogin} to record {RecordId} because it is not a personal best.",
+                submission.IsValidation ? "validation" : "main",
+                submission.ServerLogin,
+                record.Id);
             return ReplayAttachmentResult.NotPersonalBest;
         }
 
         if (submission.IsValidation ? record.ValidationReplayId is not null : record.ReplayId is not null)
         {
+            logger.LogWarning(
+                "Did not attach the {ReplayKind} replay from server {ServerLogin} because record {RecordId} already has one.",
+                submission.IsValidation ? "validation" : "main",
+                submission.ServerLogin,
+                record.Id);
             return ReplayAttachmentResult.AlreadyAttached;
         }
 

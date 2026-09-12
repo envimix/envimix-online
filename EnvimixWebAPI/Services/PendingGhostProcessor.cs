@@ -22,6 +22,12 @@ public sealed class PendingGhostProcessor(
             while (pending.Count < MaxPendingCount && pendingGhostChannel.Reader.TryRead(out var submission))
             {
                 pending.Add(submission);
+                logger.LogInformation(
+                    "Enqueued pending ghost from server {ServerLogin} for player {PlayerLogin} on map {MapUid}; it expires at {ExpiresAt}.",
+                    submission.ServerLogin,
+                    submission.PlayerLogin,
+                    submission.MapUid,
+                    submission.ExpiresAt);
             }
 
             for (var index = pending.Count - 1; index >= 0; index--)
