@@ -172,7 +172,7 @@ public sealed class ReplaySubmissionService(
         }
 
         var matchingGhosts = replay.Ghosts?
-            .Where(x => x.GhostLogin == replay.PlayerLogin && x.Validate_ChallengeUid == replay.MapInfo.Id)
+            .Where(x => x.GhostLogin == replay.PlayerLogin)
             .ToArray() ?? [];
         if (matchingGhosts.Length != 1)
         {
