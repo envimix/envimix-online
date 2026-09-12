@@ -103,6 +103,24 @@ public sealed class ReplaySubmissionService(
         PendingReplaySubmission submission,
         CancellationToken cancellationToken)
     {
+        var hasBetterRecord = await db.Records.AnyAsync(x => !x.Removed
+            && x.UserId == submission.PlayerLogin
+            && x.MapId == submission.MapUid
+            && x.CarId == submission.CarId
+            && x.Laps == submission.Laps
+            && x.Time < submission.Time,
+            cancellationToken);
+        if (hasBetterRecord)
+        {
+            logger.LogInformation(
+                "Did not attach the {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid} because it is not a personal best.",
+                submission.IsValidation ? "validation" : "main",
+                submission.ServerLogin,
+                submission.PlayerLogin,
+                submission.MapUid);
+            return ReplayAttachmentResult.NotPersonalBest;
+        }
+
         var record = await db.Records
             .Where(x => !x.Removed
                 && x.Session != null
@@ -130,24 +148,6 @@ public sealed class ReplaySubmissionService(
                 submission.Score,
                 submission.NbRespawns);
             return ReplayAttachmentResult.RecordNotFound;
-        }
-
-        var hasBetterRecord = await db.Records.AnyAsync(x => !x.Removed
-            && x.UserId == record.UserId
-            && x.MapId == record.MapId
-            && x.CarId == record.CarId
-            && x.Gravity == record.Gravity
-            && x.Laps == record.Laps
-            && x.Time < record.Time,
-            cancellationToken);
-        if (hasBetterRecord)
-        {
-            logger.LogInformation(
-                "Did not attach the {ReplayKind} replay from server {ServerLogin} to record {RecordId} because it is not a personal best.",
-                submission.IsValidation ? "validation" : "main",
-                submission.ServerLogin,
-                record.Id);
-            return ReplayAttachmentResult.NotPersonalBest;
         }
 
         if (submission.IsValidation ? record.ValidationReplayId is not null : record.ReplayId is not null)
