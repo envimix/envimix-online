@@ -130,7 +130,7 @@ public sealed class ReplaySubmissionService(
                 && x.CarId == submission.CarId
                 && x.Laps == submission.Laps
                 && x.Time == submission.Time
-                && x.Score == submission.Score
+                // && x.Score == submission.Score score tends to be desynced as well
                 && x.NbRespawns == submission.NbRespawns)
             .OrderByDescending(x => x.DrivenAt)
             .FirstOrDefaultAsync(cancellationToken);
