@@ -10,6 +10,7 @@ public sealed record PendingReplaySubmission(
     int Time,
     int Score,
     int NbRespawns,
+    bool IsValidation,
     DateTimeOffset ExpiresAt);
 
 public enum ReplayAttachmentResult

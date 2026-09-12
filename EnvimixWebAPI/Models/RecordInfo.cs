@@ -21,6 +21,7 @@ public sealed record RecordInfo(
     Guid? GhostId,
     Guid? ValidationGhostId,
     Guid? ReplayId,
+    Guid? ValidationReplayId,
     int? Rank,
     bool Removed)
 {

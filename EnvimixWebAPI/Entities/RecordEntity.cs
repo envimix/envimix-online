@@ -42,6 +42,9 @@ public sealed class RecordEntity
     public ReplayEntity? Replay { get; set; }
     public Guid? ReplayId { get; set; }
 
+    public ReplayEntity? ValidationReplay { get; set; }
+    public Guid? ValidationReplayId { get; set; }
+
     public DateTimeOffset? ServersideDrivenAt { get; set; }
 
     // final time, score, and nb respawns to allow easier grouping

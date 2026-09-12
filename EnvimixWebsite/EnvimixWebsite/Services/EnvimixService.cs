@@ -507,6 +507,7 @@ public sealed record RecordInfo(
     string? TitleDisplayName,
     Guid? GhostId,
     Guid? ValidationGhostId,
+    Guid? ValidationReplayId,
     int? Rank,
     bool Removed)
 {

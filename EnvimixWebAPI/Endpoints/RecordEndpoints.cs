@@ -81,6 +81,7 @@ public static class RecordEndpoints
                 x.GhostId,
                 x.ValidationGhostId,
                 x.ReplayId,
+                x.ValidationReplayId,
                 null,
                 x.Removed));
 
@@ -107,6 +108,7 @@ public static class RecordEndpoints
             x.GhostId,
             x.ValidationGhostId,
             x.ReplayId,
+            x.ValidationReplayId,
             x.Removed));
 
     internal sealed record RecordProjection(
@@ -131,6 +133,7 @@ public static class RecordEndpoints
         Guid? GhostId,
         Guid? ValidationGhostId,
         Guid? ReplayId,
+        Guid? ValidationReplayId,
         bool Removed)
     {
         public RecordInfo ToRecordInfo(int? rank)
@@ -155,6 +158,7 @@ public static class RecordEndpoints
                 GhostId,
                 ValidationGhostId,
                 ReplayId,
+                ValidationReplayId,
                 rank,
                 Removed);
     }

@@ -13,12 +13,27 @@ public static class ReplayEndpoints
 
         group.MapPost("submit", SubmitReplay)
             .DisableAntiforgery();
+        group.MapPost("submit/validable", SubmitValidationReplay)
+            .DisableAntiforgery();
         group.MapGet("{guid:guid}/download", DownloadReplay);
     }
 
     private static async Task<IResult> SubmitReplay(
         HttpRequest request,
         IReplaySubmissionService replaySubmissionService,
+        CancellationToken cancellationToken)
+        => await SubmitReplayAsync(request, replaySubmissionService, isValidation: false, cancellationToken);
+
+    private static async Task<IResult> SubmitValidationReplay(
+        HttpRequest request,
+        IReplaySubmissionService replaySubmissionService,
+        CancellationToken cancellationToken)
+        => await SubmitReplayAsync(request, replaySubmissionService, isValidation: true, cancellationToken);
+
+    private static async Task<IResult> SubmitReplayAsync(
+        HttpRequest request,
+        IReplaySubmissionService replaySubmissionService,
+        bool isValidation,
         CancellationToken cancellationToken)
     {
         if (!request.HasFormContentType)
@@ -40,7 +55,7 @@ public static class ReplayEndpoints
 
         await using var replayStream = replayFile.OpenReadStream();
         var result = await replaySubmissionService.SubmitAsync(
-            replayStream, serverLogin, controllerCode, cancellationToken);
+            replayStream, serverLogin, controllerCode, isValidation, cancellationToken);
 
         return result switch
         {
@@ -48,7 +63,7 @@ public static class ReplayEndpoints
             ReplaySubmissionResult.Queued => TypedResults.Accepted(uri: (string?)null, value: new { Status = "queued" }),
             ReplaySubmissionResult.Unauthorized => TypedResults.Unauthorized(),
             ReplaySubmissionResult.NotPersonalBest => TypedResults.UnprocessableEntity("The matching record is not the player's personal best."),
-            ReplaySubmissionResult.AlreadyAttached => TypedResults.Conflict("The matching record already has a replay."),
+            ReplaySubmissionResult.AlreadyAttached => TypedResults.Conflict($"The matching record already has a {(isValidation ? "validation " : "")}replay."),
             ReplaySubmissionResult.QueueFull => TypedResults.StatusCode(StatusCodes.Status503ServiceUnavailable),
             _ => TypedResults.BadRequest("The uploaded file is not a valid replay.")
         };

@@ -14,7 +14,7 @@ public class GhostEndpoints
     {
         group.WithTags("Ghost");
 
-        group.MapPost("submit", SubmitGhost)
+        group.MapPost("submit/validable", SubmitGhost)
             .DisableAntiforgery();
         group.MapGet("{guid}/download", DownloadGhost);
     }

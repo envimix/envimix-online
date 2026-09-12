@@ -15,6 +15,7 @@ public interface IReplaySubmissionService
         Stream replayStream,
         string serverLogin,
         string controllerCode,
+        bool isValidation,
         CancellationToken cancellationToken);
 
     Task<ReplayAttachmentResult> TryAttachAsync(
@@ -35,6 +36,7 @@ public sealed class ReplaySubmissionService(
         Stream replayStream,
         string serverLogin,
         string controllerCode,
+        bool isValidation,
         CancellationToken cancellationToken)
     {
         var credentials = await db.Servers
@@ -77,6 +79,7 @@ public sealed class ReplaySubmissionService(
                 metadata.Time,
                 metadata.Score,
                 metadata.NbRespawns,
+                isValidation,
                 timeProvider.GetUtcNow().AddMinutes(1));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -131,16 +134,24 @@ public sealed class ReplaySubmissionService(
             return ReplayAttachmentResult.NotPersonalBest;
         }
 
-        if (record.ReplayId is not null)
+        if (submission.IsValidation ? record.ValidationReplayId is not null : record.ReplayId is not null)
         {
             return ReplayAttachmentResult.AlreadyAttached;
         }
 
-        record.Replay = new ReplayEntity { Data = submission.Data };
+        if (submission.IsValidation)
+        {
+            record.ValidationReplay = new ReplayEntity { Data = submission.Data };
+        }
+        else
+        {
+            record.Replay = new ReplayEntity { Data = submission.Data };
+        }
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Attached submitted replay to record {RecordId} from server {ServerLogin}.",
+            "Attached submitted {ReplayKind} replay to record {RecordId} from server {ServerLogin}.",
+            submission.IsValidation ? "validation" : "main",
             record.Id,
             submission.ServerLogin);
         return ReplayAttachmentResult.Attached;
