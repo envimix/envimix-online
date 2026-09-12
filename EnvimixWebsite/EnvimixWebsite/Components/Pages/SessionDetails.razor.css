@@ -28,6 +28,16 @@
     opacity: 0.7;
 }
 
+.session-download {
+    margin-block: 1.5rem;
+}
+
+.download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .records-scroll {
     max-width: 100%;
     overflow-x: auto;

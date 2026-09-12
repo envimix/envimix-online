@@ -166,6 +166,17 @@
     font-weight: 600;
 }
 
+.download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 22rem;
+}
+
+.download-actions ::deep .reu-button {
+    flex: 0 0 auto;
+}
+
 .player-name,
 .records-table small {
     display: block;

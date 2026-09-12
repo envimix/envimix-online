@@ -294,17 +294,22 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (record.GhostId is Guid ghostId)
+                                            @if (record.GhostId is not null || record.ReplayId is not null || record.ValidationReplayId is not null)
                                             {
-                                                <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" CssClass="ghost-download" download>Download ghost</ReuButton>
-                                            }
-                                            @if (record.ReplayId is Guid replayId)
-                                            {
-                                                <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(replayId)" CssClass="ghost-download" download>Download replay</ReuButton>
-                                            }
-                                            @if (record.ValidationReplayId is Guid validationReplayId)
-                                            {
-                                                <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" CssClass="ghost-download" download>Download validation replay</ReuButton>
+                                                <div class="download-actions">
+                                                    @if (record.GhostId is Guid ghostId)
+                                                    {
+                                                        <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download>Download ghost</ReuButton>
+                                                    }
+                                                    @if (record.ReplayId is Guid replayId)
+                                                    {
+                                                        <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download>Download replay</ReuButton>
+                                                    }
+                                                    @if (record.ValidationReplayId is Guid validationReplayId)
+                                                    {
+                                                        <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" download>Download validation replay</ReuButton>
+                                                    }
+                                                </div>
                                             }
                                         </td>
                                         @if (canAdminister)

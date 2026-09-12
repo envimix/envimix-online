@@ -159,7 +159,7 @@
 
         @if (record.GhostId is not null || record.ReplayId is not null || record.ValidationReplayId is not null)
         {
-            <div class="record-download">
+            <div class="record-download download-actions">
                 @if (record.GhostId is Guid ghostId)
                 {
                     <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download>Download ghost</ReuButton>

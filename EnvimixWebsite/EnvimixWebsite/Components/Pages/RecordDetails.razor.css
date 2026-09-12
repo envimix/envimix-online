@@ -49,3 +49,9 @@
 .record-actions {
     margin-block: 1.5rem;
 }
+
+.download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
