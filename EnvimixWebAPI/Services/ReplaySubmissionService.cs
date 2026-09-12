@@ -160,13 +160,15 @@ public sealed class ReplaySubmissionService(
             return ReplayAttachmentResult.AlreadyAttached;
         }
 
+        var replay = new ReplayEntity { Data = submission.Data };
+        await db.Replays.AddAsync(replay, cancellationToken);
         if (submission.IsValidation)
         {
-            record.ValidationReplay = new ReplayEntity { Data = submission.Data };
+            record.ValidationReplay = replay;
         }
         else
         {
-            record.Replay = new ReplayEntity { Data = submission.Data };
+            record.Replay = replay;
         }
         await db.SaveChangesAsync(cancellationToken);
 
