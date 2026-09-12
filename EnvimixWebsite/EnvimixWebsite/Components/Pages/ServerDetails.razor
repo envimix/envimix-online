@@ -188,7 +188,7 @@
         @if (server.CanDelete)
         {
             <section class="server-actions">
-                <h2>Server actions</h2>
+                <h2 id="server-actions">Server actions</h2>
                 <div class="action-buttons">
                     @if (server.IsHidden && server.CanAdminister)
                     {
@@ -238,7 +238,7 @@
             </section>
 
             <section class="danger-zone">
-                <h2>Danger zone</h2>
+                <h2 id="danger-zone">Danger zone</h2>
                 <div class="danger-actions">
                     @if (server.CanAdminister)
                     {
