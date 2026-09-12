@@ -213,6 +213,7 @@ services:
     restart: unless-stopped
     environment:
       MSM_SERVER_TYPE: ManiaPlanet
+      MSM_SERVER_IDENTIFIER: ManiaPlanet_Latest
       MSM_SERVER_NAME: My ENVIMIX server
       MSM_ACCOUNT_LOGIN: your_server_login
       MSM_ACCOUNT_PASSWORD: your_server_password
@@ -223,6 +224,7 @@ services:
       MSM_CFG_SERVER_CALLVOTE_RATIOS: Ban=-1;SetModeScriptSettingsAndCommands=-1
       MSM_CFG_CONFIG_SERVER_PORT: 2350
       MSM_CFG_CONFIG_SERVER_P2P_PORT: 3450
+      MSM_CFG_CONFIG_XMLRPC_ALLOW_REMOTE: controller
     ports:
       - "2350:2350/tcp"
       - "2350:2350/udp"
@@ -231,17 +233,25 @@ services:
     volumes:
       - ./servers:/app/data/servers
       - msm_archives:/app/data/archives
+  controller:
+    image: bigbang1112/envimix-control:latest
+    restart: unless-stopped
+    environment:
+      EMC_SERVER_IP: server
+      EMC_CONTROLLER_CODE: [YOUR_CONTROLLER_CODE]
+    volumes:
+      - ./servers/ManiaPlanet_Latest/UserData:/app/UserData
 volumes:
   msm_archives:
 """;
 
-        private async Task CopyComposeAsync()
+    private async Task CopyComposeAsync()
+    {
+        if (selectedAsset is not null)
         {
-                if (selectedAsset is not null)
-                {
-                        await JS.InvokeVoidAsync("navigator.clipboard.writeText", GetComposeFile(selectedAsset));
-                }
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", GetComposeFile(selectedAsset));
         }
+    }
 
     private async Task<Dictionary<string, string?>> GetTitleDisplayNamesAsync()
     {
