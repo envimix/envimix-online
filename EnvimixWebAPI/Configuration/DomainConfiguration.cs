@@ -14,6 +14,7 @@ public static class DomainConfiguration
         services.AddHostedService<WorldRecordWebhookProcessor>();
         services.AddHostedService<PendingGhostProcessor>();
         services.AddHostedService<PendingReplayProcessor>();
+        services.AddHostedService<RestoreRecordsScheduler>();
 
         services.AddScoped<IEnvimaniaService, EnvimaniaService>();
         services.AddScoped<IGhostSubmissionService, GhostSubmissionService>();
