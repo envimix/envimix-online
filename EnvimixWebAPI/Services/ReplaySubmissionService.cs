@@ -103,12 +103,6 @@ public sealed class ReplaySubmissionService(
         PendingReplaySubmission submission,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation(
-            "Looking for a record to attach the {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid}.",
-            submission.IsValidation ? "validation" : "main",
-            submission.ServerLogin,
-            submission.PlayerLogin,
-            submission.MapUid);
         var record = await db.Records
             .Where(x => !x.Removed
                 && x.Session != null
@@ -124,12 +118,17 @@ public sealed class ReplaySubmissionService(
             .FirstOrDefaultAsync(cancellationToken);
         if (record is null)
         {
-            logger.LogInformation(
-                "No matching record exists for the {ReplayKind} replay from server {ServerLogin} for player {PlayerLogin} on map {MapUid}.",
+            logger.LogWarning(
+                "No matching record exists for the {ReplayKind} replay. Expected Removed=false, Session present, ServerLogin={ServerLogin}, PlayerLogin={PlayerLogin}, MapUid={MapUid}, CarId={CarId}, Laps={Laps}, Time={Time}, Score={Score}, and NbRespawns={NbRespawns}.",
                 submission.IsValidation ? "validation" : "main",
                 submission.ServerLogin,
                 submission.PlayerLogin,
-                submission.MapUid);
+                submission.MapUid,
+                submission.CarId,
+                submission.Laps,
+                submission.Time,
+                submission.Score,
+                submission.NbRespawns);
             return ReplayAttachmentResult.RecordNotFound;
         }
 
