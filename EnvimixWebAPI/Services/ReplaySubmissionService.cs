@@ -38,7 +38,7 @@ public sealed class ReplaySubmissionService(
         CancellationToken cancellationToken)
     {
         var credentials = await db.Servers
-            .Where(x => x.Id == serverLogin && x.DeletedAt == null)
+            .Where(x => x.Id == serverLogin && x.DeletedAt == null && x.BanReason == null)
             .Select(x => new { x.ControllerCodeHash, x.ControllerCodeSalt })
             .AsNoTracking()
             .FirstOrDefaultAsync(cancellationToken);
