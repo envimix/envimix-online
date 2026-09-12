@@ -163,6 +163,10 @@ public sealed class ReplaySubmissionService(
     {
         if (string.IsNullOrWhiteSpace(replay.PlayerLogin) || string.IsNullOrWhiteSpace(replay.MapInfo?.Id))
         {
+            logger.LogDebug(
+                "Rejected replay metadata because its player login or map UID was missing. HasPlayerLogin: {HasPlayerLogin}, HasMapUid: {HasMapUid}.",
+                !string.IsNullOrWhiteSpace(replay.PlayerLogin),
+                !string.IsNullOrWhiteSpace(replay.MapInfo?.Id));
             metadata = default;
             return false;
         }
@@ -172,6 +176,11 @@ public sealed class ReplaySubmissionService(
             .ToArray() ?? [];
         if (matchingGhosts.Length != 1)
         {
+            logger.LogDebug(
+                "Rejected replay metadata for player {PlayerLogin} on map {MapUid} because it contained {MatchingGhostCount} matching ghosts instead of exactly one.",
+                replay.PlayerLogin,
+                replay.MapInfo.Id,
+                matchingGhosts.Length);
             metadata = default;
             return false;
         }
@@ -180,6 +189,13 @@ public sealed class ReplaySubmissionService(
         var carId = modService.GetCarIdFromPlayerModel(ghost.PlayerModel?.Id);
         if (carId is null || ghost.RaceTime is null || string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings))
         {
+            logger.LogDebug(
+                "Rejected replay metadata for player {PlayerLogin} on map {MapUid}. Car recognized: {HasCarId}, Race time present: {HasRaceTime}, race settings present: {HasRaceSettings}.",
+                replay.PlayerLogin,
+                replay.MapInfo.Id,
+                carId is not null,
+                ghost.RaceTime is not null,
+                !string.IsNullOrWhiteSpace(ghost.Validate_RaceSettings));
             metadata = default;
             return false;
         }
@@ -192,6 +208,25 @@ public sealed class ReplaySubmissionService(
             ghost.RaceTime.Value.TotalMilliseconds,
             ghost.StuntScore ?? 0,
             ghost.Respawns ?? -1);
-        return metadata.Time > 0;
+        if (metadata.Time <= 0)
+        {
+            logger.LogDebug(
+                "Rejected replay metadata for player {PlayerLogin} on map {MapUid} because its race time {RaceTime} was not positive.",
+                replay.PlayerLogin,
+                replay.MapInfo.Id,
+                metadata.Time);
+            return false;
+        }
+
+        logger.LogDebug(
+            "Read replay metadata for player {PlayerLogin} on map {MapUid}: car {CarId}, laps {Laps}, time {RaceTime}, score {Score}, respawns {Respawns}.",
+            replay.PlayerLogin,
+            metadata.MapUid,
+            metadata.CarId,
+            metadata.Laps,
+            metadata.Time,
+            metadata.Score,
+            metadata.NbRespawns);
+        return true;
     }
 }
