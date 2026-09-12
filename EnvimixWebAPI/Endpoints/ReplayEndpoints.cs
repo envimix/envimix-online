@@ -2,6 +2,8 @@ using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using TmEssentials;
 
 namespace EnvimixWebAPI.Endpoints;
 
@@ -96,6 +98,50 @@ public static class ReplayEndpoints
         AppDbContext db,
         CancellationToken cancellationToken)
     {
+        var record = await db.Records
+            .Where(x => x.ReplayId == guid || x.ValidationReplayId == guid)
+            .Select(x => new
+            {
+                Data = x.ReplayId == guid ? x.Replay!.Data : x.ValidationReplay!.Data,
+                LastModifiedAt = x.ReplayId == guid ? x.Replay!.LastModifiedAt : x.ValidationReplay!.LastModifiedAt,
+                IsValidation = x.ValidationReplayId == guid,
+                MapName = x.Map.Name,
+                x.CarId,
+                PlayerNickname = x.User.Nickname,
+                PlayerLogin = x.UserId,
+                x.Time
+            })
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is not null)
+        {
+            var playerName = string.IsNullOrWhiteSpace(record.PlayerNickname) ? record.PlayerLogin : record.PlayerNickname;
+            var fileName = $"{SanitizeFileName(record.MapName)}_{SanitizeFileName(record.CarId)}_{SanitizeFileName(playerName)}_({new TimeInt32(record.Time).ToString(useApostrophe: true)}){(record.IsValidation ? ".Validation" : "")}.Replay.Gbx";
+            return TypedResults.File(record.Data, "application/gbx", fileName, lastModified: record.LastModifiedAt);
+        }
+
+        var session = await db.EnvimaniaSessions
+            .Where(x => x.ReplayId == guid)
+            .Select(x => new
+            {
+                Data = x.Replay!.Data,
+                x.Replay.LastModifiedAt,
+                MapName = x.Map.Name,
+                ServerName = x.Server.Name,
+                ServerLogin = x.Server.Id,
+                x.StartedAt
+            })
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (session is not null)
+        {
+            var serverName = string.IsNullOrWhiteSpace(session.ServerName) ? session.ServerLogin : session.ServerName;
+            var fileName = $"{SanitizeFileName(session.MapName)}_{SanitizeFileName(serverName)}_({session.StartedAt:yyyy-MM-dd_HH-mm-ss}).Session.Replay.Gbx";
+            return TypedResults.File(session.Data, "application/gbx", fileName, lastModified: session.LastModifiedAt);
+        }
+
         var replay = await db.Replays
             .Where(x => x.Id == guid)
             .Select(x => new { x.Data, x.LastModifiedAt })
@@ -109,5 +155,32 @@ public static class ReplayEndpoints
                 "application/gbx",
                 $"{guid}.Replay.Gbx",
                 lastModified: replay.LastModifiedAt);
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var deformatted = TextFormatter.Deformat(value);
+        var builder = new StringBuilder(deformatted.Length);
+        var previousWasWhitespace = false;
+
+        foreach (var character in deformatted)
+        {
+            var isInvalid = char.IsControl(character) || character is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*';
+            var output = isInvalid ? ' ' : character;
+            if (char.IsWhiteSpace(output))
+            {
+                if (!previousWasWhitespace)
+                {
+                    builder.Append(' ');
+                }
+                previousWasWhitespace = true;
+                continue;
+            }
+
+            builder.Append(output);
+            previousWasWhitespace = false;
+        }
+
+        return builder.ToString().Trim(' ', '.');
     }
 }
