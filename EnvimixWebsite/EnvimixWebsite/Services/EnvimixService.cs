@@ -28,6 +28,8 @@ public interface IEnvimixService
     Task<MapRecordsPage?> GetMapRecordsAsync(string mapUid, string? car = null, int page = 1, int pageSize = 20, bool showAll = false, bool worldRecordHistory = false, CancellationToken cancellationToken = default);
     Task<GhostDownload?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default);
     string GetGhostDownloadUrl(Guid ghostId);
+    Task<GhostDownload?> GetReplayAsync(Guid replayId, CancellationToken cancellationToken = default);
+    string GetReplayDownloadUrl(Guid replayId);
 }
 
 public sealed class EnvimixService(
@@ -351,6 +353,26 @@ public sealed class EnvimixService(
     public string GetGhostDownloadUrl(Guid ghostId)
         => $"/ghosts/{ghostId}/download";
 
+    public async Task<GhostDownload?> GetReplayAsync(Guid replayId, CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.GetAsync(
+            $"{config["EnvimixApi"]}/replays/{replayId}/download",
+            cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        var contentDisposition = response.Content.Headers.ContentDisposition;
+        var fileName = contentDisposition?.FileNameStar ?? contentDisposition?.FileName?.Trim('"') ?? $"{replayId}.Replay.Gbx";
+        var data = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        return new GhostDownload(data, fileName);
+    }
+
+    public string GetReplayDownloadUrl(Guid replayId)
+        => $"/replays/{replayId}/download";
+
     private async Task<T?> GetDetailAsync<T>(
         string path,
         CancellationToken cancellationToken)
@@ -508,6 +530,7 @@ public sealed record RecordInfo(
     string? TitleDisplayName,
     Guid? GhostId,
     Guid? ValidationGhostId,
+    Guid? ReplayId,
     Guid? ValidationReplayId,
     int? Rank,
     bool Removed)

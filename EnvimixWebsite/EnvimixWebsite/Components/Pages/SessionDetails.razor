@@ -94,6 +94,13 @@
             </div>
         </dl>
 
+        @if (session.ReplayId is Guid replayId)
+        {
+            <div class="record-download">
+                <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download>Download session replay</ReuButton>
+            </div>
+        }
+
         <h3>Records</h3>
         @if (session.Records.Length == 0)
         {
