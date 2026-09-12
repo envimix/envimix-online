@@ -21,23 +21,37 @@ public static class ReplayEndpoints
     private static async Task<IResult> SubmitReplay(
         HttpRequest request,
         IReplaySubmissionService replaySubmissionService,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
-        => await SubmitReplayAsync(request, replaySubmissionService, isValidation: false, cancellationToken);
+        => await SubmitReplayAsync(
+            request,
+            replaySubmissionService,
+            loggerFactory.CreateLogger("EnvimixWebAPI.Endpoints.ReplayEndpoints"),
+            isValidation: false,
+            cancellationToken);
 
     private static async Task<IResult> SubmitValidationReplay(
         HttpRequest request,
         IReplaySubmissionService replaySubmissionService,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
-        => await SubmitReplayAsync(request, replaySubmissionService, isValidation: true, cancellationToken);
+        => await SubmitReplayAsync(
+            request,
+            replaySubmissionService,
+            loggerFactory.CreateLogger("EnvimixWebAPI.Endpoints.ReplayEndpoints"),
+            isValidation: true,
+            cancellationToken);
 
     private static async Task<IResult> SubmitReplayAsync(
         HttpRequest request,
         IReplaySubmissionService replaySubmissionService,
+        ILogger logger,
         bool isValidation,
         CancellationToken cancellationToken)
     {
         if (!request.HasFormContentType)
         {
+            logger.LogWarning("Rejected {ReplayKind} replay submission because it was not multipart form data.", ReplayKind(isValidation));
             return TypedResults.BadRequest("Expected multipart form data.");
         }
 
@@ -50,6 +64,7 @@ public static class ReplayEndpoints
             || replayFile is null
             || replayFile.Length is 0 or > ReplaySubmissionService.MaxReplaySize)
         {
+            logger.LogWarning("Rejected {ReplayKind} replay submission from server {ServerLogin} because required form data or replay file was invalid.", ReplayKind(isValidation), serverLogin);
             return TypedResults.BadRequest("Server login, controller code, and a valid replay file are required.");
         }
 
@@ -57,6 +72,11 @@ public static class ReplayEndpoints
         var result = await replaySubmissionService.SubmitAsync(
             replayStream, serverLogin, controllerCode, isValidation, cancellationToken);
 
+        logger.LogInformation(
+            "{ReplayKind} replay submission from server {ServerLogin} completed with result {Result}.",
+            ReplayKind(isValidation),
+            serverLogin,
+            result);
         return result switch
         {
             ReplaySubmissionResult.Attached => TypedResults.Ok(new { Status = "attached" }),
@@ -68,6 +88,8 @@ public static class ReplayEndpoints
             _ => TypedResults.BadRequest("The uploaded file is not a valid replay.")
         };
     }
+
+    private static string ReplayKind(bool isValidation) => isValidation ? "validation" : "main";
 
     private static async Task<Results<FileContentHttpResult, NotFound>> DownloadReplay(
         Guid guid,

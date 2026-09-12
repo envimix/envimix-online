@@ -539,10 +539,13 @@ public static class EnvimaniaEndpoints
     private static async Task<IResult> SessionReplay(
         HttpRequest request,
         ISessionReplaySubmissionService sessionReplaySubmissionService,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var logger = loggerFactory.CreateLogger("EnvimixWebAPI.Endpoints.EnvimaniaEndpoints");
         if (!request.HasFormContentType)
         {
+            logger.LogWarning("Rejected session replay submission because it was not multipart form data.");
             return TypedResults.BadRequest("Expected multipart form data.");
         }
 
@@ -555,6 +558,7 @@ public static class EnvimaniaEndpoints
             || replayFile is null
             || replayFile.Length is 0 or > ReplaySubmissionService.MaxReplaySize)
         {
+            logger.LogWarning("Rejected session replay submission from server {ServerLogin} because required form data or replay file was invalid.", serverLogin);
             return TypedResults.BadRequest("Server login, controller code, and a valid replay file are required.");
         }
 
@@ -562,6 +566,10 @@ public static class EnvimaniaEndpoints
         var result = await sessionReplaySubmissionService.SubmitAsync(
             replayStream, serverLogin, controllerCode, cancellationToken);
 
+        logger.LogInformation(
+            "Session replay submission from server {ServerLogin} completed with result {Result}.",
+            serverLogin,
+            result);
         return result switch
         {
             SessionReplaySubmissionResult.Submitted => TypedResults.Ok(new { Status = "submitted" }),
