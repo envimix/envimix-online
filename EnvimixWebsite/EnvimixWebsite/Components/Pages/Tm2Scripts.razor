@@ -84,14 +84,20 @@
             </div>
             <div class="install-options">
             <section>
-                <h3>1. Docker Compose with ManiaServerManager</h3>
-                <p>Use <a href="https://hub.docker.com/r/bigbang1112/mania-server-manager">ManiaServerManager</a> to download the dedicated server, title pack, and ENVIMIX files when the container starts. It will automatically handle updates for you.</p>
-                <p>Replace account values and server name, then run <code>docker compose up -d</code>.</p>
+                <h3>1. Docker Compose with ManiaServerManager and Envimix Control</h3>
+                <p>Use <a href="https://hub.docker.com/r/bigbang1112/mania-server-manager">ManiaServerManager</a> to download/update the dedicated server, title pack, and ENVIMIX files when the container starts. The Compose file also runs <a href="https://github.com/envimix/envimix-control">Envimix Control</a>, which submits record replays, validation replays, and session replays to Envimania.</p>
+                <ol>
+                    <li>Sign in, open your <a href="/profile">profile</a>, and register the ManiaPlanet dedicated server account you will use. This will enable Envimania for your server.</li>
+                    <li>Open the registered server page, select <strong>Generate controller code</strong>, and replace <code>your_controller_code</code> below. Treat the code like a password.</li>
+                    <li>Replace <code>your_server_login</code>, <code>your_server_password</code>, and the server name, then run <code>docker compose up -d</code>.</li>
+                </ol>
                 <div class="compose-sample">
-                    <ReuButton OnClick="CopyComposeAsync">Copy</ReuButton>
+                    <ReuButton OnClick="CopyComposeWithControllerAsync">Copy</ReuButton>
                     <pre><code>@GetComposeFile(selectedAsset)</code></pre>
                 </div>
+                <p>The server and controller share the <code>UserData</code> directory so the controller can read generated replay files. Successfully submitted local replays are deleted and failed submissions remain in place for a later retry.</p>
                 <p>See full list of environment variables and options in the <a href="https://hub.docker.com/r/bigbang1112/mania-server-manager">ManiaServerManager documentation</a>.</p>
+                <p><b>Envimix Control is not a required component for running the server.</b> Records driven without replays may still be accepted on Envimania, but there is no guarantee of their validity.</p>
             </section>
             <section>
                 <h3>2. Manual dedicated server</h3>
@@ -101,6 +107,7 @@
                     <li>Extract <code>UserData</code> folder from the ZIP into dedicated server directory and merge it.</li>
                     <li>Run <code>./ManiaPlanetServer /title=@selectedAsset.TitlePack /dedicated_cfg=dedicated_cfg.txt /game_settings=MatchSettings/EnvimixTimeAttack.@(selectedAsset.TitlePack).txt</code></li>
                 </ol>
+                <p>Adding Envimix Control to a manually managed dedicated server is not supported yet, so this setup does not track and submit replays to Envimania.</p>
             </section>
             <section>
                 <h3>3. ManiaPlanet client</h3>
@@ -110,6 +117,7 @@
                     <li>Start ManiaPlanet and <FormattedText Text="@selectedAsset.DisplayName"></FormattedText>.</li>
                     <li>Create a server and choose one of the gamemodes and the <code>EnvimixTimeAttack.@(selectedAsset.TitlePack).txt</code> MatchSettings.</li>
                 </ol>
+                <p>Adding Envimix Control to a ManiaPlanet client setup is not supported yet, so this setup does not track and submit replays to Envimania.</p>
             </section>
             </div>
         }
@@ -236,8 +244,11 @@ services:
   controller:
     image: bigbang1112/envimix-control:latest
     restart: unless-stopped
+    depends_on:
+    - envimix
     environment:
-      EMC_SERVER_IP: server
+      EMC_SERVER_IP: envimix
+      EMC_SERVER_PORT: 5000
       EMC_CONTROLLER_CODE: your_controller_code
     volumes:
       - ./servers/ManiaPlanet_Latest/UserData:/app/UserData
@@ -245,7 +256,7 @@ volumes:
   msm_archives:
 """;
 
-    private async Task CopyComposeAsync()
+    private async Task CopyComposeWithControllerAsync()
     {
         if (selectedAsset is not null)
         {
