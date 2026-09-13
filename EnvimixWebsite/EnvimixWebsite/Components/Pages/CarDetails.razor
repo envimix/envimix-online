@@ -68,15 +68,23 @@
                         {
                             <tr>
                                 <td>
-                                    <RecordDownloads GhostId="@record.GhostId"
-                                                     ReplayId="@record.ReplayId"
-                                                     ValidationReplayId="@record.ValidationReplayId" />
-                                </td>
-                                <td>
                                     <a class="primary-value user-nickname" href="@GetUserUrl(record.UserLogin)">
                                         @if (string.IsNullOrWhiteSpace(record.Nickname))
                                         {
                                             @record.UserLogin
+                                        <td>
+                                            <RecordActions GhostId="@record.GhostId"
+                                                           ReplayId="@record.ReplayId"
+                                                           ValidationReplayId="@record.ValidationReplayId"
+                                                           CanAdminister="@canAdminister"
+                                                           MapUid="@record.MapUid"
+                                                           UserLogin="@record.UserLogin"
+                                                           Car="@record.Car"
+                                                           Gravity="@record.Gravity"
+                                                           Laps="@record.Laps"
+                                                           Time="@record.Time"
+                                                           Removed="@record.Removed" />
+                                        </td>
                                         }
                                         else
                                         {
@@ -123,11 +131,24 @@
     private CarInfo? car;
     private bool isLoading = true;
     private bool loadFailed;
+    private bool canAdminister;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private string GetMetadataDescription()
         => car is null
             ? $"View records driven with {CarId} in ENVIMIX."
             : $"Browse {car.RecordCount} records driven by {car.PlayerCount} players with {car.Id} in ENVIMIX.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var authState = await AuthenticationStateTask;
+            canAdminister = authState.User.IsInRole(Roles.Admin);
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {

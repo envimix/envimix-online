@@ -1,0 +1,11 @@
+.record-actions,
+.download-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.record-actions form {
+    display: inline-flex;
+}

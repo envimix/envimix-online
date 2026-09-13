@@ -1,0 +1,92 @@
+@inject IEnvimixService EnvimixService
+
+<div class="record-actions">
+@if (GhostId is not null || ReplayId is not null || ValidationReplayId is not null)
+{
+    <div class="download-actions">
+        @if (ReplayId is Guid replayId)
+        {
+            <ReuButton title="View replay" Enable="false" Href="@EnvimixService.GetReplayViewUrl(replayId)">View</ReuButton>
+            <ReuButton title="Download replay" Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download><img src="img/icons/replay.svg" alt="Download replay" width="24" height="24" /></ReuButton>
+        }
+        @if (ValidationReplayId is Guid validationReplayId)
+        {
+            <ReuButton title="Download validation replay" Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" download><img src="img/icons/validation_replay.svg" alt="Download validation replay" width="24" height="24" /></ReuButton>
+        }
+        @if (GhostId is Guid ghostId)
+        {
+            <ReuButton title="Download ghost" Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download><img src="img/icons/ghost.svg" alt="Download ghost" width="24" height="24" /></ReuButton>
+        }
+    </div>
+}
+
+@if (CanAdminister)
+{
+    <form method="post" action="@(Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(Removed ? "Restore this record?" : "Remove this record?")');">
+        <AntiforgeryToken />
+        @if (SessionId is Guid sessionId)
+        {
+            <input type="hidden" name="sessionId" value="@sessionId" />
+        }
+        @if (RedirectToMap)
+        {
+            <input type="hidden" name="redirectToMap" value="true" />
+        }
+        @if (RedirectToUser)
+        {
+            <input type="hidden" name="redirectToUser" value="true" />
+        }
+        <input type="hidden" name="mapUid" value="@MapUid" />
+        <input type="hidden" name="login" value="@UserLogin" />
+        <input type="hidden" name="carId" value="@Car" />
+        <input type="hidden" name="gravity" value="@Gravity" />
+        <input type="hidden" name="laps" value="@Laps" />
+        <input type="hidden" name="time" value="@Time" />
+        <ReuButton title="@(Removed ? "Restore" : "Remove")" type="submit"><img src="img/icons/@(Removed ? "restore" : "remove").svg" alt="@(Removed ? "Restore" : "Remove")" width="24" height="24" /></ReuButton>
+    </form>
+}
+</div>
+
+@code {
+    [Parameter]
+    public Guid? GhostId { get; set; }
+
+    [Parameter]
+    public Guid? ReplayId { get; set; }
+
+    [Parameter]
+    public Guid? ValidationReplayId { get; set; }
+
+    [Parameter]
+    public bool CanAdminister { get; set; }
+
+    [Parameter]
+    public string MapUid { get; set; } = "";
+
+    [Parameter]
+    public string UserLogin { get; set; } = "";
+
+    [Parameter]
+    public string Car { get; set; } = "";
+
+    [Parameter]
+    public int Gravity { get; set; }
+
+    [Parameter]
+    public int Laps { get; set; }
+
+    [Parameter]
+    public int Time { get; set; }
+
+    [Parameter]
+    public bool Removed { get; set; }
+
+    [Parameter]
+    public Guid? SessionId { get; set; }
+
+    [Parameter]
+    public bool RedirectToMap { get; set; }
+
+    [Parameter]
+    public bool RedirectToUser { get; set; }
+}
