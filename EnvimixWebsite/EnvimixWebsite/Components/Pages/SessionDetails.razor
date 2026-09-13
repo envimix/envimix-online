@@ -162,18 +162,7 @@
                                             </td>
                                             <td><LocalDateTime Value="@record.DrivenAt" /></td>
                                             <td>
-                                                <RecordActions GhostId="@record.GhostId"
-                                                               ReplayId="@record.ReplayId"
-                                                               ValidationReplayId="@record.ValidationReplayId"
-                                                               CanAdminister="@session.CanAdminister"
-                                                               MapUid="@session.MapUid"
-                                                               UserLogin="@record.UserLogin"
-                                                               Car="@record.Car"
-                                                               Gravity="@record.Gravity"
-                                                               Laps="@record.Laps"
-                                                               Time="@record.Time"
-                                                               Removed="@record.Removed"
-                                                               SessionId="@session.Id" />
+                                                <RecordActions Record="@GetRecordInfo(session, record)" CanAdminister="@session.CanAdminister" />
                                             </td>
                                         </tr>
                                     }
@@ -223,6 +212,32 @@
 
     private static string GetMapName(EnvimaniaSessionInfo value)
         => string.IsNullOrWhiteSpace(value.MapName) ? value.MapUid : value.MapName;
+
+    private static RecordInfo GetRecordInfo(EnvimaniaSessionInfo session, EnvimaniaSessionRecord record)
+        => new(
+            record.UserLogin,
+            record.Nickname,
+            session.MapUid,
+            session.MapName,
+            session.MapLaps,
+            record.Car,
+            record.Gravity,
+            record.Laps,
+            record.Time,
+            record.Score,
+            record.NbRespawns,
+            record.DrivenAt,
+            session.Id,
+            session.ServerLogin,
+            session.ServerName,
+            session.TitleId,
+            session.TitleDisplayName,
+            record.GhostId,
+            null,
+            record.ReplayId,
+            record.ValidationReplayId,
+            null,
+            record.Removed);
 
     private static string GetServerUrl(string serverLogin)
         => $"/envimania/servers/{Uri.EscapeDataString(serverLogin)}";

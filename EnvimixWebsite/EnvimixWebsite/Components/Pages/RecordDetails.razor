@@ -121,17 +121,7 @@
         </dl>
 
         <div class="record-download">
-            <RecordActions GhostId="@record.GhostId"
-                           ReplayId="@record.ReplayId"
-                           ValidationReplayId="@record.ValidationReplayId"
-                           CanAdminister="@canAdminister"
-                           MapUid="@record.MapUid"
-                           UserLogin="@record.UserLogin"
-                           Car="@record.Car"
-                           Gravity="@record.Gravity"
-                           Laps="@record.Laps"
-                           Time="@record.Time"
-                           Removed="@record.Removed" />
+            <RecordActions Record="@record" CanAdminister="@canAdminister" />
         </div>
 
         <h3>Checkpoints</h3>

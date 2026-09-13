@@ -9,3 +9,7 @@
 .record-actions form {
     display: inline-flex;
 }
+
+::deep .icon {
+    padding: 9px !important;
+}

@@ -66,25 +66,12 @@
                     <tbody>
                         @foreach (var record in car.RecentRecords)
                         {
-                            <tr>
+                            <tr class="@(record.Removed ? "removed-record" : null)">
                                 <td>
                                     <a class="primary-value user-nickname" href="@GetUserUrl(record.UserLogin)">
                                         @if (string.IsNullOrWhiteSpace(record.Nickname))
                                         {
                                             @record.UserLogin
-                                        <td>
-                                            <RecordActions GhostId="@record.GhostId"
-                                                           ReplayId="@record.ReplayId"
-                                                           ValidationReplayId="@record.ValidationReplayId"
-                                                           CanAdminister="@canAdminister"
-                                                           MapUid="@record.MapUid"
-                                                           UserLogin="@record.UserLogin"
-                                                           Car="@record.Car"
-                                                           Gravity="@record.Gravity"
-                                                           Laps="@record.Laps"
-                                                           Time="@record.Time"
-                                                           Removed="@record.Removed" />
-                                        </td>
                                         }
                                         else
                                         {
@@ -115,6 +102,9 @@
                                     }
                                 </td>
                                 <td>@RelativeTimeFormatter.Format(record.DrivenAt)</td>
+                                <td>
+                                    <RecordActions Record="@record" CanAdminister="@canAdminister" />
+                                </td>
                             </tr>
                         }
                     </tbody>
