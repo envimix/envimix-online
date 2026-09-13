@@ -45,7 +45,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var server in servers)
+                    @foreach (var server in servers.OrderByDescending(server => server.LastSeenAt))
                     {
                         <tr>
                             <td>
