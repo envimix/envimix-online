@@ -667,12 +667,6 @@ public sealed class EnvimaniaService(
             return ActionForbiddenResponse.ServerLoginBanned;
         }
 
-        if (request.TitleId != "Envimix_Turbo@bigbang1112"
-            && (server.RegisteredById is null || server.RegisteredBy?.IsAdmin != true))
-        {
-            return new ActionForbiddenResponse("Sessions for this title pack require a server registered by an admin");
-        }
-
         // VALIDATION END
 
         // can throw 403
