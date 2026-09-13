@@ -1,4 +1,8 @@
 @page "/servers"
+@using TmEssentials.Razor
+@inject IEnvimixService EnvimixService
+@inject ILogger<Servers> Logger
+@attribute [StreamRendering]
 
 <PageTitle>Servers - ENVIMIX project</PageTitle>
 <HeadContent>
@@ -6,22 +10,72 @@
 </HeadContent>
 
 <ReuContainer>
-    <h1>ENVIMIX servers</h1>
+    <header class="page-heading">
+        <h1>ENVIMIX servers</h1>
+    </header>
 
-    <section aria-labelledby="tm2-heading">
-        <h2 id="tm2-heading">Trackmania 2</h2>
-        <div class="server-list">
-            <a class="server-link" href="maniaplanet://#join=envimix_bay">ENVIMIX Bay</a>
-            <a class="server-link" href="maniaplanet://#join=envimix_island">ENVIMIX Island</a>
-        </div>
-        <p>Want to create your own server? Check out the <a href="/tm2/scripts">ENVIMIX scripts</a>.</p>
-    </section>
+    <div class="game-sections">
+        <section class="game-section tm2" aria-labelledby="tm2-heading">
+            <div class="game-art" aria-hidden="true"></div>
+            <div class="game-content">
+                <h2 id="tm2-heading">Trackmania 2</h2>
+                <p class="game-description">Modern 1-map-all-cars gameplay on various title packs.</p>
+                <div class="server-list">
+                    <a class="server-link" href="maniaplanet://#join=envimix_bay@TMOneBay@unbitn">
+                        <span class="server-name"><FormattedText Text="@bayServerName"></FormattedText></span>
+                    </a>
+                    <a class="server-link" href="maniaplanet://#join=envimix_island@TM2U_Island@adamkooo">
+                        <span class="server-name"><FormattedText Text="@islandServerName"></FormattedText></span>
+                    </a>
+                </div>
+                <p class="server-note">Want to create your own ENVIMIX server? Check out the <a href="/tm2/scripts">scripts page</a>.</p>
+            </div>
+        </section>
 
-    <section aria-labelledby="tmuf-heading">
-        <h2 id="tmuf-heading">Trackmania United Forever</h2>
-        <div class="server-list">
-            <a class="server-link" href="tmtp://#join=NadeoEnviMix">NADEO ENVIMIX</a>
-            <a class="server-link" href="tmtp://#join=NadeoEnviMixStunts">NADEO ENVIMIX (Stunts)</a>
-        </div>
-    </section>
+        <section class="game-section tmuf" aria-labelledby="tmuf-heading">
+            <div class="game-art" aria-hidden="true"></div>
+            <div class="game-content">
+                <h2 id="tmuf-heading">Trackmania United Forever</h2>
+                <p class="game-description">Classic 1-map-1-car gameplay without having to download any map packs.</p>
+                <div class="server-list">
+                    <a class="server-link" href="tmtp://#join=NadeoEnviMix">
+                        <span class="server-name">NADEO ENVIMIX</span>
+                    </a>
+                    <a class="server-link" href="tmtp://#join=NadeoEnviMixStunts">
+                        <span class="server-name">NADEO ENVIMIX <small>Stunts</small></span>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
 </ReuContainer>
+
+@code {
+    private const string BayServerLogin = "envimix_bay";
+    private const string IslandServerLogin = "envimix_island";
+
+    private string bayServerName = "ENVIMIX Bay";
+    private string islandServerName = "ENVIMIX Island";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var servers = await EnvimixService.GetServersAsync();
+            bayServerName = GetServerName(servers, BayServerLogin, bayServerName);
+            islandServerName = GetServerName(servers, IslandServerLogin, islandServerName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to load ENVIMIX server names");
+        }
+    }
+
+    private static string GetServerName(EnvimaniaServerSummary[] servers, string serverLogin, string fallback)
+    {
+        var serverName = servers.FirstOrDefault(server =>
+            server.ServerLogin.Equals(serverLogin, StringComparison.OrdinalIgnoreCase))?.ServerName;
+
+        return string.IsNullOrWhiteSpace(serverName) ? fallback : serverName;
+    }
+}
