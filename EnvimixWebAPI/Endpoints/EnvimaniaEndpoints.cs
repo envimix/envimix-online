@@ -221,19 +221,25 @@ public static class EnvimaniaEndpoints
 
         var servers = await db.Servers
             .Where(x => access.CanAdminister || (x.BanReason == null && x.DeletedAt == null))
-            .OrderBy(x => x.Id)
-            .Select(x => new EnvimaniaServerSummary(
-                x.Id,
-                x.Name,
-                x.EnvimaniaSessions.Count,
-                x.RegisteredById,
-                x.RegisteredBy == null ? null : x.RegisteredBy.Nickname,
-                x.EnvimaniaSessions
+            .Select(server => new
+            {
+                Server = server,
+                LastSeenAt = server.EnvimaniaSessions
                     .OrderByDescending(session => session.StartedAt)
                     .Select(session => (DateTimeOffset?)session.StartedAt)
-                    .FirstOrDefault(),
-                x.DeletedAt != null,
-                x.BanReason != null))
+                    .FirstOrDefault()
+            })
+            .OrderByDescending(x => x.LastSeenAt)
+            .ThenBy(x => x.Server.Id)
+            .Select(x => new EnvimaniaServerSummary(
+                x.Server.Id,
+                x.Server.Name,
+                x.Server.EnvimaniaSessions.Count,
+                x.Server.RegisteredById,
+                x.Server.RegisteredBy == null ? null : x.Server.RegisteredBy.Nickname,
+                x.LastSeenAt,
+                x.Server.DeletedAt != null,
+                x.Server.BanReason != null))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(servers);

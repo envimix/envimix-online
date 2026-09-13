@@ -120,9 +120,41 @@
             }
         </dl>
 
-        <div class="record-download">
-            <RecordActions Record="@record" CanAdminister="@canAdminister" />
-        </div>
+        @if (record.GhostId is not null || record.ReplayId is not null || record.ValidationReplayId is not null)
+        {
+            <div class="record-download download-actions">
+                @if (record.ReplayId.HasValue)
+                {
+                    <ReuButton Enable="false" Href="@EnvimixService.GetReplayViewUrl(record.ReplayId.Value)">View replay</ReuButton>
+                }
+                @if (record.ReplayId is Guid replayId)
+                {
+                    <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download>Download replay</ReuButton>
+                }
+                @if (record.ValidationReplayId is Guid validationReplayId)
+                {
+                    <ReuButton Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" download>Download validation replay</ReuButton>
+                }
+                @if (record.GhostId is Guid ghostId)
+                {
+                    <ReuButton Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download>Download ghost</ReuButton>
+                }
+            </div>
+        }
+
+        @if (canAdminister)
+        {
+            <form class="record-actions" method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
+                <AntiforgeryToken />
+                <input type="hidden" name="mapUid" value="@record.MapUid" />
+                <input type="hidden" name="login" value="@record.UserLogin" />
+                <input type="hidden" name="carId" value="@record.Car" />
+                <input type="hidden" name="gravity" value="@record.Gravity" />
+                <input type="hidden" name="laps" value="@record.Laps" />
+                <input type="hidden" name="time" value="@record.Time" />
+                <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
+            </form>
+        }
 
         <h3>Checkpoints</h3>
         @if (record.Checkpoints is not { Length: > 0 } checkpoints)

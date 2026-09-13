@@ -2,7 +2,6 @@
 .download-actions {
     align-items: center;
     display: flex;
-    flex-wrap: wrap;
     gap: 0.25rem;
 }
 
@@ -11,5 +10,5 @@
 }
 
 ::deep .icon {
-    padding: 9px !important;
+    margin: -1px;
 }
