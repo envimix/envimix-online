@@ -10,4 +10,7 @@ public sealed record EnvimaniaSessionRecord(
     int Score,
     int NbRespawns,
     DateTimeOffset DrivenAt,
-    bool Removed);
+    bool Removed,
+    Guid? GhostId,
+    Guid? ReplayId,
+    Guid? ValidationReplayId);

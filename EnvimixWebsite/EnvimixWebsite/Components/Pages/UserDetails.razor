@@ -66,6 +66,7 @@
                             <th scope="col">Time</th>
                             <th scope="col">Driven</th>
                             <th scope="col">Server</th>
+                            <th scope="col"><span class="visually-hidden">Downloads</span></th>
                             @if (canAdminister)
                             {
                                 <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -115,6 +116,11 @@
                                         </a>
                                     }
                                 </td>
+                            <td>
+                                <RecordDownloads GhostId="@record.GhostId"
+                                         ReplayId="@record.ReplayId"
+                                         ValidationReplayId="@record.ValidationReplayId" />
+                            </td>
                                 @if (canAdminister)
                                 {
                                     <td>

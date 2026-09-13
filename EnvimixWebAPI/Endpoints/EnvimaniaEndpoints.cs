@@ -396,7 +396,10 @@ public static class EnvimaniaEndpoints
                 x.Score,
                 x.NbRespawns,
                 x.DrivenAt,
-                x.Removed))
+                x.Removed,
+                x.GhostId,
+                x.ReplayId,
+                x.ValidationReplayId))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(new EnvimaniaSessionInfo(

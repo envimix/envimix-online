@@ -129,6 +129,7 @@
                                         }
                                         <th scope="col">Time</th>
                                         <th scope="col">Driven</th>
+                                        <th scope="col"><span class="visually-hidden">Downloads</span></th>
                                         @if (session.CanAdminister)
                                         {
                                             <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -164,9 +165,15 @@
                                                 }
                                             </td>
                                             <td><LocalDateTime Value="@record.DrivenAt" /></td>
+                                            <td>
+                                                <RecordDownloads GhostId="@record.GhostId"
+                                                                 ReplayId="@record.ReplayId"
+                                                                 ValidationReplayId="@record.ValidationReplayId" />
+                                            </td>
                                             @if (session.CanAdminister)
                                             {
                                                 <td>
+                                                    <ReuButton>View</ReuButton>
                                                     <form method="post" action="@(record.Removed ? "/records/revert" : "/records/remove")" onsubmit="return confirm('@(record.Removed ? "Restore this record?" : "Remove this record?")');">
                                                         <AntiforgeryToken />
                                                         <input type="hidden" name="sessionId" value="@session.Id" />
@@ -176,7 +183,7 @@
                                                         <input type="hidden" name="gravity" value="@record.Gravity" />
                                                         <input type="hidden" name="laps" value="@record.Laps" />
                                                         <input type="hidden" name="time" value="@record.Time" />
-                                                        <ReuButton type="submit">@(record.Removed ? "Restore" : "Remove")</ReuButton>
+                                                        <ReuButton type="submit"><img src="img/icons/@(record.Removed ? "restore" : "remove").svg" alt="@(record.Removed ? "Restore" : "Remove")" width="24" height="24" /></ReuButton>
                                                     </form>
                                                 </td>
                                             }

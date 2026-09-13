@@ -60,12 +60,18 @@
                             }
                             <th scope="col">Time</th>
                             <th scope="col">Driven</th>
+                            <th scope="col"><span class="visually-hidden">Downloads</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var record in car.RecentRecords)
                         {
                             <tr>
+                                <td>
+                                    <RecordDownloads GhostId="@record.GhostId"
+                                                     ReplayId="@record.ReplayId"
+                                                     ValidationReplayId="@record.ValidationReplayId" />
+                                </td>
                                 <td>
                                     <a class="primary-value user-nickname" href="@GetUserUrl(record.UserLogin)">
                                         @if (string.IsNullOrWhiteSpace(record.Nickname))

@@ -30,6 +30,7 @@ public interface IEnvimixService
     string GetGhostDownloadUrl(Guid ghostId);
     Task<GhostDownload?> GetReplayAsync(Guid replayId, CancellationToken cancellationToken = default);
     string GetReplayDownloadUrl(Guid replayId);
+    string GetReplayViewUrl(Guid replayId);
 }
 
 public sealed class EnvimixService(
@@ -373,6 +374,9 @@ public sealed class EnvimixService(
     public string GetReplayDownloadUrl(Guid replayId)
         => $"/replays/{replayId}/download";
 
+    public string GetReplayViewUrl(Guid replayId)
+        => $"/replays/{replayId}/view";
+
     private async Task<T?> GetDetailAsync<T>(
         string path,
         CancellationToken cancellationToken)
@@ -473,7 +477,10 @@ public sealed record EnvimaniaSessionRecord(
     int Score,
     int NbRespawns,
     DateTimeOffset DrivenAt,
-    bool Removed);
+    bool Removed,
+    Guid? GhostId,
+    Guid? ReplayId,
+    Guid? ValidationReplayId);
 
 public sealed record PlayerInfo(
     string Login,
