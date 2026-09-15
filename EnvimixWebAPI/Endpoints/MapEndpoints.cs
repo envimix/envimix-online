@@ -29,12 +29,17 @@ public static class MapEndpoints
         group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
     }
 
-    private static async Task<Ok> SubmitMaps(
+    private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>>> SubmitMaps(
         SubmitMapsRequest request, 
         AppDbContext db,
         HybridCache cache,
         CancellationToken cancellationToken)
     {
+        if (request.Maps.Any(x => !string.IsNullOrWhiteSpace(x.DefaultCar) && x.DefaultCar.Length > 16))
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Default car name cannot exceed 16 characters"));
+        }
+
         var mapUids = request.Maps.Select(x => x.Uid).ToHashSet();
         var maps = await db.Maps
             .Where(x => mapUids.Contains(x.Id) || (x.TitlePackId == request.TitleId && x.IsCampaignMap))
@@ -378,6 +383,11 @@ public static class MapEndpoints
         if (mapInfo is not null && mapUid != mapInfo.Uid)
         {
             return TypedResults.BadRequest(new ValidationFailureResponse("Map UID does not match route"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(mapInfo?.DefaultCar) && mapInfo.DefaultCar.Length > 16)
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("Default car name cannot exceed 16 characters"));
         }
 
         var userModel = await userService.GetAsync(principal.GetName(), cancellationToken);
