@@ -27,6 +27,9 @@
                     <a class="server-link" href="maniaplanet://#join=envimix_island@TM2U_Island@adamkooo">
                         <span class="server-name"><FormattedText Text="@islandServerName"></FormattedText></span>
                     </a>
+                    <a class="server-link" href="maniaplanet://#join=envimix_turbo@Envimix_Turbo@bigbang1112">
+                        <span class="server-name"><FormattedText Text="@turboServerName"></FormattedText></span>
+                    </a>
                 </div>
                 <p class="server-note">Want to create your own ENVIMIX server? Check out the <a href="/tm2/scripts">scripts page</a>.</p>
             </div>
@@ -53,9 +56,11 @@
 @code {
     private const string BayServerLogin = "envimix_bay";
     private const string IslandServerLogin = "envimix_island";
+    private const string TurboServerLogin = "envimix_turbo";
 
     private string bayServerName = "ENVIMIX Bay";
     private string islandServerName = "ENVIMIX Island";
+    private string turboServerName = "ENVIMIX Turbo";
 
     protected override async Task OnInitializedAsync()
     {
@@ -64,6 +69,7 @@
             var servers = await EnvimixService.GetServersAsync();
             bayServerName = GetServerName(servers, BayServerLogin, bayServerName);
             islandServerName = GetServerName(servers, IslandServerLogin, islandServerName);
+            turboServerName = GetServerName(servers, TurboServerLogin, turboServerName);
         }
         catch (Exception ex)
         {
