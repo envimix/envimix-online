@@ -1,31 +1,11 @@
 .status-heading {
-    border-bottom: 1px solid #ffffff1a;
     margin: 1rem 0 2rem;
-    padding: 1.5rem 0;
 }
 
 .health-checks h2,
 .health-check h3,
 .status-summary h2 {
     margin: 0;
-}
-
-.status-kicker {
-    color: #aaa;
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-    margin: 0 0 0.35rem;
-}
-
-.status-heading h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
-    letter-spacing: -0.04em;
-}
-
-.status-introduction {
-    color: #aaa;
-    margin: 0.5rem 0 0;
 }
 
 .status-summary p,
@@ -36,12 +16,10 @@
 .status-summary {
     align-items: center;
     background: linear-gradient(120deg, var(--status-surface), #191919);
-    border: 1px solid #ffffff12;
     border-left: 0.35rem solid var(--status-color);
     border-radius: 0.75rem;
-    box-shadow: 0 0.75rem 2rem #0004;
     display: flex;
-    gap: 1rem;
+    gap: 1.25rem;
     margin-bottom: 2rem;
     padding: 1rem 1.25rem;
 }
@@ -82,11 +60,9 @@
 }
 
 .health-check {
-    background: linear-gradient(145deg, #242424, #191919);
-    border: 1px solid #ffffff12;
+    background: #191919;
     border-top: 0.25rem solid var(--status-color);
     border-radius: 0.75rem;
-    box-shadow: 0 0.5rem 1.5rem #0003;
     min-height: 10rem;
     padding: 1rem 1.25rem;
     transition: border-color 0.2s, transform 0.2s;
