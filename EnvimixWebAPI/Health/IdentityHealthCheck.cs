@@ -13,7 +13,7 @@ public sealed class IdentityHealthCheck(HttpClient http, IConfiguration configur
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Head, identityUri);
+            using var request = new HttpRequestMessage(HttpMethod.Get, identityUri);
             using var response = await http.SendAsync(request, cancellationToken);
 
             response.EnsureSuccessStatusCode();
