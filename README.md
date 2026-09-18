@@ -34,6 +34,10 @@ Each **gameplay style combination** can be rated with a special star to highligh
 
 The site that is meant to run in web browsers. Very much WIP.
 
+### Status page
+
+The website's `/status` page reads the protected API health endpoint. Configure the same strong value for `HealthChecks__EnvimixOnlineKey` in both the website and API deployments (for example via user secrets or deployment environment variables). The key is only sent from the server-rendered website to the API.
+
 ## Envimix Discord Bot
 
 Currently only serving Envimix TM2020 validation system.

@@ -41,8 +41,6 @@ public static class WebConfiguration
 
         services.AddManiaPlanetIngameAPI();
 
-        services.AddHealthChecks();
-
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IGitHubClient>(_ => new GitHubClient(new ProductHeaderValue("envimix-gbx-tools")));
 

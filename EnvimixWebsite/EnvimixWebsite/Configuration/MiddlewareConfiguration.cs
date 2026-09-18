@@ -1,6 +1,5 @@
 ﻿using EnvimixWebsite.Components;
 using EnvimixWebsite.Endpoints;
-using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Hybrid;
 using System.Security.Claims;
@@ -40,11 +39,6 @@ public static class MiddlewareConfiguration
         app.UseOutputCache();
 
         app.UseAntiforgery();
-
-        app.MapHealthChecks("/_health", new()
-        {
-            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-        }).RequireAuthorization();
 
         TurboEndpoints.Map(app);
         TitleEndpoints.Map(app);

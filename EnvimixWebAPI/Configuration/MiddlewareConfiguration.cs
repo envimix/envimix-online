@@ -25,7 +25,7 @@ public static class MiddlewareConfiguration
         app.MapHealthChecks("/_health", new()
         {
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-        }).RequireAuthorization();
+        }).RequireAuthorization(Policies.HealthCheckPolicy);
 
         if (app.Environment.IsDevelopment())
         {

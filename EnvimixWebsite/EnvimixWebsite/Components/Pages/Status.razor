@@ -1,0 +1,150 @@
+@page "/status"
+@using System.Net
+@inject IConfiguration Configuration
+@inject IHttpClientFactory HttpClientFactory
+@inject ILogger<Status> Logger
+@attribute [StreamRendering]
+
+<PageTitle>Status - ENVIMIX project</PageTitle>
+<HeadContent>
+    <MetadataTags Title="ENVIMIX status" Description="Current availability of ENVIMIX services."></MetadataTags>
+</HeadContent>
+
+<ReuContainer>
+    <header class="status-heading">
+        <div>
+            <h1>System status</h1>
+            <p>Live health information for ENVIMIX services.</p>
+        </div>
+        <a class="status-refresh" href="/status">Refresh</a>
+    </header>
+
+    @if (report is null)
+    {
+        <section class="status-summary unhealthy" aria-live="polite">
+            <span class="status-indicator" aria-hidden="true"></span>
+            <div>
+                <h2>Unable to retrieve service status</h2>
+                <p>@errorMessage</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="status-summary @GetStatusCssClass(report.Status)" aria-live="polite">
+            <span class="status-indicator" aria-hidden="true"></span>
+            <div>
+                <h2>@GetSummaryTitle(report.Status)</h2>
+                <p>Last checked @checkedAt.ToLocalTime().ToString("f").</p>
+            </div>
+        </section>
+
+        <section class="health-checks" aria-labelledby="health-checks-heading">
+            <h2 id="health-checks-heading">Health checks</h2>
+            <div class="health-check-list">
+                @foreach (var (name, check) in report.Entries.OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    <article class="health-check @GetStatusCssClass(check.Status)">
+                        <div class="health-check-heading">
+                            <h3>@GetDisplayName(name)</h3>
+                            <span class="health-check-status">@check.Status</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(check.Description))
+                        {
+                            <p>@check.Description</p>
+                        }
+                        <small>Completed in @check.Duration</small>
+                    </article>
+                }
+            </div>
+        </section>
+    }
+</ReuContainer>
+
+@code {
+    private HealthReportResponse? report;
+    private DateTimeOffset checkedAt;
+    private string errorMessage = "The health-check service did not return a response.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiAddress = Configuration["EnvimixApi"];
+        if (!Uri.TryCreate(apiAddress, UriKind.Absolute, out var apiUri))
+        {
+            errorMessage = "The ENVIMIX API address is not configured.";
+            return;
+        }
+
+        var healthCheckKey = Configuration["HealthChecks:EnvimixOnlineKey"];
+        if (string.IsNullOrWhiteSpace(healthCheckKey))
+        {
+            errorMessage = "The status page is not configured to authenticate with the ENVIMIX API.";
+            return;
+        }
+
+        try
+        {
+            var healthUri = new Uri(apiUri, "/_health");
+            using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
+            request.Headers.Add("X-Envimix-Health-Key", healthCheckKey);
+            using var response = await HttpClientFactory.CreateClient().SendAsync(request);
+
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                errorMessage = "The status page is not authorized to read the ENVIMIX API health checks.";
+                return;
+            }
+
+            report = await response.Content.ReadFromJsonAsync<HealthReportResponse>();
+
+            if (report is null)
+            {
+                errorMessage = "The health-check service returned an invalid response.";
+                return;
+            }
+
+            checkedAt = DateTimeOffset.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to retrieve ENVIMIX API health status");
+        }
+    }
+
+    private static string GetStatusCssClass(string? status)
+        => status?.ToLowerInvariant() switch
+        {
+            "healthy" => "healthy",
+            "degraded" => "degraded",
+            _ => "unhealthy"
+        };
+
+    private static string GetSummaryTitle(string status)
+        => status switch
+        {
+            "Healthy" => "All systems operational",
+            "Degraded" => "Some systems are degraded",
+            _ => "A system is unavailable"
+        };
+
+    private static string GetDisplayName(string name)
+        => name switch
+        {
+            "ManiaPlanet" => "ManiaPlanet",
+            "ManiaPlanetWebServices" => "ManiaPlanet Web Services",
+            _ => name
+        };
+
+    private sealed class HealthReportResponse
+    {
+        public string Status { get; init; } = "Unhealthy";
+        public Dictionary<string, HealthCheckResponse> Entries { get; init; } = [];
+    }
+
+    private sealed class HealthCheckResponse
+    {
+        public string Status { get; init; } = "Unhealthy";
+        public string? Description { get; init; }
+        public string Duration { get; init; } = "an unknown duration";
+    }
+}

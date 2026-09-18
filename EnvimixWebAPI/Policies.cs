@@ -6,4 +6,5 @@ public static class Policies
     public const string AdminPolicy = "AdminPolicy";
     public const string ManiaPlanetUserPolicy = "ManiaPlanetUserPolicy";
     public const string EnvimaniaSessionPolicy = "EnvimaniaSessionPolicy";
+    public const string HealthCheckPolicy = "HealthCheckPolicy";
 }

@@ -3,6 +3,7 @@ using EnvimixWebAPI.Security;
 using ManiaAPI.ManiaPlanetAPI;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 using ManiaAPI.Xml.Extensions.Hosting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -27,7 +28,10 @@ public static class WebConfiguration
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Convert.FromHexString(config["Jwt:Key"]!))
                 };
-            });
+            })
+            .AddScheme<AuthenticationSchemeOptions, HealthCheckAuthenticationHandler>(
+                HealthCheckAuthenticationHandler.SchemeName,
+                _ => { });
 
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.EnvimaniaSessionPolicy, policy =>
@@ -53,6 +57,11 @@ public static class WebConfiguration
                 policy.RequireAuthenticatedUser()
                     .RequireRole(Roles.SuperAdmin)
                     .RequireClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser);
+            })
+            .AddPolicy(Policies.HealthCheckPolicy, policy =>
+            {
+                policy.AddAuthenticationSchemes(HealthCheckAuthenticationHandler.SchemeName);
+                policy.RequireAuthenticatedUser();
             });
 
         services.AddManiaPlanetAPI(options =>
@@ -101,7 +110,8 @@ public static class WebConfiguration
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>()
             .AddCheck<ManiaPlanetHealthCheck>("ManiaPlanet")
-            .AddCheck<ManiaPlanetWebServicesHealthCheck>("ManiaPlanetWebServices");
+            .AddCheck<ManiaPlanetWebServicesHealthCheck>("ManiaPlanetWebServices")
+            .AddCheck<IdentityHealthCheck>("GbxToolsIdentity");
 
         services.ConfigureHttpJsonOptions(options =>
         {
