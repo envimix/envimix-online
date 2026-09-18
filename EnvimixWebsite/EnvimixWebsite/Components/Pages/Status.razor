@@ -12,11 +12,8 @@
 
 <ReuContainer>
     <header class="status-heading">
-        <div>
-            <h1>System status</h1>
-            <p>Live health information for ENVIMIX services.</p>
-        </div>
-        <a class="status-refresh" href="/status">Refresh</a>
+        <h1>System status</h1>
+        <p class="status-introduction">Live health information for ENVIMIX services.</p>
     </header>
 
     @if (report is null)
@@ -46,7 +43,10 @@
                 {
                     <article class="health-check @GetStatusCssClass(check.Status)">
                         <div class="health-check-heading">
-                            <h3>@GetDisplayName(name)</h3>
+                            <div>
+                                <p class="health-check-label">Service</p>
+                                <h3>@GetDisplayName(name)</h3>
+                            </div>
                             <span class="health-check-status">@check.Status</span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(check.Description))

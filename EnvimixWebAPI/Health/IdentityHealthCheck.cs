@@ -6,7 +6,7 @@ public sealed class IdentityHealthCheck(HttpClient http, IConfiguration configur
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!Uri.TryCreate(configuration["IdentityManager"], UriKind.Absolute, out var identityUri))
+        if (!Uri.TryCreate(configuration["IdentityManagerPublic"], UriKind.Absolute, out var identityUri))
         {
             return HealthCheckResult.Unhealthy("The GbxTools Identity address is not configured.");
         }

@@ -108,10 +108,10 @@ public static class WebConfiguration
         });
 
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>()
+            .AddDbContextCheck<AppDbContext>("Database")
             .AddCheck<ManiaPlanetHealthCheck>("ManiaPlanet")
             .AddCheck<ManiaPlanetWebServicesHealthCheck>("ManiaPlanetWebServices")
-            .AddCheck<IdentityHealthCheck>("GbxToolsIdentity");
+            .AddCheck<IdentityHealthCheck>("Identity");
 
         services.ConfigureHttpJsonOptions(options =>
         {
