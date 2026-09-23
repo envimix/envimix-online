@@ -1,4 +1,5 @@
 @page "/envimania/sessions/{SessionId:guid}"
+@rendermode InteractiveServer
 @using TmEssentials
 @using TmEssentials.Razor
 @inject IEnvimixService EnvimixService
@@ -101,6 +102,35 @@
             </div>
         }
 
+        <AuthorizeView Roles="@Roles.Admin">
+            <Authorized>
+                @if (session.CanAdminister)
+                {
+                    <section class="session-restoration" aria-labelledby="session-restoration-heading">
+                        <h3 id="session-restoration-heading">Import a record replay</h3>
+                        <p>A matching session record gets its replay and checkpoints updated. Otherwise, a restored record is created.</p>
+                        <label for="restoration-gravity">Gravity for new records (default 0)</label>
+                        <input id="restoration-gravity" type="number" class="text" @bind="restorationGravity" />
+                        <label for="restoration-driven-at">Driven at for new records (UTC, optional)</label>
+                        <input id="restoration-driven-at" type="datetime-local" class="text" @bind="restorationDrivenAtUtc" />
+                        <p>These fields are ignored when the replay matches an existing record.</p>
+                        <ReuUploadArea Streamed="true" MaxFileCount="1" MaxFileSize="67108864" Accept=".gbx" OnStream="RestoreRecordAsync" OnFileTooLarge="ShowFileTooLarge">
+                            <span>Drop a replay to import it, or click to select one</span>
+                            <span class="note">.Replay.Gbx, up to 64 MB</span>
+                        </ReuUploadArea>
+                        @if (restorationUploading)
+                        {
+                            <p role="status">Restoring record...</p>
+                        }
+                        else if (restorationMessage is not null)
+                        {
+                            <p role="status">@restorationMessage</p>
+                        }
+                    </section>
+                }
+            </Authorized>
+        </AuthorizeView>
+
         <h3>Records</h3>
         @if (session.Records.Length == 0)
         {
@@ -183,6 +213,50 @@
     private EnvimaniaSessionInfo? session;
     private bool isLoading = true;
     private bool loadFailed;
+    private int restorationGravity;
+    private DateTime? restorationDrivenAtUtc;
+    private bool restorationUploading;
+    private string? restorationMessage;
+
+    private async Task RestoreRecordAsync(StreamEventArgs file)
+    {
+        if (restorationUploading || session?.CanAdminister != true)
+        {
+            return;
+        }
+
+        restorationUploading = true;
+        restorationMessage = null;
+        try
+        {
+            var drivenAtOverride = restorationDrivenAtUtc is DateTime value
+                ? new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc))
+                : (DateTimeOffset?)null;
+            await EnvimixService.RestoreSessionRecordAsync(SessionId, file.Stream, file.FileName, file.LastModified, drivenAtOverride, restorationGravity);
+            restorationMessage = "Replay imported. Session records have been refreshed.";
+            try
+            {
+                session = await EnvimixService.GetSessionAsync(SessionId);
+            }
+            catch (Exception ex)
+            {
+                restorationMessage = "Replay imported. Refresh the page to see the record.";
+                Logger.LogWarning(ex, "Unable to reload session {SessionId} after record restoration", SessionId);
+            }
+        }
+        catch (Exception ex)
+        {
+            restorationMessage = ex.Message;
+            Logger.LogWarning(ex, "Unable to restore a replay record for session {SessionId}", SessionId);
+        }
+        finally
+        {
+            restorationUploading = false;
+        }
+    }
+
+    private void ShowFileTooLarge(FileInfoEventArgs file)
+        => restorationMessage = $"{file.FileName} exceeds the 64 MB replay limit.";
 
     private string GetMetadataDescription()
         => session is null

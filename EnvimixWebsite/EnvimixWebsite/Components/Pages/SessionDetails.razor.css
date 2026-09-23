@@ -32,6 +32,29 @@
     margin-block: 1.5rem;
 }
 
+.session-restoration {
+    max-width: 38rem;
+    padding: 1rem;
+    margin-block: 1.5rem 2rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 0.5rem;
+}
+
+.session-restoration h3 {
+    margin-top: 0;
+}
+
+.session-restoration label {
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.session-restoration input {
+    display: block;
+    max-width: 100%;
+    margin-bottom: 1rem;
+}
+
 .download-actions {
     display: flex;
     flex-wrap: wrap;

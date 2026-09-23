@@ -20,6 +20,7 @@ public static class DomainConfiguration
         services.AddScoped<IGhostSubmissionService, GhostSubmissionService>();
         services.AddScoped<IReplaySubmissionService, ReplaySubmissionService>();
         services.AddScoped<ISessionReplaySubmissionService, SessionReplaySubmissionService>();
+        services.AddScoped<ISessionRecordRestorationService, SessionRecordRestorationService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMapService, MapService>();
         services.AddScoped<IModService, ModService>();

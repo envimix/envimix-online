@@ -26,6 +26,9 @@ public static class EnvimaniaEndpoints
         group.MapGet("servers", GetServers);
         group.MapGet("servers/{serverLogin}", GetServer);
         group.MapGet("sessions/{sessionId:guid}", GetSession);
+        group.MapPost("sessions/{sessionId:guid}/restore-record", RestoreSessionRecord)
+            .DisableAntiforgery()
+            .WithMetadata(new RequestSizeLimitAttribute(ReplaySubmissionService.MaxReplaySize + 1024 * 1024));
 
         group.MapPost("ban", Ban).RequireAuthorization(Policies.SuperAdminPolicy);
         group.MapPost("unban", Unban).RequireAuthorization(Policies.SuperAdminPolicy);
@@ -418,6 +421,44 @@ public static class EnvimaniaEndpoints
             access.CanAdminister,
             session.ReplayId,
             records));
+    }
+
+    private static async Task<IResult> RestoreSessionRecord(
+        Guid sessionId,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ISessionRecordRestorationService restorationService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        if (!await envimaniaService.HasAdminAccessAsync(principal, GetBearerToken(request), cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (!request.HasFormContentType)
+        {
+            return TypedResults.BadRequest("Expected multipart form data.");
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var replay = form.Files.GetFile("replay");
+        if (replay is null || replay.Length is 0 or > ReplaySubmissionService.MaxReplaySize
+            || !DateTimeOffset.TryParse(form["lastModified"], out var lastModified))
+        {
+            return TypedResults.BadRequest("A replay file and file date are required.");
+        }
+        var gravity = int.TryParse(form["gravity"], out var parsedGravity) ? parsedGravity : 0;
+
+        DateTimeOffset? drivenAtOverride = null;
+        if (DateTimeOffset.TryParse(form["drivenAt"], out var parsedDrivenAt))
+        {
+            drivenAtOverride = parsedDrivenAt;
+        }
+
+        await using var stream = replay.OpenReadStream();
+        var error = await restorationService.RestoreAsync(sessionId, stream, lastModified, drivenAtOverride, gravity, cancellationToken);
+        return error is null ? TypedResults.Ok() : TypedResults.BadRequest(error);
     }
 
     private static string? GetBearerToken(HttpRequest request)

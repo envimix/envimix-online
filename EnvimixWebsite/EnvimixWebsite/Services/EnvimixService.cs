@@ -19,6 +19,7 @@ public interface IEnvimixService
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
     Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int page = 1, int pageSize = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
     Task<EnvimaniaSessionInfo?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task RestoreSessionRecordAsync(Guid sessionId, Stream replay, string fileName, DateTimeOffset lastModified, DateTimeOffset? drivenAtOverride, int gravity, CancellationToken cancellationToken = default);
     Task<PlayerInfo?> GetUserAsync(string userLogin, CancellationToken cancellationToken = default);
     Task<RecordInfo?> GetRecordAsync(string mapUid, string car, string userLogin, int time, CancellationToken cancellationToken = default);
     Task<CarInfo?> GetCarAsync(string carId, CancellationToken cancellationToken = default);
@@ -260,6 +261,41 @@ public sealed class EnvimixService(
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<EnvimaniaSessionInfo>(cancellationToken);
+    }
+
+    public async Task RestoreSessionRecordAsync(
+        Guid sessionId,
+        Stream replay,
+        string fileName,
+        DateTimeOffset lastModified,
+        DateTimeOffset? drivenAtOverride,
+        int gravity,
+        CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(replay), "replay", fileName);
+        content.Add(new StringContent(gravity.ToString(System.Globalization.CultureInfo.InvariantCulture)), "gravity");
+        content.Add(new StringContent(lastModified.ToString("O")), "lastModified");
+        if (drivenAtOverride is DateTimeOffset drivenAt)
+        {
+            content.Add(new StringContent(drivenAt.ToString("O")), "drivenAt");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{config["EnvimixApi"]}/envimania/sessions/{sessionId}/restore-record")
+        {
+            Content = content
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await GetAccessTokenAsync());
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(response.StatusCode == System.Net.HttpStatusCode.BadRequest
+                ? message.Trim('"')
+                : $"Upload failed ({(int)response.StatusCode}).");
+        }
     }
 
     public Task<PlayerInfo?> GetUserAsync(
