@@ -143,7 +143,6 @@ public sealed class SessionRecordRestorationService(
                 Car = await modService.GetOrAddCarAsync(carId, cancellationToken),
                 Gravity = gravity,
                 DrivenAt = drivenAt,
-                ServersideDrivenAt = drivenAt,
                 Session = session,
                 TitleId = session.TitleId,
                 Laps = laps,

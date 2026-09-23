@@ -102,35 +102,6 @@
             </div>
         }
 
-        <AuthorizeView Roles="@Roles.Admin">
-            <Authorized>
-                @if (session.CanAdminister)
-                {
-                    <section class="session-restoration" aria-labelledby="session-restoration-heading">
-                        <h3 id="session-restoration-heading">Import a record replay</h3>
-                        <p>A matching session record gets its replay and checkpoints updated. Otherwise, a restored record is created.</p>
-                        <label for="restoration-gravity">Gravity for new records (default 0)</label>
-                        <input id="restoration-gravity" type="number" class="text" @bind="restorationGravity" />
-                        <label for="restoration-driven-at">Driven at for new records (UTC, optional)</label>
-                        <input id="restoration-driven-at" type="datetime-local" class="text" @bind="restorationDrivenAtUtc" />
-                        <p>These fields are ignored when the replay matches an existing record.</p>
-                        <ReuUploadArea Streamed="true" MaxFileCount="1" MaxFileSize="67108864" Accept=".gbx" OnStream="RestoreRecordAsync" OnFileTooLarge="ShowFileTooLarge">
-                            <span>Drop a replay to import it, or click to select one</span>
-                            <span class="note">.Replay.Gbx, up to 64 MB</span>
-                        </ReuUploadArea>
-                        @if (restorationUploading)
-                        {
-                            <p role="status">Restoring record...</p>
-                        }
-                        else if (restorationMessage is not null)
-                        {
-                            <p role="status">@restorationMessage</p>
-                        }
-                    </section>
-                }
-            </Authorized>
-        </AuthorizeView>
-
         <h3>Records</h3>
         @if (session.Records.Length == 0)
         {
@@ -203,6 +174,35 @@
                 }
             </div>
         }
+
+        <AuthorizeView Roles="@Roles.Admin">
+            <Authorized>
+                @if (session.CanAdminister)
+                {
+                    <section class="session-restoration" aria-labelledby="session-restoration-heading">
+                        <h3 id="session-restoration-heading">Import a record replay</h3>
+                        <p>A matching session record gets its replay and checkpoints updated. Otherwise, a restored record is created.</p>
+                        <label for="restoration-gravity">Gravity for new records (default 0)</label>
+                        <input id="restoration-gravity" type="number" class="text" @bind="restorationGravity" />
+                        <label for="restoration-driven-at">Driven at for new records (UTC, optional)</label>
+                        <input id="restoration-driven-at" type="datetime-local" class="text" @bind="restorationDrivenAtUtc" />
+                        <p>These fields are ignored when the replay matches an existing record.</p>
+                        <ReuUploadArea Streamed="true" MaxFileCount="1" MaxFileSize="67108864" Accept=".gbx" OnStream="RestoreRecordAsync" OnFileTooLarge="ShowFileTooLarge">
+                            <span>Drop a replay to import it, or click to select one</span>
+                            <span class="note">.Replay.Gbx, up to 64 MB</span>
+                        </ReuUploadArea>
+                        @if (restorationUploading)
+                        {
+                            <p role="status">Restoring record...</p>
+                        }
+                        else if (restorationMessage is not null)
+                        {
+                            <p role="status">@restorationMessage</p>
+                        }
+                    </section>
+                }
+            </Authorized>
+        </AuthorizeView>
     }
 </ReuContainer>
 
