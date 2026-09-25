@@ -170,7 +170,7 @@ public sealed class DiscordReporter
             {
                 totalSize += map.Data.Length;
 
-                if (totalSize > 10_000_000)
+                if (totalSize > 20_000_000)
                 {
                     zip.Dispose();
                     zipAttachments.Add(new FileAttachment(ms, $"{campaignName} - {mapGrouping.Key} ({carCounter}).zip"));
@@ -258,7 +258,7 @@ public sealed class DiscordReporter
 
 	private static string GetNewsCampaignMessage(CampaignModel campaign)
 	{
-		return $"## {campaign.Name} Envimix Campaign!\n\nNew envimix campaign is here! <@&1324068076009951294>\n1. Claim map combinations with `/claim`\n2. Download the ZIP with all the maps.\n3. Send validations with `/validate`.\n**Drive reasonable author times.** Make sure to have Editor++ plugin installed for the vehicle fix.";
+		return $"## {campaign.Name} Envimix Campaign!\n\nNew envimix campaign is here! <@&1324068076009951294>\n1. Claim combinations with `/claim`\n2. Download the ZIP with all the maps.\n3. Send validations with `/validate`.\n**Drive reasonable author times.** Make sure to have the [Preserve Default Car](<https://openplanet.dev/plugin/preservedefaultcar>) plugin installed for the vehicle fix.";
 	}
 
 	private async Task<IEnumerable<FileAttachment>> CreateNewsZipFilesAsync(CampaignModel campaign, CancellationToken cancellationToken)
