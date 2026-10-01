@@ -57,6 +57,7 @@ public class InvalidateModule : InteractionModuleBase
         convertedMap.Impossible = false;
         convertedMap.ClaimedById = null;
         convertedMap.ClaimedBy = null;
+        convertedMap.ClaimedAt = null;
 
         _logger.LogInformation("Invalidating...");
 

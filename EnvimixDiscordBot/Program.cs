@@ -22,6 +22,7 @@ var builder = Host.CreateDefaultBuilder(args);
 builder.ConfigureServices((context, services) =>
 {
     services.AddSingleton(TimeProvider.System);
+    services.AddSingleton(new ClaimExpirationOptions(context.Configuration));
 
     services.AddDbContext<AppDbContext>(options =>
     {
@@ -57,6 +58,7 @@ builder.ConfigureServices((context, services) =>
     // Add startup
     services.AddHostedService<Startup>();
     services.AddHostedService<Scheduler>();
+    services.AddHostedService<ClaimExpirationService>();
 
     // Add services
     services.AddSingleton<IDiscordBot, DiscordBot>();

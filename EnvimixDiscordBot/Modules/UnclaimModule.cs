@@ -74,6 +74,7 @@ public class UnclaimModule : InteractionModuleBase
 
         convertedMap.ClaimedById = null;
         convertedMap.ClaimedBy = null;
+        convertedMap.ClaimedAt = null;
 
         _logger.LogInformation("Unclaiming...");
 
