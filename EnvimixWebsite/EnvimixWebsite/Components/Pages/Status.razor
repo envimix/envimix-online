@@ -16,7 +16,17 @@
         <p class="status-introduction">Live health information for ENVIMIX services.</p>
     </header>
 
-    @if (report is null)
+    @if (isLoading)
+    {
+        <section class="status-summary loading" aria-live="polite">
+            <span class="status-indicator" aria-hidden="true"></span>
+            <div>
+                <h2>Checking services</h2>
+                <p>Retrieving the latest health information.</p>
+            </div>
+        </section>
+    }
+    else if (report is null)
     {
         <section class="status-summary unhealthy" aria-live="polite">
             <span class="status-indicator" aria-hidden="true"></span>
@@ -44,7 +54,6 @@
                     <article class="health-check @GetStatusCssClass(check.Status)">
                         <div class="health-check-heading">
                             <div>
-                                <p class="health-check-label">Service</p>
                                 <h3>@GetDisplayName(name)</h3>
                             </div>
                             <span class="health-check-status">@check.Status</span>
@@ -63,26 +72,27 @@
 @code {
     private HealthReportResponse? report;
     private DateTimeOffset checkedAt;
+    private bool isLoading = true;
     private string errorMessage = "The health-check service did not return a response.";
 
     protected override async Task OnInitializedAsync()
     {
-        var apiAddress = Configuration["EnvimixApi"];
-        if (!Uri.TryCreate(apiAddress, UriKind.Absolute, out var apiUri))
-        {
-            errorMessage = "The ENVIMIX API address is not configured.";
-            return;
-        }
-
-        var healthCheckKey = Configuration["HealthChecks:EnvimixOnlineKey"];
-        if (string.IsNullOrWhiteSpace(healthCheckKey))
-        {
-            errorMessage = "The status page is not configured to authenticate with the ENVIMIX API.";
-            return;
-        }
-
         try
         {
+            var apiAddress = Configuration["EnvimixApi"];
+            if (!Uri.TryCreate(apiAddress, UriKind.Absolute, out var apiUri))
+            {
+                errorMessage = "The ENVIMIX API address is not configured.";
+                return;
+            }
+
+            var healthCheckKey = Configuration["HealthChecks:EnvimixOnlineKey"];
+            if (string.IsNullOrWhiteSpace(healthCheckKey))
+            {
+                errorMessage = "The status page is not configured to authenticate with the ENVIMIX API.";
+                return;
+            }
+
             var healthUri = new Uri(apiUri, "/_health");
             using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
             request.Headers.Add("X-Envimix-Health-Key", healthCheckKey);
@@ -107,6 +117,10 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Unable to retrieve ENVIMIX API health status");
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 

@@ -39,6 +39,11 @@
     --status-surface: #3a1d20;
 }
 
+.loading {
+    --status-color: #a9b1bd;
+    --status-surface: #252a31;
+}
+
 .status-indicator {
     background: var(--status-color);
     border-radius: 50%;
