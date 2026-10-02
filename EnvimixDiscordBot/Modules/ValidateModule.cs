@@ -140,6 +140,13 @@ public class ValidateModule : InteractionModuleBase
                 continue;
             }
 
+            if (map.ChallengeParameters?.RaceValidateGhost is null)
+            {
+                _logger.LogWarning("Map '{Map}' does not have a race validation ghost.", deformattedMapName);
+                unsuccessfulMessages.Add($"Map '{deformattedMapName}' does not have a race validation ghost.");
+                continue;
+            }
+
             var originalMapUid = map.ScriptMetadata.GetText("ENVIMIX_OriginalMapUid") ?? string.Empty;
             var car = map.ScriptMetadata.GetText("ENVIMIX_Car") ?? string.Empty;
 
