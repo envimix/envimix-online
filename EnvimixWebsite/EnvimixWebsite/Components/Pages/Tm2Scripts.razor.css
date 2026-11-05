@@ -24,7 +24,7 @@
 
 .release-version p {
     margin: 0.25rem 0 0;
-    color: #bbb;
+    color: var(--color-text-secondary);
 }
 
 .release-notes summary {
@@ -39,12 +39,12 @@
 }
 
 .downloads {
-    border-top: 1px solid #555;
+    border-top: 1px solid var(--color-border-strong);
 }
 
 .license-notice {
     margin: 1rem 0 0;
-    color: #bbb;
+    color: var(--color-text-secondary);
     font-size: 0.9rem;
 }
 
@@ -54,18 +54,18 @@
     align-items: center;
     gap: 1.5rem;
     padding: 1rem 0.75rem;
-    border-bottom: 1px solid #555;
+    border-bottom: 1px solid var(--color-border-strong);
     color: inherit;
     text-decoration: none;
     transition: background-color 0.15s;
 }
 
 .download:hover {
-    background: #ffffff12;
+    background: var(--color-overlay-weak);
 }
 
 .download:focus-visible {
-    outline: 2px solid #ba4545;
+    outline: 2px solid var(--envimix-accent);
     outline-offset: -2px;
 }
 
@@ -82,7 +82,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #bbb;
+    color: var(--color-text-secondary);
     font-size: 0.9rem;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .download-action {
-    color: #ba4545;
+    color: var(--envimix-accent);
     font-weight: bold;
 }
 
@@ -103,7 +103,7 @@
 }
 
 :not(pre) > code {
-    background-color: #4444;
+    background-color: var(--envimix-code-bg);
     padding: 0.1rem 0.2rem;
     border-radius: 3px;
     font-size: 0.85em;
@@ -117,7 +117,7 @@
 }
 
 .title-pack-selector-button {
-    border: 1px solid #666;
+    border: 1px solid var(--color-text-muted);
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
@@ -127,8 +127,8 @@
 
 .title-pack-selector-button:hover,
 .title-pack-selector-button.active {
-    border-color: #ba4545;
-    background: #ba4545;
+    border-color: var(--envimix-accent);
+    background: var(--envimix-accent);
     color: #fff;
 }
 
@@ -148,8 +148,8 @@
 .install-options pre {
     overflow-x: auto;
     padding: 1rem;
-    border: 1px solid #555;
-    background: #171717;
+    border: 1px solid var(--color-border-strong);
+    background: var(--envimix-code-block-bg);
     font-size: 0.85rem;
     line-height: 1.45;
 }
@@ -167,8 +167,8 @@
 .interop-note {
     margin-top: 2rem;
     padding: 1rem 1.25rem;
-    border-left: 4px solid #ba4545;
-    background: #272727;
+    border-left: 4px solid var(--envimix-accent);
+    background: var(--envimix-note-bg);
 }
 
 @media (max-width: 700px) {

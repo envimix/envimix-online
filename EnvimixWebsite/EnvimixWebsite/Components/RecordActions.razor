@@ -6,16 +6,16 @@
     <div class="download-actions">
         @if (Record.ReplayId is Guid replayId)
         {
-            <ReuButton title="View replay" Enable="false" Href="@EnvimixService.GetReplayViewUrl(replayId)">View</ReuButton>
-            <ReuButton title="Download replay" Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download><img src="img/icons/replay.svg" alt="Download replay" width="24" height="24" class="icon" /></ReuButton>
+            <ReuButton Tooltip="View replay" Enable="false" Href="@EnvimixService.GetReplayViewUrl(replayId)">View</ReuButton>
+            <ReuButton Tooltip="Download replay" Href="@EnvimixService.GetReplayDownloadUrl(replayId)" download><img src="img/icons/replay.svg" alt="Download replay" width="24" height="24" class="icon" /></ReuButton>
         }
         @if (Record.ValidationReplayId is Guid validationReplayId)
         {
-            <ReuButton title="Download validation replay" Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" download><img src="img/icons/validation_replay.svg" alt="Download validation replay" width="24" height="24" class="icon" /></ReuButton>
+            <ReuButton Tooltip="Download validation replay" Href="@EnvimixService.GetReplayDownloadUrl(validationReplayId)" download><img src="img/icons/validation_replay.svg" alt="Download validation replay" width="24" height="24" class="icon" /></ReuButton>
         }
         @if (Record.GhostId is Guid ghostId)
         {
-            <ReuButton title="Download ghost" Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download><img src="img/icons/ghost.svg" alt="Download ghost" width="24" height="24" class="icon" /></ReuButton>
+            <ReuButton Tooltip="Download ghost" Href="@EnvimixService.GetGhostDownloadUrl(ghostId)" download><img src="img/icons/ghost.svg" alt="Download ghost" width="24" height="24" class="icon" /></ReuButton>
         }
     </div>
 }
@@ -34,7 +34,7 @@
         <input type="hidden" name="gravity" value="@Record.Gravity" />
         <input type="hidden" name="laps" value="@Record.Laps" />
         <input type="hidden" name="time" value="@Record.Time" />
-        <ReuButton title="@(Record.Removed ? "Restore" : "Remove")" type="submit"><img src="img/icons/@(Record.Removed ? "restore" : "delete").svg" alt="@(Record.Removed ? "Restore" : "Remove")" width="24" height="24" class="icon" /></ReuButton>
+        <ReuButton Tooltip="@(Record.Removed ? "Restore" : "Remove")" type="submit"><img src="img/icons/@(Record.Removed ? "restore" : "delete").svg" alt="@(Record.Removed ? "Restore" : "Remove")" width="24" height="24" class="icon" /></ReuButton>
     </form>
 }
 </div>

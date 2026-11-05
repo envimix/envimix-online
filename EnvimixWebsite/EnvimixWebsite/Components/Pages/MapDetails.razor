@@ -198,7 +198,7 @@
                                Disabled="@recordsLoading"
                                OnClick="() => SelectCarAsync(car.Id)">
                         <CarDisplay CarId="@car.Id" Linked="false" />
-                        <span class="record-count" title="@car.RecordCount records">@car.RecordCount</span>
+                        <span class="record-count" data-reu-tooltip="@car.RecordCount records">@car.RecordCount</span>
                     </ReuButton>
                 }
             </div>

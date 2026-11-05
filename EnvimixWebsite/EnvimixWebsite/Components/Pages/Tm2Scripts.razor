@@ -54,7 +54,7 @@
                 {
                     <a class="download" href="@GetLatestDownloadUrl(asset.TitlePack)" data-enhance="false" download>
                         <h3><FormattedText Text="@asset.DisplayName"></FormattedText></h3>
-                        <p class="filename" title="@asset.FileName">@asset.FileName</p>
+                        <p class="filename" data-reu-tooltip="@asset.FileName">@asset.FileName</p>
                         <div class="download-footer">
                             <span>@FormatFileSize(asset.Size)</span>
                         </div>

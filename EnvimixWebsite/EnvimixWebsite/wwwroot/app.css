@@ -1,5 +1,36 @@
-body {
-    background-color: #111;
+/* Site colors that are not covered by Reuniverse tokens, for both themes */
+:root,
+[data-theme="dark"],
+.reu-theme-dark {
+    --envimix-accent: #BA4545;
+    --envimix-panel-bg: #191919;
+    --envimix-note-bg: #272727;
+    --envimix-code-bg: #4444;
+    --envimix-code-block-bg: #171717;
+    --envimix-card-border: #222;
+    --envimix-card-glow: #4444;
+    --envimix-card-glow-hover: #AAA6;
+    --envimix-card-border-hover: #888;
+    --envimix-rule-border: #DDD;
+}
+
+[data-theme="light"],
+.reu-theme-light {
+    --envimix-accent: #B03A3A;
+    --envimix-panel-bg: #FFF;
+    --envimix-note-bg: #FFF;
+    --envimix-code-bg: #0000000F;
+    --envimix-code-block-bg: #FFF;
+    --envimix-card-border: #FFF;
+    --envimix-card-glow: #0002;
+    --envimix-card-glow-hover: #0004;
+    --envimix-card-border-hover: #FFF;
+    --envimix-rule-border: #AAA;
+}
+
+/* The site's own nav icons are light gray SVGs, so darken them on the light navbar */
+[data-theme="light"] nav img.icon[src^="img/icons/"] {
+    filter: invert(1);
 }
 
 h1:focus {
@@ -13,7 +44,7 @@ h1:focus {
 
 a.user-nickname,
 a.user-nickname:hover {
-    color: #fff;
+    color: var(--color-text-primary);
     text-decoration-color: var(--color-link-hover);
 }
 
@@ -59,6 +90,12 @@ a.user-nickname:hover {
     font-size: 150%;
     font-weight: bold;
     padding: 1rem 2rem !important;
+}
+
+/* The Turbo hero stays dark in both themes (reu-theme-dark), as it sits on artwork */
+.turbo-bg,
+.video-bg {
+    color: var(--color-text-primary);
 }
 
 .turbo-bg {
@@ -110,7 +147,7 @@ a.user-nickname:hover {
     font-style: italic;
     font-size: 0.9em;
     margin-bottom: 2rem;
-    border-left: 3px solid #ddd;
+    border-left: 3px solid var(--envimix-rule-border);
     padding-left: 1rem;
 }
 

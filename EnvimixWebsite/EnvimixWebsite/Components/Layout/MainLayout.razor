@@ -13,10 +13,10 @@
     <ReuNavItem Name="Discord" Href="https://discord.envimix.gbx.tools" IconType="IconType.Discord" IsNavLink="false" IconOnly="true" Title="Join the Discord server"></ReuNavItem>
     <AuthorizeView>
         <Authorized>
-            <ReuNavItem Name="Profile" Href="profile" IconType="IconType.Person" IconOnly="true" Title="Profile"></ReuNavItem>
+            <ReuNavItem Name="Profile" Href="profile" IconType="IconType.Person" IconOnly="true"></ReuNavItem>
         </Authorized>
         <NotAuthorized>
-            <ReuNavItem Name="Login" Href="@($"login?returnUrl={Uri.EscapeDataString(NavManager.Uri)}")" IconType="IconType.Login" IsNavLink="false" IconOnly="true" Title="Login"></ReuNavItem>
+            <ReuNavItem Name="Login" Href="@($"login?returnUrl={Uri.EscapeDataString(NavManager.Uri)}")" IconType="IconType.Login" IsNavLink="false" IconOnly="true"></ReuNavItem>
         </NotAuthorized>
     </AuthorizeView>
 </ReuNavMenu>
@@ -56,16 +56,19 @@
             <a href="https://uotd.gbx.tools">uotd.gbx.tools</a>
             <a href="https://identity.gbx.tools">identity.gbx.tools</a>
             <a href="https://nuget.gbx.tools">nuget.gbx.tools</a>
-            <code>
-                @{
-                    var remoteUrl = SimplestGit.RemoteUrl.EndsWith(".git") ? SimplestGit.RemoteUrl.Substring(0, SimplestGit.RemoteUrl.Length - 4) : SimplestGit.RemoteUrl;
-                }
-                <a href="@remoteUrl/tree/@SimplestGit.CommitHash" title="@SimplestGit.CommitDate" target="_blank">
-                    @SimplestGit.CommitHash.Substring(0, 7)
-                </a>
-                -
-                <a href="@remoteUrl/tree/@SimplestGit.Branch" target="_blank">@SimplestGit.Branch</a>
-            </code>
+            <div class="footer-buttons">
+                <code>
+                    @{
+                        var remoteUrl = SimplestGit.RemoteUrl.EndsWith(".git") ? SimplestGit.RemoteUrl.Substring(0, SimplestGit.RemoteUrl.Length - 4) : SimplestGit.RemoteUrl;
+                    }
+                    <a href="@remoteUrl/tree/@SimplestGit.CommitHash" data-reu-tooltip="@SimplestGit.CommitDate" target="_blank">
+                        @SimplestGit.CommitHash.Substring(0, 7)
+                    </a>
+                    -
+                    <a href="@remoteUrl/tree/@SimplestGit.Branch" target="_blank">@SimplestGit.Branch</a>
+                </code>
+                <div class="reu-theme-icon" onclick="reuTheme.toggle()"></div>
+            </div>
         </div>
     </ExtraContent>
 </ReuFooter>

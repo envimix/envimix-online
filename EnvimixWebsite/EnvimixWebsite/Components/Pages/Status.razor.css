@@ -15,7 +15,7 @@
 
 .status-summary {
     align-items: center;
-    background: linear-gradient(120deg, var(--status-surface), #191919);
+    background: linear-gradient(120deg, var(--status-surface), var(--envimix-panel-bg));
     border-left: 0.35rem solid var(--status-color);
     border-radius: 0.75rem;
     display: flex;
@@ -44,6 +44,26 @@
     --status-surface: #252a31;
 }
 
+[data-theme="light"] .healthy {
+    --status-color: #23874C;
+    --status-surface: #DDF3E5;
+}
+
+[data-theme="light"] .degraded {
+    --status-color: #A86A0C;
+    --status-surface: #FBEFD5;
+}
+
+[data-theme="light"] .unhealthy {
+    --status-color: #C53939;
+    --status-surface: #FBE1E1;
+}
+
+[data-theme="light"] .loading {
+    --status-color: #5E6773;
+    --status-surface: #E4E8EE;
+}
+
 .status-indicator {
     background: var(--status-color);
     border-radius: 50%;
@@ -65,7 +85,7 @@
 }
 
 .health-check {
-    background: #191919;
+    background: var(--envimix-panel-bg);
     border-top: 0.25rem solid var(--status-color);
     border-radius: 0.75rem;
     min-height: 10rem;
@@ -86,7 +106,7 @@
 }
 
 .health-check-label {
-    color: #999;
+    color: var(--color-text-secondary);
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.1em;
@@ -105,7 +125,7 @@
 }
 
 .health-check small {
-    color: #aaa;
+    color: var(--color-text-secondary);
     display: block;
     margin-top: 1rem;
 }

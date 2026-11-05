@@ -60,7 +60,7 @@ ol {
     }
 
 code {
-    background-color: #4444;
+    background-color: var(--envimix-code-bg);
     padding: 0.1rem 0.2rem;
     border-radius: 3px;
 }

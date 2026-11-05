@@ -8,29 +8,29 @@
 }
 
 .game-sections {
-    border-top: 1px solid #555;
+    border-top: 1px solid var(--color-border-strong);
 }
 
 .game-section {
     display: grid;
     grid-template-columns: minmax(15rem, 34%) minmax(0, 1fr);
     min-height: 22rem;
-    border-bottom: 1px solid #555;
+    border-bottom: 1px solid var(--color-border-strong);
 }
 
 .game-art {
     min-height: 22rem;
     background-position: center;
     background-size: cover;
-    box-shadow: inset -4rem 0 4rem -3rem #111;
+    box-shadow: inset -4rem 0 4rem -3rem var(--color-bg);
 }
 
 .tm2 .game-art {
-    background-image: linear-gradient(90deg, transparent 55%, #111), url("/img/cards/tm2.jpg");
+    background-image: linear-gradient(90deg, transparent 55%, var(--color-bg)), url("/img/cards/tm2.jpg");
 }
 
 .tmuf .game-art {
-    background-image: linear-gradient(90deg, transparent 55%, #111), url("/img/cards/tmuf.jpg");
+    background-image: linear-gradient(90deg, transparent 55%, var(--color-bg)), url("/img/cards/tmuf.jpg");
 }
 
 .game-content {
@@ -45,11 +45,11 @@
 
 .game-description {
     margin: 0 0 1.5rem;
-    color: #fff;
+    color: var(--color-text-primary);
 }
 
 .server-list {
-    border-top: 1px solid #555;
+    border-top: 1px solid var(--color-border-strong);
 }
 
 .server-link {
@@ -57,7 +57,7 @@
     align-items: center;
     min-height: 3.5rem;
     padding: 0.75rem;
-    border-bottom: 1px solid #555;
+    border-bottom: 1px solid var(--color-border-strong);
     color: inherit;
     text-decoration: none;
     transition: background-color 0.15s, padding-left 0.15s;
@@ -66,11 +66,11 @@
 .server-link:hover,
 .server-link:focus-visible {
     padding-left: 1rem;
-    background: #ffffff12;
+    background: var(--color-overlay-weak);
 }
 
 .server-link:focus-visible {
-    outline: 2px solid #fff;
+    outline: 2px solid var(--color-text-primary);
     outline-offset: -2px;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .server-name small {
-    color: #fff;
+    color: var(--color-text-primary);
     font-size: 0.78rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -89,8 +89,8 @@
 .server-note {
     margin: 1.5rem 0 0;
     padding: 0.8rem 1rem;
-    border-left: 4px solid #ba4545;
-    background: #272727;
+    border-left: 4px solid var(--envimix-accent);
+    background: var(--envimix-note-bg);
     font-size: 0.9rem;
 }
 
@@ -107,15 +107,15 @@
         min-height: auto;
         aspect-ratio: 16 / 8;
         background-position: center 38%;
-        box-shadow: inset 0 -3rem 3rem -2rem #111;
+        box-shadow: inset 0 -3rem 3rem -2rem var(--color-bg);
     }
 
     .tm2 .game-art {
-        background-image: linear-gradient(0deg, #111, transparent 45%), url("/img/cards/tm2.jpg");
+        background-image: linear-gradient(0deg, var(--color-bg), transparent 45%), url("/img/cards/tm2.jpg");
     }
 
     .tmuf .game-art {
-        background-image: linear-gradient(0deg, #111, transparent 45%), url("/img/cards/tmuf.jpg");
+        background-image: linear-gradient(0deg, var(--color-bg), transparent 45%), url("/img/cards/tmuf.jpg");
     }
 
     .game-content {
