@@ -177,6 +177,12 @@ namespace EnvimixWebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("longblob");
 
+                    b.Property<byte[]>("DataBackup")
+                        .HasColumnType("longblob");
+
+                    b.Property<bool>("IpsRemoved")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTimeOffset>("LastModifiedAt")
                         .HasColumnType("datetime(6)");
 
@@ -471,6 +477,12 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<byte[]>("Data")
                         .IsRequired()
                         .HasColumnType("longblob");
+
+                    b.Property<byte[]>("DataBackup")
+                        .HasColumnType("longblob");
+
+                    b.Property<bool>("IpsRemoved")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModifiedAt")
                         .HasColumnType("datetime(6)");

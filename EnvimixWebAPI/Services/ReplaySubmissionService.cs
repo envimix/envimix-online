@@ -69,8 +69,15 @@ public sealed class ReplaySubmissionService(
                 return ReplaySubmissionResult.InvalidReplay;
             }
 
+            memoryStream.Position = 0;
+            var cleanedData = await GbxIpRemover.RemoveSingleIpAsync(memoryStream, cancellationToken);
+            if (cleanedData is null)
+            {
+                return ReplaySubmissionResult.InvalidReplay;
+            }
+
             submission = new PendingReplaySubmission(
-                memoryStream.ToArray(),
+                cleanedData,
                 serverLogin,
                 replay.PlayerLogin!,
                 metadata.MapUid,
@@ -160,7 +167,7 @@ public sealed class ReplaySubmissionService(
             return ReplayAttachmentResult.AlreadyAttached;
         }
 
-        var replay = new ReplayEntity { Data = submission.Data };
+        var replay = new ReplayEntity { Data = submission.Data, IpsRemoved = true };
         await db.Replays.AddAsync(replay, cancellationToken);
         if (submission.IsValidation)
         {

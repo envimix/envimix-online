@@ -67,8 +67,15 @@ public sealed class GhostSubmissionService(
                 return GhostSubmissionResult.InvalidGhost;
             }
 
+            memoryStream.Position = 0;
+            var cleanedData = await GbxIpRemover.RemoveSingleIpAsync(memoryStream, cancellationToken);
+            if (cleanedData is null)
+            {
+                return GhostSubmissionResult.InvalidGhost;
+            }
+
             submission = new PendingGhostSubmission(
-                memoryStream.ToArray(),
+                cleanedData,
                 serverLogin,
                 ghost.GhostLogin!,
                 ghost.Validate_ChallengeUid!,
@@ -138,7 +145,7 @@ public sealed class GhostSubmissionService(
             return GhostAttachmentResult.AlreadyAttached;
         }
 
-        record.ValidationGhost = new GhostEntity { Data = submission.Data };
+        record.ValidationGhost = new GhostEntity { Data = submission.Data, IpsRemoved = true };
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(

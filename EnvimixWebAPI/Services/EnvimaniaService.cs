@@ -1032,7 +1032,14 @@ public sealed class EnvimaniaService(
             return validationFailure;
         }
 
-        var ghostRawData = ms.ToArray();
+        ms.Position = 0;
+        var ghostRawData = await GbxIpRemover.RemoveSingleIpAsync(ms, cancellationToken);
+
+        if (ghostRawData is null)
+        {
+            activity?.SetTag("validation_failure", "Ghost must contain exactly one IP");
+            return new ValidationFailureResponse("Invalid ghost");
+        }
 
         var map = await mapService.GetAddOrUpdateAsync(ghost.Validate_ChallengeUid!, ghost.Validate_TitleId!, cancellationToken);
         var title = await GetOrCreateTitleAsync(ghost.Validate_TitleId!, cancellationToken);
@@ -1112,7 +1119,7 @@ public sealed class EnvimaniaService(
             SessionId = null,
             Title = title,
             Laps = laps,
-            Ghost = new GhostEntity { Data = ghostRawData },
+            Ghost = new GhostEntity { Data = ghostRawData, IpsRemoved = true },
             Time = newRecord.Time,
             Score = newRecord.Score,
             NbRespawns = newRecord.NbRespawns,
@@ -2227,6 +2234,14 @@ public sealed class EnvimaniaService(
                         continue;
                     }
 
+                    ms.Position = 0;
+                    var cleanedGhost = await GbxIpRemover.RemoveSingleIpAsync(ms, CancellationToken.None);
+                    if (cleanedGhost is null)
+                    {
+                        logger.LogWarning("Ghost for leaderboard entry {login} on map {mapUid} does not contain exactly one IP", oldestLeaderboardRecord.Login, mapUid);
+                        continue;
+                    }
+
                     if (laps != map.Laps)
                     {
                         logger.LogInformation("Skipping validation restoration for map {mapUid} with {laps} laps because its default is {defaultLaps}", mapUid, laps, map.Laps);
@@ -2254,7 +2269,7 @@ public sealed class EnvimaniaService(
                         Time = oldestLeaderboardRecord.Score.TotalMilliseconds,
                         Score = ghost.StuntScore ?? -1,
                         NbRespawns = ghost.Respawns ?? -1,
-                        Ghost = new GhostEntity { Data = ms.ToArray() },
+                        Ghost = new GhostEntity { Data = cleanedGhost, IpsRemoved = true },
                         Restored = true
                     };
 
@@ -2423,6 +2438,14 @@ public sealed class EnvimaniaService(
                             continue;
                         }
 
+                        ms.Position = 0;
+                        var cleanedGhost = await GbxIpRemover.RemoveSingleIpAsync(ms, cancellationToken);
+                        if (cleanedGhost is null)
+                        {
+                            logger.LogWarning("Ghost for leaderboard entry {login} on map {mapUid} does not contain exactly one IP", lbEntry.Login, mapUid);
+                            continue;
+                        }
+
                         if (car != carName)
                         {
                             logger.LogWarning("Car mismatch for leaderboard entry {login} on map {mapUid}: expected {expectedCar}, got {actualCar}", lbEntry.Login, mapUid, car, carName);
@@ -2444,7 +2467,7 @@ public sealed class EnvimaniaService(
                             Time = lbEntry.Score.TotalMilliseconds,
                             Score = ghost.StuntScore ?? -1,
                             NbRespawns = ghost.Respawns ?? -1,
-                            Ghost = new GhostEntity { Data = ms.ToArray() },
+                            Ghost = new GhostEntity { Data = cleanedGhost, IpsRemoved = true },
                             Restored = true
                         };
 

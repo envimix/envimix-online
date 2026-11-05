@@ -1,3 +1,4 @@
+using EnvimixWebAPI.Security;
 using EnvimixWebAPI.Entities;
 using GBX.NET;
 using GBX.NET.Engines.Game;
@@ -37,6 +38,7 @@ public sealed class SessionRecordRestorationService(
         string carId;
         int laps;
         int time;
+        byte[] cleanedReplay;
         try
         {
             await replayStream.CopyToAsync(memory, cancellationToken);
@@ -73,6 +75,14 @@ public sealed class SessionRecordRestorationService(
             {
                 return "Replay time or lap count is invalid.";
             }
+
+            memory.Position = 0;
+            var cleaned = await GbxIpRemover.RemoveSingleIpAsync(memory, cancellationToken);
+            if (cleaned is null)
+            {
+                return "Replay must contain exactly one IP to remove.";
+            }
+            cleanedReplay = cleaned;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -108,11 +118,12 @@ public sealed class SessionRecordRestorationService(
             await db.Checkpoints.Where(x => x.Record.Id == record.Id).ExecuteDeleteAsync(cancellationToken);
             if (record.Replay is null)
             {
-                record.Replay = new ReplayEntity { Data = memory.ToArray() };
+                record.Replay = new ReplayEntity { Data = cleanedReplay, IpsRemoved = true };
             }
             else
             {
-                record.Replay.Data = memory.ToArray();
+                record.Replay.Data = cleanedReplay;
+                record.Replay.IpsRemoved = true;
                 record.Replay.LastModifiedAt = DateTimeOffset.UtcNow;
             }
         }
@@ -149,7 +160,7 @@ public sealed class SessionRecordRestorationService(
                 Time = time,
                 Score = ghost.StuntScore ?? 0,
                 NbRespawns = ghost.Respawns ?? -1,
-                Replay = new ReplayEntity { Data = memory.ToArray() },
+                Replay = new ReplayEntity { Data = cleanedReplay, IpsRemoved = true },
                 Restored = true
             };
             await db.Records.AddAsync(record, cancellationToken);

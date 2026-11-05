@@ -15,6 +15,7 @@ public static class DomainConfiguration
         services.AddHostedService<PendingGhostProcessor>();
         services.AddHostedService<PendingReplayProcessor>();
         services.AddHostedService<RestoreRecordsScheduler>();
+        services.AddHostedService<IpRemovalBackfillService>();
 
         services.AddScoped<IEnvimaniaService, EnvimaniaService>();
         services.AddScoped<IGhostSubmissionService, GhostSubmissionService>();

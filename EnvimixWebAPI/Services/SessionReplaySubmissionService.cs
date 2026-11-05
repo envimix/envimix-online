@@ -74,7 +74,8 @@ public sealed class SessionReplaySubmissionService(AppDbContext db) : ISessionRe
             }
 
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-            var replayEntity = new ReplayEntity { Data = memoryStream.ToArray() };
+            memoryStream.Position = 0;
+            var replayEntity = new ReplayEntity { Data = (await GbxIpRemover.RemoveIpsAsync(memoryStream, cancellationToken)).Data, IpsRemoved = true };
             await db.Replays.AddAsync(replayEntity, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
 
