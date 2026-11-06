@@ -10,7 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="Discord.Net.Webhook" Version="3.20.1" />
-        <PackageReference Include="GBX.NET" Version="2.4.5" />
+        <PackageReference Include="GBX.NET" Version="2.5.1" />
         <PackageReference Include="GBX.NET.LZO" Version="2.1.6" />
         <PackageReference Include="ManiaAPI.ManiaPlanetAPI" Version="2.8.5" />
         <PackageReference Include="ManiaAPI.ManiaPlanetAPI.Extensions.Hosting" Version="2.9.0" />
