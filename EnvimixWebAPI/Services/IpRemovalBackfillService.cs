@@ -35,16 +35,26 @@ public sealed class IpRemovalBackfillService(
         CancellationToken cancellationToken) where T : class, IGbxDataEntity
     {
         var typeName = typeof(T).Name;
-        var failedIds = new HashSet<Guid>();
+        var failed = 0;
         var processed = 0;
+
+        // Keyset pagination: continue after the last seen Id so each batch is a primary key range seek.
+        // Filtering only on IpsRemoved (unindexed) would rescan all previously processed rows every batch.
+        Guid? lastId = null;
 
         while (true)
         {
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var batch = await set(db)
-                .Where(x => !x.IpsRemoved && !failedIds.Contains(x.Id))
+            var query = set(db).Where(x => !x.IpsRemoved);
+
+            if (lastId is Guid after)
+            {
+                query = query.Where(x => x.Id.CompareTo(after) > 0);
+            }
+
+            var batch = await query
                 .OrderBy(x => x.Id)
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
@@ -53,6 +63,8 @@ public sealed class IpRemovalBackfillService(
             {
                 break;
             }
+
+            lastId = batch[^1].Id;
 
             foreach (var entity in batch)
             {
@@ -74,7 +86,7 @@ public sealed class IpRemovalBackfillService(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    failedIds.Add(entity.Id);
+                    failed++;
                     logger.LogWarning(ex, "Failed to remove IPs from {Type} {Id}.", typeName, entity.Id);
                 }
             }
@@ -82,11 +94,11 @@ public sealed class IpRemovalBackfillService(
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        if (processed > 0 || failedIds.Count > 0)
+        if (processed > 0 || failed > 0)
         {
             logger.LogInformation(
                 "IP removal backfill for {Type}: {Processed} processed, {Failed} failed.",
-                typeName, processed, failedIds.Count);
+                typeName, processed, failed);
         }
     }
 }
