@@ -54,17 +54,25 @@ public sealed class IpRemovalBackfillService(
                 query = query.Where(x => x.Id.CompareTo(after) > 0);
             }
 
-            var batch = await query
+            // Select only Ids first: InnoDB has no secondary index to filter IpsRemoved with, so it walks
+            // the clustered index and would otherwise read the off-page Data/DataBackup blobs of every
+            // already-processed row it skips (the WHERE is evaluated after the row is fetched).
+            var ids = await query
                 .OrderBy(x => x.Id)
+                .Select(x => x.Id)
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
 
-            if (batch.Count == 0)
+            if (ids.Count == 0)
             {
                 break;
             }
 
-            lastId = batch[^1].Id;
+            lastId = ids[^1];
+
+            var batch = await set(db)
+                .Where(x => ids.Contains(x.Id))
+                .ToListAsync(cancellationToken);
 
             foreach (var entity in batch)
             {
