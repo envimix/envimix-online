@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-alpine AS base
 
 ENV \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
@@ -13,7 +13,7 @@ RUN apk add --no-cache \
 WORKDIR /app
 USER $APP_UID
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-alpine AS build
 
 COPY EnvimixDiscordBot/. /src
 
