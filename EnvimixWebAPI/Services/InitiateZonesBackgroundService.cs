@@ -11,8 +11,16 @@ public sealed class InitiateZonesBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var zoneService = scope.ServiceProvider.GetRequiredService<IZoneService>();
 
-        var zones = await zoneService.CreateZonesAsync(stoppingToken);
+        try
+        {
+            var zones = await zoneService.CreateZonesAsync(stoppingToken);
 
-        logger.LogInformation("{count} zones created!", zones.Count());
+            logger.LogInformation("{count} zones created!", zones.Count());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
+        {
+            // Zones are only synced from ManiaPlanet here, so a failure must not take the whole API down
+            logger.LogError(ex, "Failed to create zones, existing zones will be used.");
+        }
     }
 }
