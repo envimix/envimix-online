@@ -5,6 +5,7 @@
 @inject IEnvimixService EnvimixService
 @inject ILogger<ServerDetails> Logger
 @inject IJSRuntime JS
+@inject ReuDialogService Dialogs
 @attribute [StreamRendering]
 
 <PageTitle>@(server?.ServerLogin ?? ServerLogin) - ENVIMIX server</PageTitle>
@@ -266,6 +267,8 @@
     }
 </ReuContainer>
 
+<ReuDialogHost />
+
 @code {
     [Parameter]
     public string ServerLogin { get; set; } = "";
@@ -445,7 +448,11 @@
         }
 
         var action = server.HasControllerCode ? "regenerate" : "generate";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{char.ToUpperInvariant(action[0])}{action[1..]} the controller code?"))
+        var confirmText = $"{char.ToUpperInvariant(action[0])}{action[1..]}";
+        var message = server.HasControllerCode
+            ? "Regenerate the controller code? The current code stops working."
+            : "Generate the controller code?";
+        if (!await Dialogs.ConfirmAsync(message, new ReuConfirmOptions { Title = "Controller code", ConfirmText = confirmText, Destructive = server.HasControllerCode }))
         {
             return;
         }

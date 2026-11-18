@@ -4,6 +4,7 @@ using System.Net;
 using EnvimixWebsite.Services;
 using ManiaAPI.ManiaPlanetAPI.Extensions.Hosting;
 using Octokit;
+using Reuniverse.Razor;
 
 namespace EnvimixWebsite.Configuration;
 
@@ -14,6 +15,8 @@ public static class WebConfiguration
         services.AddRazorComponents()
             .AddInteractiveServerComponents()
             .AddInteractiveWebAssemblyComponents();
+
+        services.AddReuDialogs();
 
         services.AddAuthorizationBuilder()
             .AddDefaultPolicy(Policies.UserPolicy, policy =>
