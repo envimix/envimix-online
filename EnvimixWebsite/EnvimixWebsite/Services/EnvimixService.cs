@@ -15,6 +15,7 @@ public interface IEnvimixService
     Task UnbanServerAsync(string serverLogin, CancellationToken cancellationToken = default);
     Task RemoveRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task RevertRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
+    Task RemoveUserRecordsAsync(string login, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
     Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int page = 1, int pageSize = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
@@ -148,6 +149,21 @@ public sealed class EnvimixService(
             $"{config["EnvimixApi"]}/envimania/record/revert")
         {
             Content = JsonContent.Create(new { MapUid = mapUid, Login = login, CarId = carId, Gravity = gravity, Laps = laps, Time = time })
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task RemoveUserRecordsAsync(string login, CancellationToken cancellationToken = default)
+    {
+        var accessToken = await GetAccessTokenAsync();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{config["EnvimixApi"]}/envimania/records/remove-user")
+        {
+            Content = JsonContent.Create(new { Login = login })
         };
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 

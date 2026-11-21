@@ -105,6 +105,9 @@ public interface IEnvimaniaService
     Task<OneOf<bool, ValidationFailureResponse, ActionForbiddenResponse>>
         RevertRecordAsync(EnvimaniaRemoveRecordRequest revertRecordRequest, CancellationToken cancellationToken);
 
+    Task<OneOf<EnvimaniaServerOperationResponse, ValidationFailureResponse>>
+        RemoveUserRecordsAsync(EnvimaniaRemoveUserRecordsRequest request, CancellationToken cancellationToken);
+
     Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken);
     Task<List<RecordEntity>> GetValidationsByTitleIdAsync(string titleId, CancellationToken cancellationToken);
 
@@ -1992,6 +1995,62 @@ public sealed class EnvimaniaService(
         }
 
         return hasChanges;
+    }
+
+    public async Task<OneOf<EnvimaniaServerOperationResponse, ValidationFailureResponse>> RemoveUserRecordsAsync(EnvimaniaRemoveUserRecordsRequest request, CancellationToken cancellationToken)
+    {
+        var userModel = await userService.GetAsync(request.Login, cancellationToken);
+
+        if (userModel is null)
+        {
+            return new ValidationFailureResponse("User not found");
+        }
+
+        var records = db.Records.Where(x => x.User.Id == request.Login && !x.Removed);
+
+        var affected = await records
+            .Select(x => new { MapUid = x.Map.Id, x.Map.TitlePackId, CarId = x.Car.Id, x.Gravity, x.Laps })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var turboRecordCount = await records
+            .CountAsync(x => x.Map.TitlePackId == "Envimix_Turbo@bigbang1112", cancellationToken);
+
+        var removed = await records
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Removed, true), cancellationToken);
+
+        if (turboRecordCount > 0)
+        {
+            try
+            {
+                using var client = new DiscordWebhookClient(config["DiscordRecordWebhook"]);
+                var userLink = ValidationWebhookProcessor.GetUserLink(userModel);
+                await client.SendMessageAsync($"All **{turboRecordCount}** record{(turboRecordCount == 1 ? "" : "s")} by {userLink} were **removed**");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to announce removal of all records by {Login} on Discord", request.Login);
+            }
+        }
+
+        if (removed > 0)
+        {
+            await outputCache.EvictByTagAsync("title-stats", cancellationToken);
+
+            foreach (var combo in affected)
+            {
+                await hybridCache.RemoveAsync(CacheHelper.GetMapRecordsKey(combo.MapUid, combo.CarId, combo.Gravity, combo.Laps, "World"), CancellationToken.None);
+            }
+
+            foreach (var titlePackId in affected.Select(x => x.TitlePackId).Distinct())
+            {
+                await hybridCache.RemoveAsync($"ValidationsByTitleId_{titlePackId}", CancellationToken.None);
+                await hybridCache.RemoveAsync($"PlayerRecordsByTitleId_{titlePackId}", CancellationToken.None);
+            }
+        }
+
+        logger.LogInformation("Removed {Count} records driven by {Login}.", removed, request.Login);
+        return new EnvimaniaServerOperationResponse(removed);
     }
 
     public async Task<List<RecordEntity>> GetValidationsByMapUidAsync(string mapUid, CancellationToken cancellationToken)

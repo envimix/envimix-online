@@ -44,6 +44,7 @@ public static class EnvimaniaEndpoints
 
         group.MapPost("record/remove", RemoveRecord);
         group.MapPost("record/revert", RevertRecord);
+        group.MapPost("records/remove-user", RemoveUserRecords);
     }
 
     private static void MapSession(RouteGroupBuilder group)
@@ -844,6 +845,27 @@ public static class EnvimaniaEndpoints
             validResponse => TypedResults.Ok(),
             validationFailure => TypedResults.BadRequest(validationFailure),
             actionForbidden => TypedResults.Forbid()
+        );
+    }
+
+    private static async Task<Results<Ok<EnvimaniaServerOperationResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>> RemoveUserRecords(
+        [FromBody] EnvimaniaRemoveUserRecordsRequest removeUserRecordsRequest,
+        HttpRequest request,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var access = await envimaniaService.GetServerAccessAsync(
+            "", principal, GetBearerToken(request), cancellationToken);
+        if (!access.CanAdminister)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await envimaniaService.RemoveUserRecordsAsync(removeUserRecordsRequest, cancellationToken);
+        return result.Match<Results<Ok<EnvimaniaServerOperationResponse>, BadRequest<ValidationFailureResponse>, ForbidHttpResult>>(
+            response => TypedResults.Ok(response),
+            validationFailure => TypedResults.BadRequest(validationFailure)
         );
     }
 }

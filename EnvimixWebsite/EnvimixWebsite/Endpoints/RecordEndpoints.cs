@@ -11,6 +11,17 @@ internal static class RecordEndpoints
             .RequireAuthorization(Policies.AdminPolicy);
         app.MapPost("/records/revert", RevertRecord)
             .RequireAuthorization(Policies.AdminPolicy);
+        app.MapPost("/records/remove-user", RemoveUserRecords)
+            .RequireAuthorization(Policies.AdminPolicy);
+    }
+
+    private static async Task<IResult> RemoveUserRecords(
+        [FromForm] string login,
+        IEnvimixService envimixService,
+        CancellationToken cancellationToken)
+    {
+        await envimixService.RemoveUserRecordsAsync(login, cancellationToken);
+        return TypedResults.LocalRedirect($"/users/{Uri.EscapeDataString(login)}");
     }
 
     private static async Task<IResult> RemoveRecord(

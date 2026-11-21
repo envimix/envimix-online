@@ -121,6 +121,20 @@
                 </table>
             </div>
         }
+
+        @if (canAdminister)
+        {
+            <section class="danger-zone">
+                <h3>Danger zone</h3>
+                <div class="danger-actions">
+                    <form method="post" action="/records/remove-user" onsubmit="return confirm('Remove every record driven by this player? Records can still be restored one by one.');">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="login" value="@user.Login" />
+                        <ReuButton type="submit" Variant="ReuButtonVariant.Red">Remove all records</ReuButton>
+                    </form>
+                </div>
+            </section>
+        }
     }
 </ReuContainer>
 
