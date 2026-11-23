@@ -455,6 +455,13 @@ public static class MapEndpoints
             return TypedResults.Forbid();
         }
 
+        if (map.UnlockMedalPoints > 0
+            && map.CampaignId is int campaignId
+            && await mapService.GetCampaignMedalPointsAsync(campaignId, userModel.Id, cancellationToken) < map.UnlockMedalPoints)
+        {
+            return TypedResults.Forbid();
+        }
+
         await db.MapVisits.AddAsync(new MapVisitEntity
         {
             Map = map,
