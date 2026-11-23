@@ -75,6 +75,7 @@ public sealed class UserService(
             Login = userRequest.User.Login,
             Token = token,
             IsAdmin = user.IsAdmin,
+            CanAccessUnreleased = user.CanAccessUnreleased,
             BanReason = string.IsNullOrEmpty(user.BanReason) ? (user.BanReason is null ? "" : "Banned for unknown reason") : user.BanReason,
         };
     }
