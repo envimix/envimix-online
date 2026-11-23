@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using OneOf;
 using System.Data;
@@ -58,6 +59,9 @@ public interface IEnvimaniaService
         string serverLogin, ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
     Task<bool> HasAdminAccessAsync(
+        ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
+
+    Task<bool> HasUnreleasedAccessAsync(
         ClaimsPrincipal principal, string? identityAccessToken, CancellationToken cancellationToken);
 
     Task<OneOf<EnvimaniaBanResponse, ValidationFailureResponse, ActionUnprocessableResponse>>
@@ -482,6 +486,31 @@ public sealed class EnvimaniaService(
 
         var identityUser = await GetIdentityUserAsync(identityAccessToken, cancellationToken);
         return identityUser is not null && await IsEnvimixAdminAsync(identityUser, cancellationToken);
+    }
+
+    public async Task<bool> HasUnreleasedAccessAsync(
+        ClaimsPrincipal principal,
+        string? identityAccessToken,
+        CancellationToken cancellationToken)
+    {
+        if (principal.IsInRole(Roles.Admin) || principal.IsInRole(Roles.SuperAdmin))
+        {
+            return true;
+        }
+
+        if (principal.HasClaim(JwtRegisteredClaimNames.Aud, Consts.ManiaPlanetUser)
+            && principal.Identity?.Name is string login
+            && await db.Users.AnyAsync(x => x.Id == login && (x.IsAdmin || x.CanAccessUnreleased), cancellationToken))
+        {
+            return true;
+        }
+
+        var identityUser = await GetIdentityUserAsync(identityAccessToken, cancellationToken);
+        return identityUser is not null
+            && identityUser.Providers.TryGetValue("ManiaPlanet", out var maniaPlanetUser)
+            && await db.Users.AnyAsync(
+                x => x.Id == maniaPlanetUser.Id && (x.IsAdmin || x.CanAccessUnreleased),
+                cancellationToken);
     }
 
     private async Task<bool> IsEnvimixAdminAsync(IdentityUser identityUser, CancellationToken cancellationToken)
@@ -1051,7 +1080,7 @@ public sealed class EnvimaniaService(
         activity?.SetTag("car.name", carName);
         activity?.SetTag("title_pack.id", map.TitlePackId);
 
-        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin))
+        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > timestamp && !principal.IsInRole(Roles.Admin) && !userModel.CanAccessUnreleased)
         {
             userModel.BanReason = "AUTOMATED: Attempted to access an unreleased campaign map";
             await db.SaveChangesAsync(CancellationToken.None);

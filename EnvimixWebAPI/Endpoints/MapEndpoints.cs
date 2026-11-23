@@ -128,6 +128,9 @@ public static class MapEndpoints
         bool? showAll,
         bool? worldRecordHistory,
         AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        HttpRequest request,
         CancellationToken cancellationToken)
     {
         var mapInfo = await db.Maps
@@ -137,11 +140,18 @@ public static class MapEndpoints
                 x.Collection,
                 x.DefaultCarId,
                 x.AuthorLogin,
-                x.AuthorNickname
+                x.AuthorNickname,
+                x.Campaign
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (mapInfo is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!mapInfo.Campaign.IsReleased(DateTimeOffset.UtcNow)
+            && !await envimaniaService.HasUnreleasedAccessAsync(principal, EnvimaniaEndpoints.GetBearerToken(request), cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -302,6 +312,7 @@ public static class MapEndpoints
         IStarService starService,
         IConfiguration configuration,
         ClaimsPrincipal principal,
+        HttpRequest request,
         CancellationToken cancellationToken)
     {
         var map = await db.Maps
@@ -317,6 +328,12 @@ public static class MapEndpoints
         if (map.TitlePack?.ReleasedAt is not null && map.TitlePack.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
         {
             return TypedResults.Forbid();
+        }
+
+        if (!map.Campaign.IsReleased(DateTimeOffset.UtcNow)
+            && !await envimaniaService.HasUnreleasedAccessAsync(principal, EnvimaniaEndpoints.GetBearerToken(request), cancellationToken))
+        {
+            return TypedResults.NotFound();
         }
 
         var mapResponse = await GetMapInfoAsync(mapUid, envimaniaService, ratingService, starService, configuration, principal, map, cancellationToken);
@@ -422,7 +439,7 @@ public static class MapEndpoints
             }
         }
 
-        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin))
+        if (map.Campaign?.ReleasedAt is not null && map.Campaign.ReleasedAt > DateTimeOffset.UtcNow && !principal.IsInRole(Roles.Admin) && !userModel.CanAccessUnreleased)
         {
             userModel.BanReason = "AUTOMATED: Attempted to access an unreleased campaign map";
             await db.SaveChangesAsync(CancellationToken.None);

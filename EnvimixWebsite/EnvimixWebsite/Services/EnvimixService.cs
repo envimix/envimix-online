@@ -16,6 +16,7 @@ public interface IEnvimixService
     Task RemoveRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task RevertRecordAsync(string mapUid, string login, string carId, int gravity, int laps, int time, CancellationToken cancellationToken = default);
     Task RemoveUserRecordsAsync(string login, CancellationToken cancellationToken = default);
+    Task SetUnreleasedAccessAsync(string login, bool enabled, CancellationToken cancellationToken = default);
     Task<HashSet<string>> GetRegisteredServersAsync(IEnumerable<string> serverLogins, CancellationToken cancellationToken = default);
     Task<EnvimaniaServerSummary[]> GetServersAsync(CancellationToken cancellationToken = default);
     Task<EnvimaniaServerInfo?> GetServerAsync(string serverLogin, int page = 1, int pageSize = 10, bool withPlayersOnly = false, CancellationToken cancellationToken = default);
@@ -149,6 +150,21 @@ public sealed class EnvimixService(
             $"{config["EnvimixApi"]}/envimania/record/revert")
         {
             Content = JsonContent.Create(new { MapUid = mapUid, Login = login, CarId = carId, Gravity = gravity, Laps = laps, Time = time })
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SetUnreleasedAccessAsync(string login, bool enabled, CancellationToken cancellationToken = default)
+    {
+        var accessToken = await GetAccessTokenAsync();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{config["EnvimixApi"]}/players/{Uri.EscapeDataString(login)}/unreleased-access")
+        {
+            Content = JsonContent.Create(new { Enabled = enabled })
         };
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -317,7 +333,7 @@ public sealed class EnvimixService(
     public Task<PlayerInfo?> GetUserAsync(
         string userLogin,
         CancellationToken cancellationToken = default)
-        => GetDetailAsync<PlayerInfo>($"players/{Uri.EscapeDataString(userLogin)}", cancellationToken);
+        => GetDetailAsync<PlayerInfo>($"players/{Uri.EscapeDataString(userLogin)}", cancellationToken, includeAccessToken: true);
 
     public Task<RecordInfo?> GetRecordAsync(
         string mapUid,
@@ -383,7 +399,8 @@ public sealed class EnvimixService(
 
         return GetDetailAsync<MapRecordsPage>(
             $"maps/{Uri.EscapeDataString(mapUid)}/records?page={page}&pageSize={pageSize}&showAll={showAll}{historyQuery}{carQuery}",
-            cancellationToken);
+            cancellationToken,
+            includeAccessToken: true);
     }
 
     public async Task<GhostDownload?> GetGhostAsync(Guid ghostId, CancellationToken cancellationToken = default)
@@ -431,11 +448,20 @@ public sealed class EnvimixService(
 
     private async Task<T?> GetDetailAsync<T>(
         string path,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeAccessToken = false)
     {
-        using var response = await httpClient.GetAsync(
-            $"{config["EnvimixApi"]}/{path}",
-            cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{config["EnvimixApi"]}/{path}");
+        if (includeAccessToken)
+        {
+            var accessToken = await GetAccessTokenAsync(required: false);
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            }
+        }
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             return default;
@@ -539,7 +565,8 @@ public sealed record PlayerInfo(
     string? Nickname,
     string? Zone,
     int RecordCount,
-    RecordInfo[] RecentRecords);
+    RecordInfo[] RecentRecords,
+    bool? CanAccessUnreleased = null);
 
 public sealed record CarInfo(
     string Id,

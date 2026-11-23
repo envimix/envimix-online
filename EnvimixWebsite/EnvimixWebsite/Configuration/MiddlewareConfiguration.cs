@@ -40,6 +40,7 @@ public static class MiddlewareConfiguration
         TitleEndpoints.Map(app);
         ServerEndpoints.Map(app);
         RecordEndpoints.Map(app);
+        UserEndpoints.Map(app);
         GhostEndpoints.Map(app);
         //ConnectEndpoints.Map(app);
 

@@ -30,6 +30,11 @@ public sealed class UserEntity
     public float? LadderPoints { get; set; }
     public bool IsInsider { get; set; }
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Can see and play unreleased campaigns like an admin, without being automatically banned.
+    /// </summary>
+    public bool CanAccessUnreleased { get; set; }
     public DiscordUserEntity? DiscordUser { get; set; }
     //public DateTime? LastSeenOn { get; set; }
     //public Server? LastSeenOnServer { get; set; }

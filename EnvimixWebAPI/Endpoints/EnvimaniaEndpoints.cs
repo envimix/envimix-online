@@ -1,4 +1,5 @@
-﻿using EnvimixWebAPI.Models;
+﻿using EnvimixWebAPI.Extensions;
+using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Models.Envimania;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -286,6 +287,12 @@ public static class EnvimaniaEndpoints
             .Where(x => x.Server.Id == serverLogin)
             .Where(x => withPlayersOnly != true || db.Records.Any(record => record.SessionId == x.Id));
 
+        if (!access.CanAdminister
+            && !await envimaniaService.HasUnreleasedAccessAsync(principal, GetBearerToken(request), cancellationToken))
+        {
+            sessionsQuery = sessionsQuery.WhereCampaignReleased(DateTimeOffset.UtcNow);
+        }
+
         var matchingSessionCount = await sessionsQuery.CountAsync(cancellationToken);
         var normalizedPageSize = Math.Clamp(pageSize ?? 10, 10, 100);
         var totalPages = Math.Max(1, (int)Math.Ceiling(matchingSessionCount / (double)normalizedPageSize));
@@ -367,6 +374,7 @@ public static class EnvimaniaEndpoints
                 MapUid = x.Map.Id,
                 MapName = x.Map.Name,
                 MapLaps = x.Map.Laps,
+                MapCampaign = x.Map.Campaign,
                 x.StartedAt,
                 x.EndedAt,
                 x.FinishedGracefully,
@@ -382,6 +390,13 @@ public static class EnvimaniaEndpoints
         var access = await envimaniaService.GetServerAccessAsync(
             session.ServerLogin, principal, GetBearerToken(request), cancellationToken);
         if (session.ServerDeletedAt is not null && !access.CanAdminister)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!session.MapCampaign.IsReleased(DateTimeOffset.UtcNow)
+            && !access.CanAdminister
+            && !await envimaniaService.HasUnreleasedAccessAsync(principal, GetBearerToken(request), cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -462,7 +477,7 @@ public static class EnvimaniaEndpoints
         return error is null ? TypedResults.Ok() : TypedResults.BadRequest(error);
     }
 
-    private static string? GetBearerToken(HttpRequest request)
+    internal static string? GetBearerToken(HttpRequest request)
     {
         var authorization = request.Headers.Authorization.ToString();
         return authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)

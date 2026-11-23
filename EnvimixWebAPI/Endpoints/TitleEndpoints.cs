@@ -1,4 +1,5 @@
-﻿using EnvimixWebAPI.Models;
+﻿using EnvimixWebAPI.Extensions;
+using EnvimixWebAPI.Models;
 using EnvimixWebAPI.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
@@ -61,6 +62,7 @@ public static class TitleEndpoints
 
         var maps = await db.Maps
             .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
+            .WhereCampaignReleased(DateTimeOffset.UtcNow)
             .OrderBy(x => x.CampaignId == null)
             .ThenBy(x => x.Campaign!.Name)
             .ThenBy(x => x.Order == null)

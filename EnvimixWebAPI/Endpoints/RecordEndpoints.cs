@@ -1,4 +1,5 @@
 using EnvimixWebAPI.Entities;
+using EnvimixWebAPI.Extensions;
 using EnvimixWebAPI.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,7 @@ public static class RecordEndpoints
                 x.CarId == car &&
                 x.UserId == login &&
                 x.Time == time)
+            .WhereCampaignReleased(DateTimeOffset.UtcNow)
             .OrderByDescending(x => x.DrivenAt))
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -54,6 +56,7 @@ public static class RecordEndpoints
         IQueryable<RecordEntity> records,
         CancellationToken cancellationToken)
         => Project(records
+            .WhereCampaignReleased(DateTimeOffset.UtcNow)
             .OrderByDescending(x => x.DrivenAt)
             .Take(50))
             .ToArrayAsync(cancellationToken);

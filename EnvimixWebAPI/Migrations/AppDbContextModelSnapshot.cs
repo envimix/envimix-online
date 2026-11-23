@@ -610,6 +610,9 @@ namespace EnvimixWebAPI.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<bool>("CanAccessUnreleased")
+                        .HasColumnType("tinyint(1)");
+
                     b.PrimitiveCollection<string>("Color")
                         .HasColumnType("longtext");
 

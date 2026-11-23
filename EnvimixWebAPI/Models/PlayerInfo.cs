@@ -5,4 +5,5 @@ public sealed record PlayerInfo(
     string? Nickname,
     string? Zone,
     int RecordCount,
-    RecordInfo[] RecentRecords);
+    RecordInfo[] RecentRecords,
+    bool? CanAccessUnreleased = null);

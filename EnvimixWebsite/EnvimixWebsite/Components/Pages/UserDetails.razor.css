@@ -67,9 +67,14 @@
     opacity: 0.65;
 }
 
+.admin-zone,
 .danger-zone {
     margin-top: 3rem;
     margin-bottom: 1.5rem;
+}
+
+.admin-zone ::deep .reu-button {
+    padding: 0.5rem 1rem;
 }
 
 .danger-zone h3 {

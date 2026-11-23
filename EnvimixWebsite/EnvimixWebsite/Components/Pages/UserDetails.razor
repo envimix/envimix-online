@@ -122,6 +122,26 @@
             </div>
         }
 
+        @if (canAdminister && user.CanAccessUnreleased is bool canAccessUnreleased)
+        {
+            <section class="admin-zone">
+                <h3>Unreleased campaigns</h3>
+                <p>
+                    @(canAccessUnreleased
+                        ? "This player can see and play unreleased campaigns like an admin."
+                        : "This player cannot access unreleased campaigns.")
+                </p>
+                <div class="danger-actions">
+                    <form method="post" action="/users/unreleased-access">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="login" value="@user.Login" />
+                        <input type="hidden" name="enabled" value="@(canAccessUnreleased ? "false" : "true")" />
+                        <ReuButton type="submit">@(canAccessUnreleased ? "Revoke access" : "Grant access")</ReuButton>
+                    </form>
+                </div>
+            </section>
+        }
+
         @if (canAdminister)
         {
             <section class="danger-zone">
