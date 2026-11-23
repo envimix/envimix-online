@@ -27,6 +27,83 @@ public static class MapEndpoints
         group.MapGet("{mapUid}/records", GetRecords);
         group.MapGet("{mapUid}/download", DownloadMap);
         group.MapPost("{mapUid}", VisitMap).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
+        group.MapPost("{mapUid}/secret", FindSecret).RequireAuthorization(Policies.ManiaPlanetUserPolicy);
+    }
+
+    private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>, NotFound, ForbidHttpResult>> FindSecret(
+        string mapUid,
+        AppDbContext db,
+        IMapService mapService,
+        IUserService userService,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var userModel = await userService.GetAsync(principal.GetName(), cancellationToken);
+
+        if (userModel is null)
+        {
+            return TypedResults.BadRequest(new ValidationFailureResponse("User not found"));
+        }
+
+        if (userModel.BanReason is not null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var map = await db.Maps
+            .Include(x => x.TitlePack)
+            .Include(x => x.Campaign)
+            .FirstOrDefaultAsync(x => x.Id == mapUid, cancellationToken);
+
+        if (map is null || !map.IsCampaignMap || !map.HasSecret || map.Campaign is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var isAdmin = principal.IsInRole(Roles.Admin);
+
+        if (!isAdmin && map.TitlePack?.ReleasedAt > now)
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (!isAdmin && !userModel.CanAccessUnreleased && map.Campaign.ReleasedAt > now)
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (!isAdmin && !await mapService.IsUnlockedAsync(map, userModel.Id, cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (await db.MapSecrets.AnyAsync(x => x.MapId == map.Id && x.UserId == userModel.Id, cancellationToken))
+        {
+            return TypedResults.Ok();
+        }
+
+        await db.MapSecrets.AddAsync(new MapSecretEntity
+        {
+            Map = map,
+            User = userModel,
+            FoundAt = now
+        }, cancellationToken);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // a concurrent request may have already stored the secret (unique index on map + user)
+            if (!await db.MapSecrets.AsNoTracking().AnyAsync(x => x.MapId == map.Id && x.UserId == userModel.Id, CancellationToken.None))
+            {
+                throw;
+            }
+        }
+
+        return TypedResults.Ok();
     }
 
     private static async Task<Results<Ok, BadRequest<ValidationFailureResponse>>> SubmitMaps(
@@ -105,6 +182,8 @@ public static class MapEndpoints
             map.BronzeTime = mapInfo.BronzeTime;
             map.DefaultCarId = mapInfo.DefaultCar;
             map.UnlockMedalPoints = mapInfo.MedalPoints;
+            map.HasSecret = mapInfo.Secret ?? false;
+            map.SecretReward = mapInfo.SecretReward ?? false;
         }
 
         // unset campaign maps that are not in the submitted list
@@ -455,9 +534,7 @@ public static class MapEndpoints
             return TypedResults.Forbid();
         }
 
-        if (map.UnlockMedalPoints > 0
-            && map.CampaignId is int campaignId
-            && await mapService.GetCampaignMedalPointsAsync(campaignId, userModel.Id, cancellationToken) < map.UnlockMedalPoints)
+        if (!await mapService.IsUnlockedAsync(map, userModel.Id, cancellationToken))
         {
             return TypedResults.Forbid();
         }
@@ -521,6 +598,8 @@ public static class MapEndpoints
             BronzeTime = map.BronzeTime,
             DefaultCar = map.DefaultCarId,
             UnlockMedalPoints = map.UnlockMedalPoints,
+            HasSecret = map.HasSecret,
+            SecretReward = map.SecretReward,
             DuckTime = medalInfo?.Duck,
             STMTime = medalInfo?.STM,
             TitlePack = map.TitlePack is null ? null : new()

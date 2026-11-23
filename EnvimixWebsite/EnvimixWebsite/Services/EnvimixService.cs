@@ -596,7 +596,9 @@ public sealed record TitleMapInfo(
     int? Order,
     string? DefaultCar,
     int? UnlockMedalPoints,
-    bool IsCampaignUnreleased = false);
+    bool IsCampaignUnreleased = false,
+    bool HasSecret = false,
+    bool SecretReward = false);
 
 public sealed record RecordInfo(
     string UserLogin,
@@ -648,7 +650,9 @@ public sealed record MapDetailsInfo(
     int? DuckTime,
     int? STMTime,
     MapTitleInfo? TitlePack,
-    int? UnlockMedalPoints = null);
+    int? UnlockMedalPoints = null,
+    bool HasSecret = false,
+    bool SecretReward = false);
 
 public sealed record MapTitleInfo(
     string Id,

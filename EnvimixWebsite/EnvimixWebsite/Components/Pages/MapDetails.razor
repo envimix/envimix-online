@@ -58,6 +58,13 @@
                     <dd>@map.UnlockMedalPoints medal points</dd>
                 </div>
             }
+            @if (map.SecretReward)
+            {
+                <div>
+                    <dt>Secret reward</dt>
+                    <dd>Unlocks after finding all campaign secrets</dd>
+                </div>
+            }
             @if (map.TitlePack is not null)
             {
                 <div>

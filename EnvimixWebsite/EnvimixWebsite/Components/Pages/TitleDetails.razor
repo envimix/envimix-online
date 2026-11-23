@@ -84,7 +84,7 @@
                 .OrderBy(campaign => string.IsNullOrWhiteSpace(campaign.Key) ? 0 : 1)
                 .ThenBy(campaign => campaign.Key))
             {
-                var showUnlocks = campaign.Any(map => map.UnlockMedalPoints > 0);
+                var showUnlocks = campaign.Any(map => map.UnlockMedalPoints > 0 || map.SecretReward);
                 <section class="campaign">
                     @if (!string.IsNullOrWhiteSpace(campaign.Key))
                     {
@@ -122,7 +122,7 @@
                                         <td class="nowrap">@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</td>
                                         @if (showUnlocks)
                                         {
-                                            <td class="nowrap">@(map.UnlockMedalPoints > 0 ? $"{map.UnlockMedalPoints} medal points" : "Start")</td>
+                                            <td class="nowrap">@GetUnlockText(map)</td>
                                         }
                                     </tr>
                                 }
@@ -181,6 +181,14 @@
 
     private static string GetMapName(TitleMapInfo map)
         => string.IsNullOrWhiteSpace(map.Name) ? map.Uid : map.Name;
+
+    private static string GetUnlockText(TitleMapInfo map) => (map.UnlockMedalPoints > 0, map.SecretReward) switch
+    {
+        (true, true) => $"{map.UnlockMedalPoints} medal points + all secrets",
+        (true, false) => $"{map.UnlockMedalPoints} medal points",
+        (false, true) => "All secrets",
+        _ => "Start"
+    };
 
     private static string GetMapUrl(string mapUid)
         => $"/maps/{Uri.EscapeDataString(mapUid)}";

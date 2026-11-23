@@ -251,6 +251,9 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<int>("GoldTime")
                         .HasColumnType("int");
 
+                    b.Property<bool>("HasSecret")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsCampaignMap")
                         .HasColumnType("tinyint(1)");
 
@@ -264,6 +267,9 @@ namespace EnvimixWebAPI.Migrations
 
                     b.Property<int?>("Order")
                         .HasColumnType("int");
+
+                    b.Property<bool>("SecretReward")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("SilverTime")
                         .HasColumnType("int");
@@ -287,6 +293,35 @@ namespace EnvimixWebAPI.Migrations
                     b.HasIndex("TitlePackId");
 
                     b.ToTable("Maps");
+                });
+
+            modelBuilder.Entity("EnvimixWebAPI.Entities.MapSecretEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("FoundAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("MapId")
+                        .IsRequired()
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MapId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("MapSecrets");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapVisitEntity", b =>
@@ -788,6 +823,25 @@ namespace EnvimixWebAPI.Migrations
                     b.Navigation("FirstAppearedOnServer");
 
                     b.Navigation("TitlePack");
+                });
+
+            modelBuilder.Entity("EnvimixWebAPI.Entities.MapSecretEntity", b =>
+                {
+                    b.HasOne("EnvimixWebAPI.Entities.MapEntity", "Map")
+                        .WithMany()
+                        .HasForeignKey("MapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnvimixWebAPI.Entities.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Map");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EnvimixWebAPI.Entities.MapVisitEntity", b =>

@@ -11,10 +11,50 @@ public interface IMapService
     Task<MapEntity> GetAddOrUpdateAsync(MapInfo mapInfo, ServerEntity? server, CancellationToken cancellationToken = default);
     Task<MapEntity?> GetWithDownloadAsync(string mapUid, CancellationToken cancellationToken);
     Task<int> GetCampaignMedalPointsAsync(int campaignId, string login, CancellationToken cancellationToken);
+    Task<bool> HasFoundAllCampaignSecretsAsync(int campaignId, string login, string? exceptMapUid, CancellationToken cancellationToken);
+    Task<bool> IsUnlockedAsync(MapEntity map, string login, CancellationToken cancellationToken);
 }
 
 public sealed class MapService(AppDbContext db) : IMapService
 {
+    /// <summary>
+    /// Whether the player satisfies the campaign progression requirements of the map (medal points, secrets).
+    /// </summary>
+    public async Task<bool> IsUnlockedAsync(MapEntity map, string login, CancellationToken cancellationToken)
+    {
+        if (map.CampaignId is not int campaignId)
+        {
+            return true;
+        }
+
+        if (map.UnlockMedalPoints > 0
+            && await GetCampaignMedalPointsAsync(campaignId, login, cancellationToken) < map.UnlockMedalPoints)
+        {
+            return false;
+        }
+
+        if (map.SecretReward
+            && !await HasFoundAllCampaignSecretsAsync(campaignId, login, exceptMapUid: map.Id, cancellationToken))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the player found the secret on every secret campaign map (optionally excluding one map, so a reward map
+    /// that also hides a secret does not require itself).
+    /// </summary>
+    public async Task<bool> HasFoundAllCampaignSecretsAsync(int campaignId, string login, string? exceptMapUid, CancellationToken cancellationToken)
+    {
+        return !await db.Maps.AnyAsync(map => map.CampaignId == campaignId
+            && map.IsCampaignMap
+            && map.HasSecret
+            && map.Id != exceptMapUid
+            && !db.MapSecrets.Any(secret => secret.MapId == map.Id && secret.UserId == login), cancellationToken);
+    }
+
     /// <summary>
     /// Medal points the player earned across a campaign, mirroring the in-game world map progression:
     /// best default car time per map (normal gravity, full race), 5 for author, 3 gold, 2 silver, 1 bronze.

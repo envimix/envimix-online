@@ -22,4 +22,14 @@ public sealed class MapInfo
     /// Medal points required to unlock the map in campaign progression. Only read on campaign submission.
     /// </summary>
     [JsonPropertyName(nameof(MedalPoints))] public int? MedalPoints { get; set; }
+
+    /// <summary>
+    /// The map contains a secret that players can find. Only read on campaign submission.
+    /// </summary>
+    [JsonPropertyName(nameof(Secret))] public bool? Secret { get; set; }
+
+    /// <summary>
+    /// The map unlocks only after all secrets in the campaign are found. Only read on campaign submission.
+    /// </summary>
+    [JsonPropertyName(nameof(SecretReward))] public bool? SecretReward { get; set; }
 }

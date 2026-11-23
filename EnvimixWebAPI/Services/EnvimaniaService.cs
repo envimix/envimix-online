@@ -1096,12 +1096,10 @@ public sealed class EnvimaniaService(
             return new ActionForbiddenResponse("Title pack not released yet");
         }
 
-        if (map.UnlockMedalPoints > 0
-            && map.CampaignId is int campaignId
-            && !principal.IsInRole(Roles.Admin)
-            && await mapService.GetCampaignMedalPointsAsync(campaignId, userModel.Id, cancellationToken) < map.UnlockMedalPoints)
+        if (!principal.IsInRole(Roles.Admin)
+            && !await mapService.IsUnlockedAsync(map, userModel.Id, cancellationToken))
         {
-            activity?.SetTag("validation_failure", "Not enough medal points to unlock the map");
+            activity?.SetTag("validation_failure", "Map not unlocked by campaign progression");
             return new ActionForbiddenResponse("Map not unlocked yet");
         }
 

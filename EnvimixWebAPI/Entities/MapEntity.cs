@@ -48,6 +48,16 @@ public sealed class MapEntity
     /// </summary>
     public int? UnlockMedalPoints { get; set; }
 
+    /// <summary>
+    /// The map contains a secret that players can find (reported via the map secret endpoint).
+    /// </summary>
+    public bool HasSecret { get; set; }
+
+    /// <summary>
+    /// The map is only accessible once the player has found all secrets in its campaign.
+    /// </summary>
+    public bool SecretReward { get; set; }
+
     public bool IsDefaultCar(string carId)
     {
         if (!string.IsNullOrWhiteSpace(DefaultCarId))
