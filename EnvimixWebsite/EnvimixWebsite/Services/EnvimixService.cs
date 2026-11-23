@@ -594,7 +594,8 @@ public sealed record TitleMapInfo(
     string Collection,
     string? Campaign,
     int? Order,
-    string? DefaultCar);
+    string? DefaultCar,
+    int? UnlockMedalPoints);
 
 public sealed record RecordInfo(
     string UserLogin,
@@ -645,7 +646,8 @@ public sealed record MapDetailsInfo(
     string? DefaultCar,
     int? DuckTime,
     int? STMTime,
-    MapTitleInfo? TitlePack);
+    MapTitleInfo? TitlePack,
+    int? UnlockMedalPoints = null);
 
 public sealed record MapTitleInfo(
     string Id,

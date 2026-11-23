@@ -271,6 +271,9 @@ namespace EnvimixWebAPI.Migrations
                     b.Property<string>("TitlePackId")
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int?>("UnlockMedalPoints")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CampaignId");

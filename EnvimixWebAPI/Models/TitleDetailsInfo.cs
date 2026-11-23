@@ -20,4 +20,5 @@ public sealed record TitleMapInfo(
     string Collection,
     string? Campaign,
     int? Order,
-    string? DefaultCar);
+    string? DefaultCar,
+    int? UnlockMedalPoints);

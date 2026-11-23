@@ -43,6 +43,11 @@ public sealed class MapEntity
     public CarEntity? DefaultCar { get; set; }
     public string? DefaultCarId { get; set; }
 
+    /// <summary>
+    /// Medal points required to unlock the map in campaign progression (e.g. the Opreax world map).
+    /// </summary>
+    public int? UnlockMedalPoints { get; set; }
+
     public bool IsDefaultCar(string carId)
     {
         if (!string.IsNullOrWhiteSpace(DefaultCarId))

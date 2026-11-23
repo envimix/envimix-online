@@ -84,6 +84,7 @@
                 .OrderBy(campaign => string.IsNullOrWhiteSpace(campaign.Key) ? 0 : 1)
                 .ThenBy(campaign => campaign.Key))
             {
+                var showUnlocks = campaign.Any(map => map.UnlockMedalPoints > 0);
                 <section class="campaign">
                     @if (!string.IsNullOrWhiteSpace(campaign.Key))
                     {
@@ -97,6 +98,10 @@
                                 <tr>
                                     <th scope="col">Map</th>
                                     <th scope="col">Environment</th>
+                                    @if (showUnlocks)
+                                    {
+                                        <th scope="col">Unlocks at</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody>
@@ -111,6 +116,10 @@
                                             }
                                         </td>
                                         <td class="nowrap">@(string.IsNullOrWhiteSpace(map.Collection) ? "Unknown" : map.Collection)</td>
+                                        @if (showUnlocks)
+                                        {
+                                            <td class="nowrap">@(map.UnlockMedalPoints > 0 ? $"{map.UnlockMedalPoints} medal points" : "Start")</td>
+                                        }
                                     </tr>
                                 }
                             </tbody>

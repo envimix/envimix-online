@@ -74,7 +74,8 @@ public static class TitleEndpoints
                 x.Collection,
                 x.Campaign == null ? null : x.Campaign.Name,
                 x.Order,
-                x.DefaultCarId))
+                x.DefaultCarId,
+                x.UnlockMedalPoints))
             .ToArrayAsync(cancellationToken);
 
         var recordCount = await db.Records.CountAsync(x => x.TitleId == titleId && !x.Removed, cancellationToken);

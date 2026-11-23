@@ -17,4 +17,9 @@ public sealed class MapInfo
     [JsonPropertyName(nameof(SilverTime))] public int SilverTime { get; set; }
     [JsonPropertyName(nameof(BronzeTime))] public int BronzeTime { get; set; }
     [JsonPropertyName(nameof(DefaultCar))] public string? DefaultCar { get; set; }
+
+    /// <summary>
+    /// Medal points required to unlock the map in campaign progression. Only read on campaign submission.
+    /// </summary>
+    [JsonPropertyName(nameof(MedalPoints))] public int? MedalPoints { get; set; }
 }
