@@ -2273,6 +2273,12 @@ public sealed class EnvimaniaService(
                             continue;
                         }
 
+                        if (!await mapService.IsUnlockedAsync(map, lbEntry.Login, cancellationToken))
+                        {
+                            logger.LogInformation("Skipping leaderboard entry for {login} on map {mapUid} because the map is not unlocked for them", lbEntry.Login, mapUid);
+                            continue;
+                        }
+
                         using var headResponse = await http.HeadAsync(lbEntry.DownloadUrl, cancellationToken);
 
                         if (!headResponse.IsSuccessStatusCode)
@@ -2503,6 +2509,12 @@ public sealed class EnvimaniaService(
                         if (string.IsNullOrEmpty(lbEntry.DownloadUrl))
                         {
                             logger.LogWarning("Skipping leaderboard entry for {login} due to missing download URL", lbEntry.Login);
+                            continue;
+                        }
+
+                        if (!await mapService.IsUnlockedAsync(map, lbEntry.Login, cancellationToken))
+                        {
+                            logger.LogInformation("Skipping leaderboard entry for {login} on map {mapUid} because the map is not unlocked for them", lbEntry.Login, mapUid);
                             continue;
                         }
 

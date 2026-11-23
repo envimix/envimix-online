@@ -18,6 +18,7 @@ public interface ISessionRecordRestorationService
 public sealed class SessionRecordRestorationService(
     AppDbContext db,
     IModService modService,
+    IMapService mapService,
     IOutputCacheStore outputCache,
     HybridCache hybridCache,
     ILogger<SessionRecordRestorationService> logger) : ISessionRecordRestorationService
@@ -145,6 +146,11 @@ public sealed class SessionRecordRestorationService(
             if (user is null)
             {
                 return "Replay player is not registered in Envimix.";
+            }
+
+            if (!await mapService.IsUnlockedAsync(session.Map, user.Id, cancellationToken))
+            {
+                return "Replay player has not unlocked this map yet.";
             }
 
             record = new RecordEntity
