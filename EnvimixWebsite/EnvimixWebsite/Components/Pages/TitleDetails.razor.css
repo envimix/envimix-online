@@ -45,6 +45,13 @@
     margin-block: 0 0.5rem;
 }
 
+.unreleased-badge {
+    margin-left: 0.5rem;
+    font-size: 0.75em;
+    font-weight: normal;
+    color: var(--color-red);
+}
+
 .maps-table {
     width: 100%;
     min-width: 32rem;

@@ -21,4 +21,5 @@ public sealed record TitleMapInfo(
     string? Campaign,
     int? Order,
     string? DefaultCar,
-    int? UnlockMedalPoints);
+    int? UnlockMedalPoints,
+    bool IsCampaignUnreleased = false);

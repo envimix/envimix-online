@@ -358,7 +358,7 @@ public sealed class EnvimixService(
     public Task<TitleDetailsInfo?> GetTitleAsync(
         string titleId,
         CancellationToken cancellationToken = default)
-        => GetDetailAsync<TitleDetailsInfo>($"titles/{Uri.EscapeDataString(titleId)}", cancellationToken);
+        => GetDetailAsync<TitleDetailsInfo>($"titles/{Uri.EscapeDataString(titleId)}", cancellationToken, includeAccessToken: true);
 
     public async Task<MapDetailsInfo?> GetMapAsync(
         string mapUid,
@@ -595,7 +595,8 @@ public sealed record TitleMapInfo(
     string? Campaign,
     int? Order,
     string? DefaultCar,
-    int? UnlockMedalPoints);
+    int? UnlockMedalPoints,
+    bool IsCampaignUnreleased = false);
 
 public sealed record RecordInfo(
     string UserLogin,

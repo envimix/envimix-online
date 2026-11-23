@@ -90,6 +90,10 @@
                     {
                         <h4>
                             <FormattedText Text="@campaign.Key"></FormattedText>
+                            @if (campaign.Any(map => map.IsCampaignUnreleased))
+                            {
+                                <span class="unreleased-badge">Unreleased</span>
+                            }
                         </h4>
                     }
                     <div class="maps-scroll">

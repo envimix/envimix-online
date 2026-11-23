@@ -41,6 +41,9 @@ public static class TitleEndpoints
     private static async Task<Results<Ok<TitleDetailsInfo>, NotFound>> GetTitle(
         string titleId,
         AppDbContext db,
+        IEnvimaniaService envimaniaService,
+        ClaimsPrincipal principal,
+        HttpRequest request,
         CancellationToken cancellationToken)
     {
         var title = await db.Titles
@@ -60,9 +63,15 @@ public static class TitleEndpoints
             return TypedResults.NotFound();
         }
 
-        var maps = await db.Maps
-            .Where(x => x.TitlePackId == titleId && x.IsCampaignMap)
-            .WhereCampaignReleased(DateTimeOffset.UtcNow)
+        var now = DateTimeOffset.UtcNow;
+        var mapsQuery = db.Maps.Where(x => x.TitlePackId == titleId && x.IsCampaignMap);
+
+        if (!await envimaniaService.HasUnreleasedAccessAsync(principal, EnvimaniaEndpoints.GetBearerToken(request), cancellationToken))
+        {
+            mapsQuery = mapsQuery.WhereCampaignReleased(now);
+        }
+
+        var maps = await mapsQuery
             .OrderBy(x => x.CampaignId == null)
             .ThenBy(x => x.Campaign!.Name)
             .ThenBy(x => x.Order == null)
@@ -75,7 +84,9 @@ public static class TitleEndpoints
                 x.Campaign == null ? null : x.Campaign.Name,
                 x.Order,
                 x.DefaultCarId,
-                x.UnlockMedalPoints))
+                x.UnlockMedalPoints,
+                x.Campaign != null && x.Campaign.Name != ""
+                    && (x.Campaign.ReleasedAt == null || x.Campaign.ReleasedAt > now)))
             .ToArrayAsync(cancellationToken);
 
         var recordCount = await db.Records.CountAsync(x => x.TitleId == titleId && !x.Removed, cancellationToken);
