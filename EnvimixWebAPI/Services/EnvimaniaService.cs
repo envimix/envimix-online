@@ -1394,7 +1394,8 @@ public sealed class EnvimaniaService(
             return "Invalid Nickname";
         }
 
-        if (!await zoneService.IsValidAsync(request.User.Zone, cancellationToken))
+        // empty zone is allowed - the user's existing zone is kept in that case
+        if (!string.IsNullOrEmpty(request.User.Zone) && !await zoneService.IsValidAsync(request.User.Zone, cancellationToken))
         {
             logger.LogWarning("Record of {login} has invalid zone {zone}", request.User.Login, request.User.Zone);
             return "Invalid Zone";
