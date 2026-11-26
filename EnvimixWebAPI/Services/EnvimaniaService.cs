@@ -1439,6 +1439,14 @@ public sealed class EnvimaniaService(
             return ("Session has no title", null);
         }
 
+        // multiplayer must follow the same campaign progression as solo (medal points, secrets)
+        if (!userModel.IsAdmin && !await mapService.IsUnlockedAsync(map, userModel.Id, cancellationToken))
+        {
+            logger.LogWarning("Record of {login} on {mapUid} ({car}) rejected: map not unlocked by campaign progression",
+                request.User.Login, mapUid, request.Car);
+            return ("Map not unlocked yet", null);
+        }
+
         var car = await modService.GetOrAddCarAsync(request.Car, cancellationToken);
 
         var gravity = request.Gravity;
