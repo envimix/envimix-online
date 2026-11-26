@@ -681,6 +681,8 @@ public sealed class EnvimaniaService(
         {
             if (!modService.IsValidCar(car))
             {
+                logger.LogWarning("Session creation rejected for {serverLogin}: invalid car {car}. Requested cars: [{requestedCars}]. Allowed cars: [{allowedCars}]",
+                    request.ServerLogin, car, string.Join(", ", request.Cars), string.Join(", ", envimaniaOptions.Value.Car));
                 return new ValidationFailureResponse($"Invalid car ({car})");
             }
         }
@@ -691,11 +693,13 @@ public sealed class EnvimaniaService(
 
         if (server is null)
         {
+            logger.LogWarning("Session creation rejected for {serverLogin}: server login not registered", request.ServerLogin);
             return new ValidationFailureResponse("Server login not registered");
         }
 
         if (server.BanReason is not null)
         {
+            logger.LogWarning("Session creation forbidden for {serverLogin}: server is banned ({banReason})", request.ServerLogin, server.BanReason);
             return ActionForbiddenResponse.ServerLoginBanned;
         }
 
@@ -706,6 +710,7 @@ public sealed class EnvimaniaService(
 
         if (ingameAuthResult.Login != request.ServerLogin)
         {
+            logger.LogWarning("Session creation rejected for {serverLogin}: server token authenticated as {authLogin}", request.ServerLogin, ingameAuthResult.Login);
             return new ValidationFailureResponse("Invalid server token");
         }
 
@@ -972,11 +977,14 @@ public sealed class EnvimaniaService(
 
         if (banReason is not null)
         {
+            logger.LogWarning("Session record forbidden for {serverLogin}: server is banned ({banReason})", principal.GetName(), banReason);
             return ActionForbiddenResponse.ServerLoginBanned;
         }
 
         if (await ValidateRecordRequestAsync(request, cancellationToken) is string msg)
         {
+            logger.LogWarning("Session record rejected (session {sessionGuid}, map {mapUid}): {reason}",
+                principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid), principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid), msg);
             return new ValidationFailureResponse(msg);
         }
 
@@ -986,6 +994,8 @@ public sealed class EnvimaniaService(
 
         if (addition.Error is string msgAfter)
         {
+            logger.LogWarning("Session record rejected (session {sessionGuid}, map {mapUid}): {reason}",
+                principal.FindFirstValue(EnvimaniaClaimTypes.SessionGuid), principal.FindFirstValue(EnvimaniaClaimTypes.SessionMapUid), msgAfter);
             return new ValidationFailureResponse(msgAfter);
         }
 
@@ -1350,6 +1360,7 @@ public sealed class EnvimaniaService(
     {
         if (request.Record.Checkpoints.Length == 0)
         {
+            logger.LogWarning("Record of {login} has no checkpoints (Time={time})", request.User.Login, request.Record.Time);
             return "Invalid record";
         }
 
@@ -1362,31 +1373,44 @@ public sealed class EnvimaniaService(
             || request.Record.Distance != finishCp.Distance
             || request.Record.Speed != finishCp.Speed)
         {
+            logger.LogWarning("Record of {login} does not match its finish checkpoint or has non-positive time. " +
+                "Record: Time={time} Score={score} NbRespawns={nbRespawns} Distance={distance} Speed={speed}. " +
+                "Finish CP: Time={cpTime} Score={cpScore} NbRespawns={cpNbRespawns} Distance={cpDistance} Speed={cpSpeed}",
+                request.User.Login,
+                request.Record.Time, request.Record.Score, request.Record.NbRespawns, request.Record.Distance, request.Record.Speed,
+                finishCp.Time, finishCp.Score, finishCp.NbRespawns, finishCp.Distance, finishCp.Speed);
             return "Invalid record";
         }
 
         if (!Validator.ValidateLogin(request.User.Login))
         {
+            logger.LogWarning("Record has invalid login {login}", request.User.Login);
             return "Invalid login";
         }
 
         if (!Validator.ValidateNickname(request.User.Nickname))
         {
+            logger.LogWarning("Record of {login} has invalid nickname {nickname}", request.User.Login, request.User.Nickname);
             return "Invalid Nickname";
         }
 
         if (!await zoneService.IsValidAsync(request.User.Zone, cancellationToken))
         {
+            logger.LogWarning("Record of {login} has invalid zone {zone}", request.User.Login, request.User.Zone);
             return "Invalid Zone";
         }
 
         if (!modService.IsValidCar(request.Car))
         {
+            logger.LogWarning("Record of {login} has invalid car {car}. Allowed cars: [{allowedCars}]",
+                request.User.Login, request.Car, string.Join(", ", envimaniaOptions.Value.Car));
             return "Invalid Car";
         }
 
         if (!modService.IsValidGravity(request.Gravity))
         {
+            logger.LogWarning("Record of {login} has invalid gravity {gravity}. Allowed gravity: [{allowedGravity}]",
+                request.User.Login, request.Gravity, string.Join(", ", envimaniaOptions.Value.Gravity));
             return "Invalid Gravity";
         }
 
@@ -1410,6 +1434,7 @@ public sealed class EnvimaniaService(
 
         if (titleId is null)
         {
+            logger.LogWarning("Session {sessionGuid} has no title (record of {login})", sessionGuid, request.User.Login);
             return ("Session has no title", null);
         }
 
@@ -1448,6 +1473,8 @@ public sealed class EnvimaniaService(
 
         if (bestTime.HasValue && request.Record.Time > bestTime.Value)
         {
+            logger.LogWarning("Record of {login} on {mapUid} ({car}, gravity {gravity}, laps {laps}) is slower than their best: {time} > {bestTime} (persisted {persistedBestTime}, pending {pendingBestTime})",
+                request.User.Login, mapUid, request.Car, gravity, laps, request.Record.Time, bestTime.Value, persistedBestTime, pendingBestTime);
             return ("Invalid record", null);
         }
 
@@ -1458,6 +1485,10 @@ public sealed class EnvimaniaService(
 
         if (!isPb)
         {
+            logger.LogWarning("Record of {login} on {mapUid} ({car}, gravity {gravity}, laps {laps}) is not a personal best (likely a duplicate/resubmission of an existing PB). " +
+                "Submitted: Time={time} Score={score} NbRespawns={nbRespawns} Distance={distance} Speed={speed}, best time {bestTime}",
+                request.User.Login, mapUid, request.Car, gravity, laps,
+                request.Record.Time, request.Record.Score, request.Record.NbRespawns, request.Record.Distance, request.Record.Speed, bestTime);
             return ("Invalid record", null);
         }
 

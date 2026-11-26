@@ -519,15 +519,20 @@ public static class EnvimaniaEndpoints
         [FromBody] EnvimaniaSessionRequest sessionRequest,
         IEnvimaniaService envimaniaService,
         ClaimsPrincipal principal,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         if (!Validator.ValidateMapUid(sessionRequest.Map.Uid))
         {
+            loggerFactory.CreateLogger(typeof(EnvimaniaEndpoints)).LogWarning("Session creation rejected for {serverLogin}: invalid MapUid {mapUid}",
+                sessionRequest.ServerLogin, sessionRequest.Map.Uid);
             return TypedResults.BadRequest(new ValidationFailureResponse("Invalid MapUid"));
         }
 
         if (sessionRequest.Players.Length > 255)
         {
+            loggerFactory.CreateLogger(typeof(EnvimaniaEndpoints)).LogWarning("Session creation rejected for {serverLogin}: too many players ({playerCount})",
+                sessionRequest.ServerLogin, sessionRequest.Players.Length);
             return TypedResults.BadRequest(new ValidationFailureResponse("Too many players"));
         }
 
